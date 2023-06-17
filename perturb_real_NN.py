@@ -89,10 +89,30 @@ def FT_3D(knum,G_k,Rx,Ry,Rz):# usually R is like (0,0,1)
     return G_real
 
 
+def P_offdiag(G):
+    n=int(np.shape(G)[0]/4)
+    # print(np.shape(G))
+    # print('n=',n)
+    P_offdiag=np.zeros(2*n+1,dtype=complex)
+    for Omind in np.arange(2*n+1):
+        P_offdiag[Omind] = np.sum(G[n:3*n] * G[n+Omind-n:3*n+Omind-n])
+    return P_offdiag
+
+def Sigma_offdiag(P,G):
+    n=int(np.shape(G)[0]/4)
+    # print(np.shape(G))
+    # print('n=',n)
+    Sigma_offdiag=np.zeros(2*n,dtype=complex)
+    for omind in np.arange(2*n):
+        Sigma_offdiag[omind] = np.sum(P* G[n+omind-n:3*n+omind-n+1])
+    return Sigma_offdiag
+
+
 #--------------test functions below---------
 
-def G_test(a=1):
+def test(a=1):
     # start_time = time.time()
+    #-----------generate G_k--------------
     U=2.0
     mu=U/2
     T=0.01
@@ -115,19 +135,43 @@ def G_test(a=1):
     kzind=5
     plt.plot(fermion_om,G_off[:,kxind,kyind,kzind].real,label='Gk_off_real')
     plt.plot(fermion_om,G_off[:,kxind,kyind,kzind].imag,label='Gk_off_imag')
-    # plt.plot(fermion_om,G_off[:,knum-1-kxind,kyind,kzind].real,label='G-k_off_real')
-    # plt.plot(fermion_om,G_off[:,knum-1-kxind,kyind,kzind].imag,label='G-k_off_imag')
     plt.legend()
     plt.show()
-    #-------------FT test--------------
-    Greal_100=FT_3D(knum,G_off,1,0,0)
-    Greal_000=FT_3D(knum,G_off,0,0,0)
-    plt.plot(fermion_om,Greal_100.real,label='Gr100_off_real')
-    plt.plot(fermion_om,Greal_100.imag,label='Gr100_off_imag')
-    plt.plot(fermion_om,Greal_000.real,label='Gr000_off_real')
-    plt.plot(fermion_om,Greal_000.imag,label='Gr000_off_imag')
+    #-------------FT & G_R test--------------
+    Gr_p00=FT_3D(knum,G_off,1,0,0)
+    Gr_m00=FT_3D(knum,G_off,-1,0,0)
+    Gr_000=FT_3D(knum,G_off,0,0,0)
+    plt.plot(fermion_om,Gr_p00.real,label='Grp00_off_real')
+    plt.plot(fermion_om,Gr_p00.imag,label='Grp00_off_imag')
+    plt.plot(fermion_om,Gr_m00.real,label='Grm00_off_real')
+    plt.plot(fermion_om,Gr_m00.imag,label='Grm00_off_imag')
+    plt.plot(fermion_om,Gr_000.real,label='Gr000_off_real')
+    plt.plot(fermion_om,Gr_000.imag,label='Gr000_off_imag')
+    plt.legend()
+    plt.show()
+    #----------P test--------------
+    Pr_p00=P_offdiag(Gr_p00)
+    Pr_m00=P_offdiag(Gr_m00)
+    Pr_000=P_offdiag(Gr_000)
+    plt.plot(Pr_p00.real,label='Prp00_off_real')
+    plt.plot(Pr_p00.imag,label='Prp00_off_imag')
+    plt.plot(Pr_m00.real,label='Prm00_off_real')
+    plt.plot(Pr_m00.imag,label='Prm00_off_imag')
+    plt.plot(Pr_000.real,label='Pr000_off_real')
+    plt.plot(Pr_000.imag,label='Pr000_off_imag')
+    plt.legend()
+    plt.show()
+    Sigmar_p00=Sigma_offdiag(Pr_p00,Gr_p00)
+    Sigmar_m00=Sigma_offdiag(Pr_m00,Gr_m00)
+    Sigmar_000=Sigma_offdiag(Pr_000,Gr_000)
+    plt.plot(Sigmar_p00.real,label='Sigmarp00_off_real')
+    plt.plot(Sigmar_p00.imag,label='Sigmarp00_off_imag')
+    plt.plot(Sigmar_m00.real,label='Sigmarm00_off_real')
+    plt.plot(Sigmar_m00.imag,label='Sigmarm00_off_imag')
+    plt.plot(Sigmar_000.real,label='Sigmar000_off_real')
+    plt.plot(Sigmar_000.imag,label='Sigmar000_off_imag')
     plt.legend()
     plt.show()
     return 0
 
-G_test()
+test()
