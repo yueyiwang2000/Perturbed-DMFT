@@ -89,23 +89,23 @@ def FT_3D(knum,G_k,Rx,Ry,Rz,opt=0):# usually R is like (0,0,1)
     return G_real
 
 
-def P_offdiag(G):
+def P_offdiag(G,beta):
     n=int(np.shape(G)[0]/4)
     # print(np.shape(G))
     # print('n=',n)
     P_offdiag=np.zeros(2*n+1,dtype=complex)
     for Omind in np.arange(2*n+1):
         P_offdiag[Omind] = np.sum(G[n:3*n] * G[n+Omind-n:3*n+Omind-n])
-    return P_offdiag
+    return P_offdiag/beta
 
-def Sigma_offdiag(P,G):
+def Sigma_offdiag(P,G,beta,U):
     n=int(np.shape(G)[0]/4)
     # print(np.shape(G))
     # print('n=',n)
     Sigma_offdiag=np.zeros(2*n,dtype=complex)
     for omind in np.arange(2*n):
         Sigma_offdiag[omind] = np.sum(P* G[n+omind-n:3*n+omind-n+1])
-    return Sigma_offdiag
+    return -1*Sigma_offdiag*U*U/beta
 
 
 #--------------test functions below---------
@@ -153,10 +153,10 @@ def test(a=1):
     plt.legend()
     plt.show()
     #----------P test--------------
-    Pr_p00m=P_offdiag(Gr_p00m)
-    Pr_m00p=P_offdiag(Gr_m00p)
-    Pr_000m=P_offdiag(Gr_000m)
-    Pr_000p=P_offdiag(Gr_000p)
+    Pr_p00m=P_offdiag(Gr_p00m,beta)
+    Pr_m00p=P_offdiag(Gr_m00p,beta)
+    Pr_000m=P_offdiag(Gr_000m,beta)
+    Pr_000p=P_offdiag(Gr_000p,beta)
     plt.plot(Pr_p00m.real,label='Prp00m_off_real')
     plt.plot(Pr_p00m.imag,label='Prp00m_off_imag')
     plt.plot(Pr_m00p.real,label='Prm00p_off_real')
@@ -165,10 +165,10 @@ def test(a=1):
     plt.plot(Pr_000m.imag,label='Pr000p_off_imag')
     plt.legend()
     plt.show()
-    Sigmar_p00m=Sigma_offdiag(Pr_p00m,Gr_p00m)
-    Sigmar_m00p=Sigma_offdiag(Pr_m00p,Gr_m00p)
-    Sigmar_000p=Sigma_offdiag(Pr_000p,Gr_000p)
-    Sigmar_000m=Sigma_offdiag(Pr_000m,Gr_000m)
+    Sigmar_p00m=Sigma_offdiag(Pr_p00m,Gr_p00m,beta,U)
+    Sigmar_m00p=Sigma_offdiag(Pr_m00p,Gr_m00p,beta,U)
+    Sigmar_000p=Sigma_offdiag(Pr_000p,Gr_000p,beta,U)
+    Sigmar_000m=Sigma_offdiag(Pr_000m,Gr_000m,beta,U)
     plt.plot(Sigmar_p00m.real,label='Sigmarp00m_off_real')
     plt.plot(Sigmar_p00m.imag,label='Sigmarp00m_off_imag')
     plt.plot(Sigmar_m00p.real,label='Sigmarm00p_off_real')
