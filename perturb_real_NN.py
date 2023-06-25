@@ -80,6 +80,17 @@ def G_offdiag(knum,z_A,z_B,a=1):
     G_offdiag = dis / (zazb[:, None, None, None] - dis**2)
     return G_offdiag
 
+def G_diag(knum,z_A,z_B,opt,a=1):
+    n=z_A.size
+    kx,ky,kz=kgrid_full(knum)
+    G_diag=np.zeros((n,knum,knum,knum),dtype=np.complex128)
+    zazb=z_A*z_B
+    z_bar=0.5*(z_A+z_B)
+    delta=0.5*(z_A-z_B)
+    dis=dispersion(kx, ky, kz)
+    G_diag = (z_bar[:, None, None, None]+delta[:, None, None, None]*opt) / (zazb[:, None, None, None] - dis**2)
+    return G_diag
+
 def FT_3D(knum,G_k,Rx,Ry,Rz,opt=0):# usually R is like (0,0,1)
     n=np.shape(G_k)[0]
     G_real=np.zeros(n,dtype=complex)
@@ -89,23 +100,23 @@ def FT_3D(knum,G_k,Rx,Ry,Rz,opt=0):# usually R is like (0,0,1)
     return G_real
 
 
-def P_offdiag(G,beta):
+def polarization(G,beta):
     n=int(np.shape(G)[0]/4)
     # print(np.shape(G))
     # print('n=',n)
-    P_offdiag=np.zeros(2*n+1,dtype=complex)
+    polarization=np.zeros(2*n+1,dtype=complex)
     for Omind in np.arange(2*n+1):
-        P_offdiag[Omind] = np.sum(G[n:3*n] * G[n+Omind-n:3*n+Omind-n])
-    return P_offdiag/beta
+        polarization[Omind] = np.sum(G[n:3*n] * G[n+Omind-n:3*n+Omind-n])
+    return polarization/beta
 
-def Sigma_offdiag(P,G,beta,U):
+def Sigma_pert(P,G,beta,U):
     n=int(np.shape(G)[0]/4)
     # print(np.shape(G))
     # print('n=',n)
-    Sigma_offdiag=np.zeros(2*n,dtype=complex)
+    Sigma_pert=np.zeros(2*n,dtype=complex)
     for omind in np.arange(2*n):
-        Sigma_offdiag[omind] = np.sum(P* G[n+omind-n:3*n+omind-n+1])
-    return -1*Sigma_offdiag*U*U/beta
+        Sigma_pert[omind] = np.sum(P* G[n+omind-n:3*n+omind-n+1])
+    return -1*Sigma_pert*U*U/beta
 
 
 #--------------test functions below---------
@@ -126,15 +137,29 @@ def test(a=1):
     # allsigA=ext_sig(beta,sigA)
     # print('n=',n,)
     knum=20
-    G_off=G_offdiag(knum,z_A,z_B)
+
     fermion_om = (2*np.arange(4*n)+1-4*n)*np.pi/beta
     # time_G=time.time()
     # print("time to calculate prepare 2 G is {:.6f} s".format(time_G-start_time))
+
+    plt.plot(fermion_om[2*n:3*n],sigA.real,label='sigA_real')
+    plt.plot(fermion_om[2*n:3*n],sigA.imag,label='sigA_imag')
+    plt.plot(fermion_om[2*n:3*n],sigB.real,label='sigB_real')
+    plt.plot(fermion_om[2*n:3*n],sigB.imag,label='sigB_imag')
+    plt.legend()
+    plt.show()
     kxind=3
     kyind=4
     kzind=5
+    G_off=G_offdiag(knum,z_A,z_B)
+    G_11=G_diag(knum,z_A,z_B,1)
+    G_22=G_diag(knum,z_A,z_B,-1)
     plt.plot(fermion_om,G_off[:,kxind,kyind,kzind].real,label='Gk_off_real')
     plt.plot(fermion_om,G_off[:,kxind,kyind,kzind].imag,label='Gk_off_imag')
+    plt.plot(fermion_om,G_11[:,kxind,kyind,kzind].real,label='Gk_11_real')
+    plt.plot(fermion_om,G_11[:,kxind,kyind,kzind].imag,label='Gk_11_imag')
+    plt.plot(fermion_om,G_22[:,kxind,kyind,kzind].real,label='Gk_22_real')
+    plt.plot(fermion_om,G_22[:,kxind,kyind,kzind].imag,label='Gk_22_imag')
     plt.legend()
     plt.show()
     #-------------FT & G_R test--------------
@@ -142,33 +167,56 @@ def test(a=1):
     Gr_m00p=FT_3D(knum,G_off,-1,0,0,+1)
     Gr_000m=FT_3D(knum,G_off,0,0,0,-1)
     Gr_000p=FT_3D(knum,G_off,0,0,0,1)
-    plt.plot(fermion_om,Gr_p00m.real,label='Grp00m_off_real')
-    plt.plot(fermion_om,Gr_p00m.imag,label='Grp00m_off_imag')
-    plt.plot(fermion_om,Gr_m00p.real,label='Grm00p_off_real')
-    plt.plot(fermion_om,Gr_m00p.imag,label='Grm00p_off_imag')
-    plt.plot(fermion_om,Gr_000m.real,label='Gr000m_off_real')
-    plt.plot(fermion_om,Gr_000m.imag,label='Gr000m_off_imag')
-    plt.plot(fermion_om,Gr_000p.real,label='Gr000p_off_real')
-    plt.plot(fermion_om,Gr_000p.imag,label='Gr000p_off_imag')
+    G11r_p00=FT_3D(knum,G_11,1,0,0,0)
+    G11r_m00=FT_3D(knum,G_11,-1,0,0,0)
+    G22r_p00=FT_3D(knum,G_22,1,0,0,0)
+    G22r_m00=FT_3D(knum,G_22,-1,0,0,0)
+    # plt.plot(fermion_om,Gr_p00m.real,label='Grp00m_off_real')
+    # plt.plot(fermion_om,Gr_p00m.imag,label='Grp00m_off_imag')
+    # plt.plot(fermion_om,Gr_m00p.real,label='Grm00p_off_real')
+    # plt.plot(fermion_om,Gr_m00p.imag,label='Grm00p_off_imag')
+    # plt.plot(fermion_om,Gr_000m.real,label='Gr000m_off_real')
+    # plt.plot(fermion_om,Gr_000m.imag,label='Gr000m_off_imag')
+    # plt.plot(fermion_om,Gr_000p.real,label='Gr000p_off_real')
+    # plt.plot(fermion_om,Gr_000p.imag,label='Gr000p_off_imag')
+    
+    plt.plot(fermion_om,G11r_p00.real,label='G11r_p00_real')
+    plt.plot(fermion_om,G11r_p00.imag,label='G11r_p00_imag')
+    plt.plot(fermion_om,G11r_m00.real,label='G11r_m00_real')
+    plt.plot(fermion_om,G11r_m00.imag,label='G11r_m00_imag')
+    plt.plot(fermion_om,G22r_p00.real,label='G22r_p00_real')
+    plt.plot(fermion_om,G22r_p00.imag,label='G22r_p00_imag')
+    plt.plot(fermion_om,G22r_m00.real,label='G22r_m00_real')
+    plt.plot(fermion_om,G22r_m00.imag,label='G22r_m00_imag')
     plt.legend()
     plt.show()
     #----------P test--------------
-    Pr_p00m=P_offdiag(Gr_p00m,beta)
-    Pr_m00p=P_offdiag(Gr_m00p,beta)
-    Pr_000m=P_offdiag(Gr_000m,beta)
-    Pr_000p=P_offdiag(Gr_000p,beta)
+    Pr_p00m=polarization(Gr_p00m,beta)
+    Pr_m00p=polarization(Gr_m00p,beta)
+    Pr_000m=polarization(Gr_000m,beta)
+    Pr_000p=polarization(Gr_000p,beta)
+    P11r_p00=polarization(G11r_p00,beta)
+    P22r_p00=polarization(G22r_p00,beta)
     plt.plot(Pr_p00m.real,label='Prp00m_off_real')
     plt.plot(Pr_p00m.imag,label='Prp00m_off_imag')
     plt.plot(Pr_m00p.real,label='Prm00p_off_real')
     plt.plot(Pr_m00p.imag,label='Prm00p_off_imag')
     plt.plot(Pr_000m.real,label='Pr000p_off_real')
     plt.plot(Pr_000m.imag,label='Pr000p_off_imag')
+
+    plt.plot(P11r_p00.real,label='P11r_p00_real')
+    plt.plot(P11r_p00.imag,label='P11r_p00_imag')
+    plt.plot(P22r_p00.real,label='P22r_p00_real')
+    plt.plot(P22r_p00.imag,label='P22r_p00_imag')
+
     plt.legend()
     plt.show()
-    Sigmar_p00m=Sigma_offdiag(Pr_p00m,Gr_p00m,beta,U)
-    Sigmar_m00p=Sigma_offdiag(Pr_m00p,Gr_m00p,beta,U)
-    Sigmar_000p=Sigma_offdiag(Pr_000p,Gr_000p,beta,U)
-    Sigmar_000m=Sigma_offdiag(Pr_000m,Gr_000m,beta,U)
+    Sigmar_p00m=Sigma_pert(Pr_p00m,Gr_p00m,beta,U)
+    Sigmar_m00p=Sigma_pert(Pr_m00p,Gr_m00p,beta,U)
+    Sigmar_000p=Sigma_pert(Pr_000p,Gr_000p,beta,U)
+    Sigmar_000m=Sigma_pert(Pr_000m,Gr_000m,beta,U)
+    Sigma11r_p00=Sigma_pert(P22r_p00-0.001,G11r_p00,beta,U)
+    Sigma22r_p00=Sigma_pert(P11r_p00-0.001,G22r_p00,beta,U)
     plt.plot(Sigmar_p00m.real,label='Sigmarp00m_off_real')
     plt.plot(Sigmar_p00m.imag,label='Sigmarp00m_off_imag')
     plt.plot(Sigmar_m00p.real,label='Sigmarm00p_off_real')
@@ -177,6 +225,11 @@ def test(a=1):
     plt.plot(Sigmar_000m.imag,label='Sigmar000m_off_imag')
     plt.plot(Sigmar_000p.real,label='Sigmar000p_off_real')
     plt.plot(Sigmar_000p.imag,label='Sigmar000p_off_imag')
+
+    plt.plot(Sigma11r_p00.real,label='Sigma11r_p00_real')
+    plt.plot(Sigma11r_p00.imag,label='Sigma11r_p00_imag')
+    plt.plot(Sigma22r_p00.real,label='Sigma22r_p00_real')
+    plt.plot(Sigma22r_p00.imag,label='Sigma22r_p00_imag')
     plt.legend()
     plt.show()
     return 0
