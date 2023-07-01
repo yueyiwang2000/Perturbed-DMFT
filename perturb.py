@@ -50,7 +50,7 @@ def ext_sig(beta,sig):
     allsig[:2*lenom]=allsig[4*lenom:2*lenom-1:-1].conjugate()
     return allsig
 
-def G_diag_A(knum,z_A,z_B,a=1):
+def G_diag_A(knum,z_A,z_B,a=1):# G11
     kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
     kroll=np.roll(kall,1)
     kave=(kall+kroll)/2
@@ -65,7 +65,7 @@ def G_diag_A(knum,z_A,z_B,a=1):
     G_diag_A = z_B[:, None, None, None] / (zazb[:, None, None, None] - dispersion(kx, ky, kz)**2)
     return G_diag_A
 
-def G_diag_B(knum,z_A,z_B,a=1):
+def G_diag_B(knum,z_A,z_B,a=1):#G22. But we can just use complex conjugate to save time.
     kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
     kroll=np.roll(kall,1)
     kave=(kall+kroll)/2
@@ -80,7 +80,7 @@ def G_diag_B(knum,z_A,z_B,a=1):
     G_diag_B = z_A[:, None, None, None] / (zazb[:, None, None, None] - dispersion(kx, ky, kz)**2)
     return G_diag_B
 
-def G_offdiag(knum,z_A,z_B,a=1):
+def G_offdiag(knum,z_A,z_B,a=1):#G12=G21
     kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
     kroll=np.roll(kall,1)
     kave=(kall+kroll)/2
@@ -96,28 +96,7 @@ def G_offdiag(knum,z_A,z_B,a=1):
     G_offdiag = dis / (zazb[:, None, None, None] - dis**2)
     return G_offdiag
 
-def G_diagonalized(knum,allsig,beta,mu,a=1):
-    #setting k grid
-    n=int(allsig.size/4)
-    kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
-    kroll=np.roll(kall,1)
-    kave=(kall+kroll)/2
-    klist=kave[-knum:] 
-    k1, k2, k3 = np.meshgrid(klist, klist, klist, indexing='ij')
-    kx=0.5*(-k1+k2+k3)
-    ky=0.5*(k1-k2+k3)
-    kz=0.5*(k1+k2-k3)
-    #
-    om=(2*np.arange(4*n)+1-4*n)*np.pi/beta
-    z_bar=1j*(om-allsig.imag)# z_bar is imaginary.
-    delta=allsig.real-mu# we don't have to care the sign of delta.
-    G_pp=np.zeros((n,knum,knum,knum),dtype=np.complex128)
-    G_pp = 1 / (z_bar[:, None, None, None] + np.sqrt(delta[:, None, None, None]**2+dispersion(kx, ky, kz)**2))
-    G_mm=np.zeros((n,knum,knum,knum),dtype=np.complex128)
-    G_mm = 1 / (z_bar[:, None, None, None] - np.sqrt(delta[:, None, None, None]**2+dispersion(kx, ky, kz)**2))
-    return G_pp,G_mm
-
-def precalcG0(knum,z_0,a=1):
+def precalcG0(knum,z_0,a=1):# prepared for the trick to resolve the convergence issue of diagonal element of polarization P11 and P22.
     k1=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
     k2=np.roll(k1,1)
     kave=(k1+k2)/2

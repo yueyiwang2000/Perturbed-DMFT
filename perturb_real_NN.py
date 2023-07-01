@@ -11,6 +11,10 @@ from joblib import Parallel, delayed
 # To avoid some technical issue and simplify the question (this is only a demo),
 # only NNs (nearest neighbours) are considered.
 
+#------------------------Yueyi Wang. Jun 30 2023----------------#
+# Unfortuanely this never works. The reason is that like many simple examples
+# in solid state physics, we always do things in k space because FT makes the 
+# Hamiltonian at least block diagonalized. This is a very basic issue.
 
 def dispersion(kx,ky,kz,a=1,t=1):
     e_k=-2*t*np.cos(kx*a)-2*t*np.cos(ky*a)-2*t*np.cos(kz*a)
