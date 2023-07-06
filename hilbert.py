@@ -4,6 +4,7 @@ from scipy import *
 from scipy import integrate, interpolate
 from pylab import *
 import cmath
+import sys
 
 par={
     'dos' : 'DOS_3D.dat',

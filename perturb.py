@@ -3,12 +3,38 @@ import numpy as np
 import os,sys,subprocess
 import time
 from joblib import Parallel, delayed
-import dask.array as da
+import perturb_imp
+
 
 def dispersion(kx,ky,kz,a=1,t=1):
     e_k=-2*t*np.cos(kx*a)-2*t*np.cos(ky*a)-2*t*np.cos(kz*a)
     return e_k
 
+def calc_eps2_ave(knum,a=1):
+    kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
+    kroll=np.roll(kall,1)
+    kave=(kall+kroll)/2
+    klist=kave[-knum:] 
+    k1, k2, k3 = np.meshgrid(klist, klist, klist, indexing='ij')
+    kx=0.5*(-k1+k2+k3)
+    ky=0.5*(k1-k2+k3)
+    kz=0.5*(k1+k2-k3)
+    eps2=dispersion(kx, ky, kz)**2
+    eps2_ave=np.sum(eps2)/knum**3
+    return eps2_ave
+
+
+def calc_disp(knum,a=1):
+    kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
+    kroll=np.roll(kall,1)
+    kave=(kall+kroll)/2
+    klist=kave[-knum:] 
+    k1, k2, k3 = np.meshgrid(klist, klist, klist, indexing='ij')
+    kx=0.5*(-k1+k2+k3)
+    ky=0.5*(k1-k2+k3)
+    kz=0.5*(k1+k2-k3)
+    disp=dispersion(kx, ky, kz)
+    return disp
 
 def foldback(k,knum):# from complete 2*knum k points per dimension to a reduced knum k points.
     return np.where((k>=0)&(k<knum),k,2*knum-k-1)# 
@@ -80,24 +106,9 @@ def G_12(knum,z_A,z_B,a=1):
     zazb=z_A*z_B
     dis=dispersion(kx, ky, kz)
     G_offdiag = dis / (zazb[:, None, None, None].real - dis**2)
-    
     return G_offdiag
 
-# def precalcG0(knum,z_0,a=1):
-#     k1=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
-#     k2=np.roll(k1,1)
-#     kave=(k1+k2)/2
-#     klist=kave[-knum:] 
-#     n=z_0.size
-#     k1, k2, k3 = np.meshgrid(klist, klist, klist, indexing='ij')
-#     kx=0.5*(-k1+k2+k3)
-#     ky=0.5*(k1-k2+k3)
-#     kz=0.5*(k1+k2-k3)
-#     n=z_0.size
-#     kx, ky, kz = np.meshgrid(klist, klist, klist, indexing='ij')
-#     G_k=np.zeros((n,knum,knum,knum),dtype=np.complex128)
-#     G_k = 1 / (z_0[:, None, None, None] - dispersion(kx, ky, kz))
-#     return G_k
+
 
 #here, I specify Omega_index is index of boson freq, as it should be.
 # and, let's set qx as sth like [1/10,3/10,5/10,7/10,9/10]. half as the k_f
@@ -167,9 +178,9 @@ def precalcP_innerloop_improved(q, kxind, kyind, kzind, knum, n, G_k,G_k0,alphak
         lindhard3=0.5*(1+deltainf/alphak)*0.5*(1-deltainf/alpha_kq) * (f_alphak+falpha_kq-1)/(1j*(Omind-n-0.001)*2*np.pi/beta+alpha_kq+alphak)
         lindhard4=0.5*(1-deltainf/alphak)*0.5*(1+deltainf/alpha_kq) * (1-f_alphak-falpha_kq)/(1j*(Omind-n-0.001)*2*np.pi/beta-alpha_kq-alphak)
         lindhard=lindhard1+lindhard2+lindhard3+lindhard4
+
         
-        
-        P_partial[Omind, 0, 0, 0] = +beta*np.sum(lindhard) +np.sum(G_k[n:3*n] * G_kq[n+Omind-n:3*n+Omind-n]-G_k0[n:3*n] * G_kq0[n+Omind-n:3*n+Omind-n])
+        P_partial[Omind, 0, 0, 0] =  +beta*np.sum(lindhard)+np.sum(G_k[n:3*n] * G_kq[n+Omind-n:3*n+Omind-n]-G_k0[n:3*n] * G_kq0[n+Omind-n:3*n+Omind-n])
         
         
         #brute-force 
@@ -177,7 +188,7 @@ def precalcP_innerloop_improved(q, kxind, kyind, kzind, knum, n, G_k,G_k0,alphak
 
 
         P_partial[2*n-Omind, 0, 0, 0]=P_partial[Omind, 0, 0, 0].conjugate()
-    return P_partial
+    return P_partial.real
 
 def precalcP_improved(beta, knum, Gk, fullsig,mu,a=1):# here, we need original sigma.
     n = int(np.shape(Gk)[0] / 4)
@@ -203,7 +214,7 @@ def precalcP_improved(beta, knum, Gk, fullsig,mu,a=1):# here, we need original s
 
     #generate alpha, f(alpha) for freq sum
     delta_inf=np.abs(-mu+fullsig[-1].real)
-
+    # alphak=dispersion(kx,ky,kz)# another alpha for test.
     alphak=np.sqrt(dispersion(kx,ky,kz)**2+delta_inf**2)
     f_alphak=fermi(alphak,beta)
     #generate unperturbed Green's function
@@ -215,7 +226,7 @@ def precalcP_improved(beta, knum, Gk, fullsig,mu,a=1):# here, we need original s
     #G(0)=(i*omega+delta_inf)/((i*omega)**2-alpha**2)
     Gk0 = (z_bar[:, None, None, None]+delta_inf) /(z_bar[:, None, None, None]**2 - alphak**2)
 
-    P = np.zeros((2*n+1, halfknum+1, halfknum+1, halfknum+1), dtype=complex)
+    P = np.zeros((2*n+1, halfknum+1, halfknum+1, halfknum+1))
     # print('shape of P,',np.shape(P))
     # fermion_Omega_ind = np.arange(n)
     kxind, kyind, kzind = np.meshgrid(kind_list, kind_list, kind_list, indexing='ij')
@@ -254,8 +265,9 @@ def precalcsig_innerloop(k, qxind, qyind, qzind, knum, n, P_k, Gk):
     kx, ky, kz = k
     sig_partial = np.zeros((2*n, 1, 1, 1), dtype=complex)
     G_kq = Gk[:, foldback(qxind + kx, knum), foldback(qyind + ky, knum), foldback(qzind + kz, knum)]
-    for omind in np.arange(2*n):
+    for omind in np.arange(n):
         sig_partial[omind, 0, 0, 0] = np.sum(P_k * G_kq[omind:omind +2*n+1])# from omind, omind+1, ..., to omind+2n
+        sig_partial[2*n-1-omind, 0, 0, 0]=sig_partial[omind, 0, 0, 0].conjugate()
     return sig_partial
 
 def precalcsig(U,beta, knum, Pk, Gk, a=1):
@@ -375,7 +387,6 @@ def sum_nonlocal_diagrams(sig,knum,a=1):# sum over all nonlocal Sigma_ij(iom)
 #----------test functions---------
 # all tests are made in the trivial dispersion e_k=0.
 
-
 def G_test(a=1):
     start_time = time.time()
     U=2.0
@@ -428,26 +439,21 @@ def precalcP_test(a=1):
     # print('n=',n,)
     knum=10
 
-    k1=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
-    k2=np.roll(k1,1)
-    kave=(k1+k2)/2
-    klist=kave[-knum:] # this klist is for k points. i.e. not k+q.
-    halfknum=int(knum/2)
     G11=G_11(knum,z_A,z_B)
-    G22=-G11.conjugate()
+    # G22=-G11.conjugate()
     G12=G_12(knum,z_A,z_B)
     # G_pp,G_mm=G_diagonalized(knum,allsigA,beta,mu)
 
       # try to systematically check a random point in P
     qxind=1
-    qyind=2
+    qyind=4
     qzind=3
     Omind=0
 
 
     start_time = time.time()
     #brute-force method: for P12=P21
-    # P12=precalcP(beta,knum,G12)
+    P12=precalcP(beta,knum,G12)
 
     # new trick
     P11=precalcP_improved(beta,knum,G11,allsigA,mu)
@@ -457,12 +463,12 @@ def precalcP_test(a=1):
     print("time is {:.6f} s".format(elapsed_time))
     Boson_om = (2*np.arange(2*n+1)-2*n)*np.pi/beta
     # Boson_iom=1j*Boson_om
-    plt.plot(Boson_om,P11[:,qxind,qyind,qzind].real,label='P11_real')#'BruteForce_real'
-    plt.plot(Boson_om,P11[:,qxind,qyind,qzind].imag,label='P11_imag')
-    # plt.plot(Boson_om,P22[:,qxind,qyind,qzind].real,label='P22_real')#'BruteForce_real'
+    plt.plot(Boson_om,P11[:,qxind,qyind,qzind].real,label='P11_real')
+    # plt.plot(Boson_om,P11[:,qxind,qyind,qzind].imag,label='P11_imag')
+    # plt.plot(Boson_om,P22[:,qxind,qyind,qzind].real,label='P22_real')
     # plt.plot(Boson_om,P22[:,qxind,qyind,qzind].imag,label='P22_imag')
-    # plt.plot(Boson_om,P12[:,qxind,qyind,qzind].real,label='P12_real')
-    # plt.plot(Boson_om,P12[:,qxind,qyind,qzind].imag,label='P12_imag')
+    plt.plot(Boson_om,P12[:,qxind,qyind,qzind].real,label='P12_real')
+    plt.plot(Boson_om,P12[:,qxind,qyind,qzind].imag,label='P12_imag')
     plt.legend()
     plt.show()
     return 0
@@ -478,64 +484,121 @@ def qxfold(qind,knum):#for sigtest
     elif 0<=qind<=halfknum-1:
         return halfknum-1-qind
 
-def sigtest(a=1):
-    #take the example: if all G only depend on omega. what happens....
-    start_time = time.time()
-    U=2.0
+
+
+def sig_imp_test(U,T,knum):
+    # U=2.0
     mu=U/2
-    T=0.01
+    # T=0.01
     beta=1/T
     sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
     sigA=sigma[:,1]+1j*sigma[:,2]
+    sigB=sigma[:,3]+1j*sigma[:,4]
+    z_A=z(beta,mu,sigA)
+    z_B=z(beta,mu,sigB)
+    n=sigA.size
     allsigA=ext_sig(beta,sigA)
-    # alp=z(beta,mu,sig,0)
-    n=int(allsigA.size/4)
-    # print(n)
-    knum=10
-    # G_pp,G_mm=G_diagonalized(knum,allsigA,beta,mu)
-    # P_pp=precalcP_improved(beta,knum,G_pp,allsigA,mu,'up')
-    # P_mm=P_pp.conjugate()
-    # print('shape of P,',np.shape(P_pp))
-    # iomlist = 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta# sum over fermion matsubara freqs
+    allsigB=ext_sig(beta,sigB)
+    delta_inf=np.abs(-mu+allsigA[-1].real)
+    # knum=10
+    eps2_ave=calc_eps2_ave(knum)
+    G11=G_11(knum,z_A,z_B)
+    G22=-G11.conjugate()
+    # print(np.shape(G11),np.shape(G22))
+    G11_imp=np.sum(G11,axis=(1,2,3))/knum**3
+    G22_imp=np.sum(G22,axis=(1,2,3))/knum**3
+    sigimp11,sigimp22=perturb_imp.pertimp_func(G11_imp,G22_imp,delta_inf,beta,U,eps2_ave)
+    return sigimp11,sigimp22
+
+
+def sigtest(U,T,knum,n,a=1):
+    start_time = time.time()
+
+    mu=U/2
+   
+    beta=1/T
+    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:n,:]
+    sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
+    sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
+    z_A=z(beta,mu,sigA)#z-delta
+    z_B=z(beta,mu,sigB)#z+delta
+    # n=sigA.size
+    allsigA=ext_sig(beta,sigA)
+    allsigB=ext_sig(beta,sigB)
+ 
+    G11=G_11(knum,z_A,z_B)
+    # G22=-G11.conjugate()
+    G12=G_12(knum,z_A,z_B)
     time_G=time.time()
-    print("time to calculate prepare all G and P is {:.6f} s".format(time_G-start_time))
+    print("time to calculate prepare all G is {:.6f} s".format(time_G-start_time))
+    P12=precalcP(beta,knum,G12)
+    P11=precalcP_improved(beta,knum,G11,allsigA,mu)
+    time_P=time.time()
+    print("time to calculate prepare all G and P is {:.6f} s".format(time_P-time_G))
 
-    #--------first, let's check P---------
-    # precalcP_test()
-
-    #---------‘analytical’---------
-    kxind=3
-    kyind=4
-    kzind=2
-    omind=2
-    # k1=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
-    # k2=np.roll(k1,1)
-    # kave=(k1+k2)/2
-    # klist=kave[-knum:] # this klist is for k points.
-    # halfknum=int(knum/2)
-    # qlist=klist[-halfknum:]
-
-    start_time2 = time.time()
-    # sig_pp=precalcsig(U,beta,knum,P_mm,G_pp)
-    # sig_mm=precalcsig(U,beta,knum,P_pp,G_mm)
-    # sigma11,sigma22,sigma12,sigma21=reverse_diag(knum,sig_pp,allsigA[n:3*n],mu)
-    # print('sigma_num[{},{},{},{}]'.format(omind,kxind,kyind,kzind),sig[omind+n,kxind,kyind,kzind])
-    time_sig2=time.time()
-    print("time to calculate a single numerical sigma is {:.6f} s".format(time_sig2-start_time2))
-    # plt.plot(sig_pp[:,kxind,kyind,kzind].real,label='sig_pp_real')
-    # plt.plot(sig_pp[:,kxind,kyind,kzind].imag,label='sig_pp_imag')
-    # plt.plot(sig_mm[:,kxind,kyind,kzind].real,label='sig_mm_real')
-    # plt.plot(sig_mm[:,kxind,kyind,kzind].imag,label='sig_mm_imag')
+    kxind=0
+    kyind=0
+    kzind=0
+    # omind=2
+    sig_11=precalcsig(U,beta,knum,P11,G11)# actually P22 and G11. BUT P11=P22
+    sig_22=-sig_11.conjugate()
+    sig_new_12=precalcsig(U,beta,knum,P12,G12)
+    time_sig=time.time()
+    print("time to calculate a single numerical sigma is {:.6f} s".format(time_sig-time_P))
+    plt.plot(sig_11[:,kxind,kyind,kzind].real,label='sig_11_real')
+    plt.plot(sig_11[:,kxind,kyind,kzind].imag,label='sig_11_imag')
+    plt.plot(sig_22[:,kxind,kyind,kzind].real,label='sig_22_real')
+    plt.plot(sig_22[:,kxind,kyind,kzind].imag,label='sig_22_imag')
+    # plt.plot(sig_12[:,kxind,kyind,kzind].real,label='sig_12_real')
+    # plt.plot(sig_12[:,kxind,kyind,kzind].imag,label='sig_12_imag')
     # plt.legend()
     # plt.show()
-    # plt.plot(sigma12[:,kxind,kyind,kzind].real,label='sigma12_real')
-    # plt.plot(sigma12[:,kxind,kyind,kzind].imag,label='sigma12_imag')
-    # plt.plot(sigma21[:,kxind,kyind,kzind].real,label='sigma21_real')
-    # plt.plot(sigma21[:,kxind,kyind,kzind].imag,label='sigma21_imag')
-    # plt.legend()
-    # plt.show()
+    sigimp11,sigimp22=sig_imp_test(U,T,knum)
+    # plt.plot(allsigA[n:3*n].real,label='sig_imp_11_real')
+    # plt.plot(allsigA[n:3*n].imag,label='sig_imp_11_imag')
+    # plt.plot(allsigB[n:3*n].real,label='sig_imp_22_real')
+    # plt.plot(allsigB[n:3*n].imag,label='sig_imp_22_imag')
+    sig_new_11=sig_11+allsigA[n:3*n, None, None, None]-sigimp11[:, None, None, None]
+    sig_new_22=sig_22+allsigB[n:3*n, None, None, None]-sigimp22[:, None, None, None]
+    plt.plot(sig_new_11[:,kxind,kyind,kzind].real,label='sig_new_11_real')
+    plt.plot(sig_new_11[:,kxind,kyind,kzind].imag,label='sig_new_11_imag')
+    plt.plot(sig_new_22[:,kxind,kyind,kzind].real,label='sig_new_22_real')
+    plt.plot(sig_new_22[:,kxind,kyind,kzind].imag,label='sig_new_22_imag')
+    # plt.plot(sig_new_12[:,kxind,kyind,kzind].real,label='sig_new_12_real')
+    # plt.plot(sig_new_12[:,kxind,kyind,kzind].imag,label='sig_new_12_imag')
+    plt.legend()
+    plt.show()
+
+    return sig_new_11,sig_new_22,sig_new_12
+#clear. 
+
+def impurity_test():
+    U=2.0
+    T=0.01
+    mu=U/2
+    knum=10
+    beta=1/T
+    n=500
+    sig_new_11,sig_new_22,sig_new_12=sigtest(U,T,knum,n)
+    iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
+    # to generate dispertion 
+    halfknum=int(knum/2)
+    halfkind=np.arange(halfknum)+halfknum
+    disp=calc_disp(knum)[halfkind,halfkind,halfkind]
+    Gk_new_11=(iom[:, None, None, None]+mu-sig_new_11)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp+sig_new_12)**2)
+    Gk_new_22=(iom[:, None, None, None]+mu-sig_new_22)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp+sig_new_12)**2)
+    Gk_imp_new_11=np.sum(Gk_new_11,axis=(1,2,3))/knum**3
+    Gk_imp_new_22=np.sum(Gk_new_22,axis=(1,2,3))/knum**3
+    plt.plot(Gk_imp_new_11.real,label='Gk_imp_new_11 real')
+    plt.plot(Gk_imp_new_11.imag,label='Gk_imp_new_11 imag')
+    plt.plot(Gk_imp_new_22.real,label='Gk_imp_new_22 real')
+    plt.plot(Gk_imp_new_22.imag,label='Gk_imp_new_22 imag')
+    plt.legend()
+    plt.show()
+    Delta_11=iom+mu-sig_new_11
     return 0
-#clear. sym clear. ~50s for a sigma.
+
+
 
 def nonlocal_diagram(filename,outputname,beta,U,mu,knum=10):
     start_time = time.time()
@@ -665,8 +728,9 @@ def nonlocal_diagram(filename,outputname,beta,U,mu,knum=10):
     return 0
 
 # G_test()
-precalcP_test()
+# precalcP_test()
 # sigtest()
+impurity_test()
 
 
 T=0.01
