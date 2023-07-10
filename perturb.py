@@ -23,7 +23,6 @@ def calc_eps2_ave(knum,a=1):
     eps2_ave=np.sum(eps2)/knum**3
     return eps2_ave
 
-
 def calc_disp(knum,a=1):
     kall=np.linspace(-np.pi/a,np.pi/a,num=knum+1)
     kroll=np.roll(kall,1)
@@ -49,7 +48,6 @@ def gen_qindices(qlist):
     # print(qindices)
     return qindices
 
-
 def z(beta,mu,sig):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
     n=sig.size
@@ -57,13 +55,6 @@ def z(beta,mu,sig):
     allsig=ext_sig(beta,sig)
     z=om*1j+mu-allsig
     return z
-
-def z0(beta,mu,allsig):# Here, alpha=i*omega+mu-sig(inf).real
-    n=int(allsig.size/4)
-    om=(2*np.arange(4*n)+1-4*n)*np.pi/beta
-    # allsig=ext_sig(beta,sig)
-    z0=om*1j+mu-allsig[-1].real
-    return z0
 
 def ext_sig(beta,sig):
     lenom=sig.size
@@ -128,7 +119,6 @@ def precalcP_innerloop(q, kxind, kyind, kzind, knum, n, G1):
         P_partial[2*n-Omind, 0, 0, 0]=P_partial[Omind, 0, 0, 0]   
     return P_partial
 
-
 def precalcP(beta, knum, G1, a=1):
     n = int(np.shape(G1)[0] / 4)
     kind_list = np.arange(knum)
@@ -158,7 +148,6 @@ def precalcP(beta, knum, G1, a=1):
 
 def fermi(eps,beta):
     return 1/(np.exp(beta*eps)+1)
-
 
 # This is for diagonal elements for polarization. Here the only way to solve the convergence issue
 # is that to contour intregration in brute force, which will result in 4 terms. 
@@ -406,20 +395,24 @@ def G_test(a=1):
     fermion_om = (2*np.arange(4*n)+1-4*n)*np.pi/beta
     time_G=time.time()
     print("time to calculate prepare 2 G is {:.6f} s".format(time_G-start_time))
-    kxind=3
-    kyind=4
-    kzind=5
+    for kxind in np.arange(10):
+        for kyind in np.arange(10):
+            for kzind in np.arange(10):
+    # kxind=0
+    # kyind=0
+    # kzind=0
 
-    plt.plot(fermion_om,G11[:,kxind,kyind,kzind].real,label='G11_k_real')
-    plt.plot(fermion_om,G11[:,kxind,kyind,kzind].imag,label='G11_k_imag')
-    # plt.plot(fermion_om,G_A[:,knum-1-kxind,kyind,kzind].real,label='G-k_A_real')
-    # plt.plot(fermion_om,G_A[:,knum-1-kxind,kyind,kzind].imag,label='G-k_A_imag')
-    plt.plot(fermion_om,G22[:,kxind,kyind,kzind].real,label='G22_k_real')
-    plt.plot(fermion_om,G22[:,kxind,kyind,kzind].imag,label='G22_k_imag')
-    plt.plot(fermion_om,G12[:,kxind,kyind,kzind].real,label='G12_k_real')
-    plt.plot(fermion_om,G12[:,kxind,kyind,kzind].imag,label='G12_k_imag')
-    plt.legend()
-    plt.show()
+                plt.plot(fermion_om[2*n:3*n],G11[2*n:3*n,kxind,kyind,kzind].real,label='G11_k_real')
+                plt.plot(fermion_om[2*n:3*n],G11[2*n:3*n,kxind,kyind,kzind].imag,label='G11_k_imag')
+                # plt.plot(fermion_om,G_A[:,knum-1-kxind,kyind,kzind].real,label='G-k_A_real')
+                # plt.plot(fermion_om,G_A[:,knum-1-kxind,kyind,kzind].imag,label='G-k_A_imag')
+                plt.plot(fermion_om[2*n:3*n],G22[2*n:3*n,kxind,kyind,kzind].real,label='G22_k_real')
+                plt.plot(fermion_om[2*n:3*n],G22[2*n:3*n,kxind,kyind,kzind].imag,label='G22_k_imag')
+                # plt.plot(fermion_om,G12[:,kxind,kyind,kzind].real,label='G12_k_real')
+                # plt.plot(fermion_om,G12[:,kxind,kyind,kzind].imag,label='G12_k_imag')
+                plt.legend()
+                plt.grid()
+                plt.show()
     return 0
 #clear
 
@@ -445,9 +438,9 @@ def precalcP_test(a=1):
     # G_pp,G_mm=G_diagonalized(knum,allsigA,beta,mu)
 
       # try to systematically check a random point in P
-    qxind=1
-    qyind=4
-    qzind=3
+    qxind=0
+    qyind=0
+    qzind=0
     Omind=0
 
 
@@ -485,7 +478,6 @@ def qxfold(qind,knum):#for sigtest
         return halfknum-1-qind
 
 
-
 def sig_imp_test(U,T,knum):
     # U=2.0
     mu=U/2
@@ -510,12 +502,9 @@ def sig_imp_test(U,T,knum):
     sigimp11,sigimp22=perturb_imp.pertimp_func(G11_imp,G22_imp,delta_inf,beta,U,eps2_ave)
     return sigimp11,sigimp22
 
-
-def sigtest(U,T,knum,n,a=1):
+def new_sig(U,T,knum,n,a=1):
     start_time = time.time()
-
     mu=U/2
-   
     beta=1/T
     sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:n,:]
     sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
@@ -545,10 +534,10 @@ def sigtest(U,T,knum,n,a=1):
     sig_new_12=precalcsig(U,beta,knum,P12,G12)
     time_sig=time.time()
     print("time to calculate a single numerical sigma is {:.6f} s".format(time_sig-time_P))
-    plt.plot(sig_11[:,kxind,kyind,kzind].real,label='sig_11_real')
-    plt.plot(sig_11[:,kxind,kyind,kzind].imag,label='sig_11_imag')
-    plt.plot(sig_22[:,kxind,kyind,kzind].real,label='sig_22_real')
-    plt.plot(sig_22[:,kxind,kyind,kzind].imag,label='sig_22_imag')
+    # plt.plot(sig_11[:,kxind,kyind,kzind].real,label='sig_11_real')
+    # plt.plot(sig_11[:,kxind,kyind,kzind].imag,label='sig_11_imag')
+    # plt.plot(sig_22[:,kxind,kyind,kzind].real,label='sig_22_real')
+    # plt.plot(sig_22[:,kxind,kyind,kzind].imag,label='sig_22_imag')
     # plt.plot(sig_12[:,kxind,kyind,kzind].real,label='sig_12_real')
     # plt.plot(sig_12[:,kxind,kyind,kzind].imag,label='sig_12_imag')
     # plt.legend()
@@ -560,14 +549,14 @@ def sigtest(U,T,knum,n,a=1):
     # plt.plot(allsigB[n:3*n].imag,label='sig_imp_22_imag')
     sig_new_11=sig_11+allsigA[n:3*n, None, None, None]-sigimp11[:, None, None, None]
     sig_new_22=sig_22+allsigB[n:3*n, None, None, None]-sigimp22[:, None, None, None]
-    plt.plot(sig_new_11[:,kxind,kyind,kzind].real,label='sig_new_11_real')
-    plt.plot(sig_new_11[:,kxind,kyind,kzind].imag,label='sig_new_11_imag')
-    plt.plot(sig_new_22[:,kxind,kyind,kzind].real,label='sig_new_22_real')
-    plt.plot(sig_new_22[:,kxind,kyind,kzind].imag,label='sig_new_22_imag')
+    # plt.plot(sig_new_11[:,kxind,kyind,kzind].real,label='sig_new_11_real')
+    # plt.plot(sig_new_11[:,kxind,kyind,kzind].imag,label='sig_new_11_imag')
+    # plt.plot(sig_new_22[:,kxind,kyind,kzind].real,label='sig_new_22_real')
+    # plt.plot(sig_new_22[:,kxind,kyind,kzind].imag,label='sig_new_22_imag')
     # plt.plot(sig_new_12[:,kxind,kyind,kzind].real,label='sig_new_12_real')
     # plt.plot(sig_new_12[:,kxind,kyind,kzind].imag,label='sig_new_12_imag')
-    plt.legend()
-    plt.show()
+    # plt.legend()
+    # plt.show()
 
     return sig_new_11,sig_new_22,sig_new_12
 #clear. 
@@ -579,24 +568,94 @@ def impurity_test():
     knum=10
     beta=1/T
     n=500
-    sig_new_11,sig_new_22,sig_new_12=sigtest(U,T,knum,n)
-    iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
-    # to generate dispertion 
     halfknum=int(knum/2)
-    halfkind=np.arange(halfknum)+halfknum
-    disp=calc_disp(knum)[halfkind,halfkind,halfkind]
-    Gk_new_11=(iom[:, None, None, None]+mu-sig_new_11)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp+sig_new_12)**2)
-    Gk_new_22=(iom[:, None, None, None]+mu-sig_new_22)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp+sig_new_12)**2)
-    Gk_imp_new_11=np.sum(Gk_new_11,axis=(1,2,3))/knum**3
-    Gk_imp_new_22=np.sum(Gk_new_22,axis=(1,2,3))/knum**3
-    plt.plot(Gk_imp_new_11.real,label='Gk_imp_new_11 real')
-    plt.plot(Gk_imp_new_11.imag,label='Gk_imp_new_11 imag')
-    plt.plot(Gk_imp_new_22.real,label='Gk_imp_new_22 real')
-    plt.plot(Gk_imp_new_22.imag,label='Gk_imp_new_22 imag')
+
+    iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
+    fermion_om=(2*np.arange(n)+1)*np.pi/beta
+    # to generate dispertion 
+    
+    # halfkind=np.arange(halfknum)+halfknum
+    disp=calc_disp(knum)#[halfknum:knum,halfknum:knum,halfknum:knum]
+    # print('shape of disp',np.shape(disp))
+
+
+    # just for test. old sigma.
+    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
+    sigA=sigma[:,1]+1j*sigma[:,2]
+    sigB=sigma[:,3]+1j*sigma[:,4]
+    allsigA=ext_sig(beta,sigA)[n:3*n]
+    allsigB=ext_sig(beta,sigB)[n:3*n]
+    Gk_11=(iom[:, None, None, None]+mu-allsigA[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(disp[None, :, :, :])**2)
+    Gk_22=(iom[:, None, None, None]+mu-allsigB[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(disp[None, :, :, :])**2)
+    Gk_imp_11=np.sum(Gk_11,axis=(1,2,3))/knum**3
+    Gk_imp_22=np.sum(Gk_22,axis=(1,2,3))/knum**3
+    plt.plot(fermion_om,Gk_imp_11[n:2*n].real,label='Gk_imp_11 real')
+    plt.plot(fermion_om,Gk_imp_11[n:2*n].imag,label='Gk_imp_11 imag')
+    plt.plot(fermion_om,Gk_imp_22[n:2*n].real,label='Gk_imp_22 real')
+    plt.plot(fermion_om,Gk_imp_22[n:2*n].imag,label='Gk_imp_22 imag')
+    # k1=0
+    # k2=0
+    # k3=0
+    # plt.plot(fermion_om,Gk_11[n:2*n,k1,k2,k3].real,label='Gk_11 real')
+    # plt.plot(fermion_om,Gk_11[n:2*n,k1,k2,k3].imag,label='Gk_11 imag')
+    # plt.plot(fermion_om,Gk_22[n:2*n,k1,k2,k3].real,label='Gk_22 real')
+    # plt.plot(fermion_om,Gk_22[n:2*n,k1,k2,k3].imag,label='Gk_22 imag')
     plt.legend()
+    plt.grid()
     plt.show()
-    Delta_11=iom+mu-sig_new_11
-    return 0
+    # return 0
+
+
+
+
+
+    sig_new_11,sig_new_22,sig_new_12=new_sig(U,T,knum,n)
+    sig_imp_new_11=np.sum(sig_new_11,axis=(1,2,3))/halfknum**3
+    sig_imp_new_22=np.sum(sig_new_22,axis=(1,2,3))/halfknum**3
+
+    #output test
+    # fnewsig='test_new_sig.imp'
+    # f = open(fnewsig, 'w')
+    # for i,iom in enumerate(fermion_om):
+    #     print(iom, sig_imp_new_11[i].real, sig_imp_new_11[i].imag, sig_imp_new_22[i].real, sig_imp_new_22[i].imag, file=f) 
+    # f.close()
+    plt.plot(fermion_om,sig_imp_new_11[n:2*n].real,label='sig_imp_new_11 real')
+    plt.plot(fermion_om,sig_imp_new_11[n:2*n].imag,label='sig_imp_new_11 imag')
+    plt.plot(fermion_om,sig_imp_new_22[n:2*n].real,label='sig_imp_new_22 real')
+    plt.plot(fermion_om,sig_imp_new_22[n:2*n].imag,label='sig_imp_new_22 imag')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    Gk_new_11=(iom[:, None, None, None]+mu-sig_new_11)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp[None, :, :, :]+sig_new_12)**2)#
+    Gk_new_22=(iom[:, None, None, None]+mu-sig_new_22)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp[None, :, :, :]+sig_new_12)**2)#
+
+    # plt.plot(fermion_om,Gk_new_11[n:2*n,1,2,3].real,label='Gk_imp_new_11[1,2,3] real')
+    # plt.plot(fermion_om,Gk_new_11[n:2*n,1,2,3].imag,label='Gk_imp_new_11[1,2,3] imag')
+    # plt.plot(fermion_om,Gk_new_22[n:2*n,1,2,3].real,label='Gk_imp_new_22[1,2,3] real')
+    # plt.plot(fermion_om,Gk_new_22[n:2*n,1,2,3].imag,label='Gk_imp_new_22[1,2,3] imag')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    
+    Gk_imp_new_11=np.sum(Gk_new_11,axis=(1,2,3))/halfknum**3
+    Gk_imp_new_22=np.sum(Gk_new_22,axis=(1,2,3))/halfknum**3
+    plt.plot(fermion_om,Gk_imp_new_11[n:2*n].real,label='Gk_imp_new_11 real')
+    plt.plot(fermion_om,Gk_imp_new_11[n:2*n].imag,label='Gk_imp_new_11 imag')
+    plt.plot(fermion_om,Gk_imp_new_22[n:2*n].real,label='Gk_imp_new_22 real')
+    plt.plot(fermion_om,Gk_imp_new_22[n:2*n].imag,label='Gk_imp_new_22 imag')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    Delta_11=iom+mu-sig_imp_new_11-1/Gk_imp_new_11
+    Delta_22=iom+mu-sig_imp_new_22-1/Gk_imp_new_22
+    plt.plot(fermion_om,Delta_11[n:2*n].real,label='Delta_11 real')
+    plt.plot(fermion_om,Delta_11[n:2*n].imag,label='Delta_11 imag')
+    plt.plot(fermion_om,Delta_22[n:2*n].real,label='Delta_22 real')
+    plt.plot(fermion_om,Delta_22[n:2*n].imag,label='Delta_22 imag')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    return Delta_11,Delta_22
 
 
 

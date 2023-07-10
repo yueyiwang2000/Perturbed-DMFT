@@ -70,18 +70,31 @@ def SCC_AFM(W, om, beta, mu, U, Sg_A, Sg_B, Real, delta=0.01):
     
     yr_A = zeros(len(om),dtype=complex)
     yr_B = zeros(len(om),dtype=complex)
+    g_A = zeros(len(om),dtype=complex)
+    g_B = zeros(len(om),dtype=complex)
     for it in range(len(z_A)):
         # equivalent to : z = sqrt(z_A[it]*z_B[it])
         r_A,p_A = cmath.polar(z_A[it])
         r_B,p_B = cmath.polar(z_B[it])
         z = cmath.rect(sqrt(r_A*r_B), (p_A+p_B)/2.)  # z = sqrt(z_A[it]*z_B[it])
+        # print(z)
         w = W(z)
         G_A = z_B[it]/z * w
         G_B = z_A[it]/z * w
+        g_A[it]=G_A
+        g_B[it]=G_B
         Dlt_A = z_A[it] - 1/G_A
         Dlt_B = z_B[it] - 1/G_B
         yr_A[it] = Dlt_A
         yr_B[it] = Dlt_B
+    plot(om, g_A.real, label='GA_real')
+    plot(om, g_A.imag, label='GA_imag')
+    plot(om, g_B.real, label='GB_real')
+    plot(om, g_B.imag, label='GB_imag')
+    
+    legend(loc='best')
+    grid()
+    show()
     return (yr_A, yr_B)
 
     
@@ -91,27 +104,32 @@ if __name__ == '__main__':
     W = Hilb(x,Di)
     
     Real=False
-    beta=20.
-    mu=2.
-    U=4.
-    Sg_AA=U/2.+0.2
-    Sg_BB=U/2.-0.2
-    Sg = U/2.
+    T=0.01
+    beta=1/T
+    mu=1.0
+    U=2.0
+    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
+    # sigma=np.loadtxt('test_new_sig.imp')[:500,:]
+    Sg_AA=sigma[:,1]+1j*sigma[:,2]
+    Sg_BB=sigma[:,3]+1j*sigma[:,4]
+    # Sg_AA=U/2.+0.1
+    # Sg_BB=U/2.-0.1
+    # Sg = U/2.
     
     if Real:
         om = linspace(-10,10,500)
     else:
-        om = (2*arange(1000)+1)*pi/beta
+        om = (2*arange(500)+1)*pi/beta
     
     #Dlt = SCC_Para(W, om, beta, mu, U, Sg, Real)
     #plot(om, Dlt.real, label='real')
     #plot(om, Dlt.imag, label='imag')
 
     Dlt_A,Dlt_B = SCC_AFM(W, om, beta, mu, U, Sg_AA, Sg_BB, Real)
-    plot(om, Dlt_A.real, label='real')
-    plot(om, Dlt_A.imag, label='imag')
-    plot(om, Dlt_B.real, label='real')
-    plot(om, Dlt_B.imag, label='imag')
+    plot(om, Dlt_A.real, label='Dlt_A_real')
+    plot(om, Dlt_A.imag, label='Dlt_A_imag')
+    plot(om, Dlt_B.real, label='Dlt_B_real')
+    plot(om, Dlt_B.imag, label='Dlt_B_mag')
     
     legend(loc='best')
     grid()
