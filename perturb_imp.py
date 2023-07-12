@@ -150,7 +150,7 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
     for i in np.arange(lenom*2+1):# here, i is the index of boson matsubara freq.
         # lindhard1=0.25*(1-delta_inf**2/alpha_ave**2)*(2*fermi(alpha_ave)-1)/(iOm[i]+2*alpha_ave)
         # lindhard2=0.25*(1-delta_inf**2/alpha_ave**2)*(1-2*fermi(alpha_ave))/(iOm[i]-2*alpha_ave)
-        P_A[i]=lindhard[i]#+T*np.sum(G_A[lenom:lenom*3]*G_A[lenom+i-lenom:lenom*3+i-lenom]-G_A0[lenom:lenom*3]*G_A0[lenom+i-lenom:lenom*3+i-lenom])#
+        P_A[i]=lindhard[i]+T*np.sum(G_A[lenom:lenom*3]*G_A[lenom+i-lenom:lenom*3+i-lenom]-G_A0[lenom:lenom*3]*G_A0[lenom+i-lenom:lenom*3+i-lenom])#
         # P_B[i]=T*np.sum(G_B[lenom:lenom*3]*G_B[lenom+i-lenom:lenom*3+i-lenom]-G_B0[lenom:lenom*3]*G_B0[lenom+i-lenom:lenom*3+i-lenom])#
     P_B=P_A
     # take a look at P
