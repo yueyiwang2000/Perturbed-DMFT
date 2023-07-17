@@ -164,12 +164,12 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
     # 
     P_B=P_A
     # take a look at P
-    plt.plot(P_A.real,label='Pimp_A real')
-    plt.plot(P_A.imag,label='Pimp_A imag')
-    plt.plot(P_B.real,label='Pimp_B real')
-    plt.plot(P_B.imag,label='Pimp_B imag')
-    plt.legend()
-    plt.show()
+    # plt.plot(P_A.real,label='Pimp_A real')
+    # plt.plot(P_A.imag,label='Pimp_A imag')
+    # plt.plot(P_B.real,label='Pimp_B real')
+    # plt.plot(P_B.imag,label='Pimp_B imag')
+    # plt.legend()
+    # plt.show()
     
     #calculate sig. sig is calculate on fermion matsubara freq points!
     sigp_A=np.zeros(lenom*2,dtype=complex)
@@ -177,12 +177,12 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
     for i in np.arange(lenom*2):# here, i is the index of fermion matsubara freq.
         sigp_A[i]=-U**2*T*np.sum(P_B*G_A[lenom+i-lenom:lenom*3+i-lenom+1])
         sigp_B[i]=-U**2*T*np.sum(P_A*G_B[lenom+i-lenom:lenom*3+i-lenom+1])
-    plt.plot(sigp_A.real,label='sig(imp,2)_A real')
-    plt.plot(sigp_A.imag,label='sig(imp,2)_A imag')
-    plt.plot(sigp_B.real,label='sig(imp,2)_B real')
-    plt.plot(sigp_B.imag,label='sig(imp,2)_B imag')
-    plt.legend()
-    plt.show()
+    # plt.plot(sigp_A.real,label='sig(imp,2)_A real')
+    # plt.plot(sigp_A.imag,label='sig(imp,2)_A imag')
+    # plt.plot(sigp_B.real,label='sig(imp,2)_B real')
+    # plt.plot(sigp_B.imag,label='sig(imp,2)_B imag')
+    # plt.legend()
+    # plt.show()
     return sigp_A,sigp_B
 
 

@@ -298,7 +298,7 @@ def precalcsig_innerloop(k, qxind, qyind, qzind, knum, n, P_k, Gk,opt):
     for omind in np.arange(n):
         sig_partial[omind, 0, 0, 0] = np.sum(P_k * G_kq[omind:omind +2*n+1])# from omind, omind+1, ..., to omind+2n
         sig_partial[2*n-1-omind, 0, 0, 0]=sig_partial[omind, 0, 0, 0].conjugate()
-    print(k,sig_partial[n,0,0,0])
+    # print(k,sig_partial[n,0,0,0])
     # plt.plot(sig_partial[n:3*n,0,0,0].real,label='sigk_pert_11_real')
     # plt.plot(sig_partial[n:3*n,0,0,0].imag,label='sigk_pert_11_imag')
     # plt.grid()
@@ -330,7 +330,7 @@ def precalcsig(U,beta, knum, Pk, Gk, opt,a=1):
     # k_indices = [(kx, ky, kz) for kx in kind_list for ky in kind_list for kz in kind_list]
     # k_indices=gen_qindices(kind_list)
     # Parallelize the inner loop
-    results = Parallel(n_jobs=1)(delayed(precalcsig_innerloop)(k, qxind, qyind, qzind, knum, n, Pk, Gk,opt) for k in essential_kpoints)
+    results = Parallel(n_jobs=-1)(delayed(precalcsig_innerloop)(k, qxind, qyind, qzind, knum, n, Pk, Gk,opt) for k in essential_kpoints)
     # Combine the results
     for i, k in enumerate(essential_kpoints):
         # kx, ky, kz = k
@@ -348,11 +348,38 @@ def precalcsig(U,beta, knum, Pk, Gk, opt,a=1):
 #----------test functions---------
 # all tests are made in the trivial dispersion e_k=0.
 
+
+def FT_test(quant,knum,a=1):
+    k1,k2,k3=gen_full_kgrids(knum)
+    kx=(-k1+k2+k3)*np.pi/a
+    ky=(k1-k2+k3)*np.pi/a
+    kz=(k1+k2-k3)*np.pi/a
+    factor0=1
+    factor1=np.exp(1j*kx+1j*ky)# remember to use complex unit cell!
+    factor2=np.exp(1j*kx+2j*ky+1j*kz)
+    # factor3=np.exp(3j*kx+3j*ky)
+    quantR0=np.sum(quant*factor0,axis=(1,2,3))/knum**3
+    quantR1=np.sum(quant*factor1,axis=(1,2,3))/knum**3
+    quantR2=np.sum(quant*factor2,axis=(1,2,3))/knum**3
+    # quantR3=np.sum(quant*factor3,axis=(1,2,3))/knum**3
+    plt.plot(quantR0.real,label='local unit cell.real')
+    plt.plot(quantR0.imag,label='local unit cell.imag')
+    plt.plot(quantR1.real,label='1st NN unit cell.real')
+    plt.plot(quantR1.imag,label='1st NN unit cell.imag')
+    plt.plot(quantR2.real,label='2nd NN unit cell.real')
+    plt.plot(quantR2.imag,label='2nd NN unit cell.imag')
+    # plt.plot(quantR3,label='quantR(3,0,0)')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    return 0
+
+
 def G_test(a=1):
     start_time = time.time()
-    U=2.0
+    U=10.0
     mu=U/2
-    T=0.01
+    T=0.4
     beta=1/T
     sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
     sigA=sigma[:,1]+1j*sigma[:,2]
@@ -360,7 +387,7 @@ def G_test(a=1):
     z_A=z(beta,mu,sigA)
     z_B=z(beta,mu,sigB)
     n=sigA.size
-    knum=10
+    knum=20
     G11=G_11(knum,z_A,z_B)
     G22=-G11.conjugate()
     G12=G_12(knum,z_A,z_B)
@@ -387,6 +414,8 @@ def G_test(a=1):
     plt.legend()
     plt.grid()
     plt.show()
+    FT_test(G11[2*n:3*n],knum)
+    # FT_test(G12[2*n:3*n],knum)
     return 0
 #clear
 
@@ -438,8 +467,11 @@ def precalcP_test(a=1):
     # plt.plot(Boson_om,P12[:,kxind,kyind,kzind].imag,label='P12_imag')
     plt.legend()
     plt.show()
+    FT_test(P11[n:2*n],knum)
     return 0
 #Clear.
+
+
 
 
 def sig_imp_pert_test(U,T,knum):
@@ -447,7 +479,7 @@ def sig_imp_pert_test(U,T,knum):
     mu=U/2
     # T=0.01
     beta=1/T
-    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:1000,:]
+    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
     sigA=sigma[:,1]+1j*sigma[:,2]
     sigB=sigma[:,3]+1j*sigma[:,4]
     z_A=z(beta,mu,sigA)
@@ -478,93 +510,61 @@ def new_sig(U,T,knum,n,a=1):
     # n=sigA.size
     allsigA=ext_sig(beta,sigA)
     allsigB=ext_sig(beta,sigB)
- 
-    qxind=1
-    qyind=2
-    qzind=3
+    sig_pert_imp11,sig_pert_imp22=sig_imp_pert_test(U,T,knum)
+    qxind=2
+    qyind=5
+    qzind=7
     kxind=0
-    kyind=0
-    kzind=0
+    kyind=1
+    kzind=2
 
     G11=G_11(knum,z_A,z_B)
-    # for ix in np.arange(10):
-    #     for jx in np.arange(10):
-    #         for kx in np.arange(10):
-    #             plt.plot(G11[900:1100,ix,jx,kx].real,label='G11_real')
-    #             plt.plot(G11[900:1100,ix,jx,kx].imag,label='G11_imag')
-    #             plt.plot(G11[900:1100,qxind,qyind,qzind].real,label='G11q__eal')
-    #             plt.plot(G11[900:1100,qxind,qyind,qzind].imag,label='G11q_imag')
-    #             plt.grid()
-    #             plt.legend()
-    #             plt.show()
-    # G22=-G11.conjugate()
     G12=G_12(knum,z_A,z_B)
     time_G=time.time()
     print("time to calculate prepare all G is {:.6f} s".format(time_G-start_time))
     P12=precalcP12(beta,knum,G12)
     P11=precalcP11(beta,knum,G11,allsigA,mu)
     Boson_om = (2*np.arange(2*n+1)-2*n)*np.pi/beta 
-    plt.plot(Boson_om,P11[:,qxind,qyind,qzind].real,label='P11q_real')
-    plt.plot(Boson_om,P11[:,qxind,qyind,qzind].imag,label='P11q_imag')
-    plt.plot(Boson_om,P11[:,kxind,kyind,kzind].real,label='P11k_real')
-    plt.plot(Boson_om,P11[:,kxind,kyind,kzind].imag,label='P11k_imag')
-    plt.grid()
-    plt.legend()
-    plt.show()
-    # for ix in np.arange(10):
-    #     for jx in np.arange(10):
-    #         for kx in np.arange(10):
-    #             plt.plot(P11[n:3*n,ix,jx,kx].real,label='P11_real')
-    #             plt.plot(P11[n:3*n,ix,jx,kx].imag,label='P11_imag')
-    #             plt.plot(P11[n:3*n,qxind,qyind,qzind].real,label='P11q_pert_11_real')
-    #             plt.plot(P11[n:3*n,qxind,qyind,qzind].imag,label='P11q_pert_11_imag')
-    #             plt.grid()
-    #             plt.legend()
-    #             plt.show()
-    # plt.plot(Boson_om,P12[:,qxind,qyind,qzind].real,label='P12q_real')
-    # plt.plot(Boson_om,P12[:,qxind,qyind,qzind].imag,label='P12q_imag')
-    # plt.plot(Boson_om,P12[:,kxind,kyind,kzind].real,label='P12k_real')
-    # plt.plot(Boson_om,P12[:,kxind,kyind,kzind].imag,label='P12k_imag')
+    # plt.plot(Boson_om,P11[:,qxind,qyind,qzind].real,label='P11q_real')
+    # plt.plot(Boson_om,P11[:,qxind,qyind,qzind].imag,label='P11q_imag')
+    # plt.plot(Boson_om,P11[:,kxind,kyind,kzind].real,label='P11k_real')
+    # plt.plot(Boson_om,P11[:,kxind,kyind,kzind].imag,label='P11k_imag')
+    # plt.grid()
     # plt.legend()
     # plt.show()
+    # FT_test(P11[n:2*n],knum)  
+
     time_P=time.time()
     print("time to calculate prepare all G and P is {:.6f} s".format(time_P-time_G))
 
 
     sig_11=precalcsig(U,beta,knum,P11,G11,11)# actually P22 and G11. BUT P11=P22
+    # FT_test(sig_11[n:2*n],knum)  
     sig_22=-sig_11.conjugate()
     sig_new_12=precalcsig(U,beta,knum,P12,G12,12)
     time_sig=time.time()
     print("time to calculate a single numerical sigma is {:.6f} s".format(time_sig-time_P))
-    # for ix in np.arange(10):
-    #     for jx in np.arange(10):
-    #         for kx in np.arange(10):
-    #             plt.plot(sig_11[n:3*n,ix,jx,kx].real,label='sigk_pert_11_real')
-    #             plt.plot(sig_11[n:3*n,ix,jx,kx].imag,label='sigk_pert_11_imag')
-    #             plt.plot(sig_11[n:3*n,qxind,qyind,qzind].real,label='sigq_pert_11_real')
-    #             plt.plot(sig_11[n:3*n,qxind,qyind,qzind].imag,label='sigq_pert_11_imag')
-    #             plt.grid()
-    #             plt.legend()
-    #             plt.show()
-    plt.plot(sig_11[n:3*n,kxind,kyind,kzind].real,label='sigk_pert_11_real')
-    plt.plot(sig_11[n:3*n,kxind,kyind,kzind].imag,label='sigk_pert_11_imag')
-    plt.plot(sig_11[n:3*n,qxind,qyind,qzind].real,label='sigq_pert_11_real')
-    plt.plot(sig_11[n:3*n,qxind,qyind,qzind].imag,label='sigq_pert_11_imag')
-    plt.grid()
-    plt.legend()
-    plt.show()
+    # plt.plot(sig_pert_imp11[n:3*n].real,label='sigpert_imp11_real')
+    # plt.plot(sig_pert_imp11[n:3*n].imag,label='sigpert_imp11_imag')
+    # plt.plot(sig_11[n:3*n,kxind,kyind,kzind].real,label='sigk_pert_11_real')
+    # plt.plot(sig_11[n:3*n,kxind,kyind,kzind].imag,label='sigk_pert_11_imag')
+    # plt.plot(sig_11[n:3*n,qxind,qyind,qzind].real,label='sigq_pert_11_real')
+    # plt.plot(sig_11[n:3*n,qxind,qyind,qzind].imag,label='sigq_pert_11_imag')
+    # plt.grid()
+    # plt.legend()
+    # plt.show()
     # plt.plot(sig_22[n:3*n,kxind,kyind,kzind].real,label='sig_pert__22_real')
     # plt.plot(sig_22[n:3*n,kxind,kyind,kzind].imag,label='sig_pert__22_imag')
-    plt.plot(sig_new_12[:,kxind,kyind,kzind].real,label='sigk_12_real')
-    plt.plot(sig_new_12[:,kxind,kyind,kzind].imag,label='sigk_12_imag')
-    plt.plot(sig_new_12[:,qxind,qyind,qzind].real,label='sigq_12_real')
-    plt.plot(sig_new_12[:,qxind,qyind,qzind].imag,label='sigq_12_imag')
-    plt.grid()
-    plt.legend()
-    plt.show()
+    # plt.plot(sig_new_12[:,kxind,kyind,kzind].real,label='sigk_12_real')
+    # plt.plot(sig_new_12[:,kxind,kyind,kzind].imag,label='sigk_12_imag')
+    # plt.plot(sig_new_12[:,qxind,qyind,qzind].real,label='sigq_12_real')
+    # plt.plot(sig_new_12[:,qxind,qyind,qzind].imag,label='sigq_12_imag')
+    # plt.grid()
+    # plt.legend()
+    # plt.show()
+    # FT_test(G11[2*n:3*n],knum)  
 
-
-    sig_pert_imp11,sig_pert_imp22=sig_imp_pert_test(U,T,knum)
+    
     # plt.plot(sig_pert_imp11[n:3*n].real,label='sig_pert_imp_11_real')
     # plt.plot(sig_pert_imp11[n:3*n].imag,label='sig_pert_imp_11_imag')
     # plt.plot(sig_pert_imp22[n:3*n].real,label='sig_pert__imp_22_real')
@@ -583,11 +583,11 @@ def new_sig(U,T,knum,n,a=1):
     return sig_new_11,sig_new_22,sig_new_12
 #clear. 
 
-def impurity_test():
-    U=8.0
-    T=0.42
+def impurity_test(U,T,knum):
+    # U=8.0
+    # T=0.42
     mu=U/2
-    knum=10
+    # knum=10
     beta=1/T
     n=500
 
@@ -598,15 +598,15 @@ def impurity_test():
 
 
     # just for test. old sigma.
-    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
-    sigA=sigma[:,1]+1j*sigma[:,2]
-    sigB=sigma[:,3]+1j*sigma[:,4]
-    allsigA=ext_sig(beta,sigA)[n:3*n]
-    allsigB=ext_sig(beta,sigB)[n:3*n]
-    Gk_11=(iom[:, None, None, None]+mu-allsigA[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(disp[None, :, :, :])**2)
-    Gk_22=(iom[:, None, None, None]+mu-allsigB[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(disp[None, :, :, :])**2)
-    Gk_imp_11=np.sum(Gk_11,axis=(1,2,3))/knum**3
-    Gk_imp_22=np.sum(Gk_22,axis=(1,2,3))/knum**3
+    # sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
+    # sigA=sigma[:,1]+1j*sigma[:,2]
+    # sigB=sigma[:,3]+1j*sigma[:,4]
+    # allsigA=ext_sig(beta,sigA)[n:3*n]
+    # allsigB=ext_sig(beta,sigB)[n:3*n]
+    # Gk_11=(iom[:, None, None, None]+mu-allsigA[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(disp[None, :, :, :])**2)
+    # Gk_22=(iom[:, None, None, None]+mu-allsigB[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(disp[None, :, :, :])**2)
+    # Gk_imp_11=np.sum(Gk_11,axis=(1,2,3))/knum**3
+    # Gk_imp_22=np.sum(Gk_22,axis=(1,2,3))/knum**3
     # plt.plot(fermion_om,Gk_imp_11[n:2*n].real,label='Gk_imp_11 real')
     # plt.plot(fermion_om,Gk_imp_11[n:2*n].imag,label='Gk_imp_11 imag')
     # plt.plot(fermion_om,Gk_imp_22[n:2*n].real,label='Gk_imp_22 real')
@@ -614,8 +614,8 @@ def impurity_test():
     # plt.legend()
     # plt.grid()
     # plt.show()
-    Delta0_11=iom+mu-allsigB-1/Gk_imp_11
-    Delta0_22=iom+mu-allsigA-1/Gk_imp_22
+    # Delta0_11=iom+mu-allsigB-1/Gk_imp_11
+    # Delta0_22=iom+mu-allsigA-1/Gk_imp_22
     # plt.plot(fermion_om,Delta_11[n:2*n].real,label='Delta_11 real')
     # plt.plot(fermion_om,Delta_11[n:2*n].imag,label='Delta_11 imag')
     # plt.plot(fermion_om,Delta_22[n:2*n].real,label='Delta_22 real')
@@ -644,11 +644,11 @@ def impurity_test():
     plt.plot(fermion_om,sig_imp_new_22[n:2*n].real,label='sig_imp_new_22 real')
     plt.plot(fermion_om,sig_imp_new_22[n:2*n].imag,label='sig_imp_new_22 imag')
     
-    plt.plot(fermion_om,sigA.real,label='sig_imp_original_11 real')
-    plt.plot(fermion_om,sigA.imag,label='sig_imp_original_11 imag')
-    plt.plot(fermion_om,sigB.real,label='sig_imp_original_22 real')
-    plt.plot(fermion_om,sigB.imag,label='sig_imp_original_22 imag')
-    plt.title('sigma_imp before and after perturbation. should this change?')
+    # plt.plot(fermion_om,sigA.real,label='sig_imp_original_11 real')
+    # plt.plot(fermion_om,sigA.imag,label='sig_imp_original_11 imag')
+    # plt.plot(fermion_om,sigB.real,label='sig_imp_original_22 real')
+    # plt.plot(fermion_om,sigB.imag,label='sig_imp_original_22 imag')
+    # plt.title('sigma_imp before and after perturbation. should this change?')
     plt.legend()
     plt.grid()
     plt.show()
@@ -691,9 +691,9 @@ knum=10
 # calc_sym_array(10)
 # G_test()
 # precalcP_test()
-sig_imp_pert_test(U,T,2*knum)
+# sig_imp_pert_test(U,T,2*knum)
 # new_sig(U,T,knum,500)
-# impurity_test()
+impurity_test(U,T,knum)
 
 
 # if (len(sys.argv)!=3):
