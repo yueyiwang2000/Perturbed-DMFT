@@ -100,7 +100,7 @@ def DMFT_SCC(fDelta):
     the atomic states.
     """
     fileGf = 'Gf.out'
-    filesig='Sig.out'
+    filesig='../trial_sigma/{}_{}.dat'.format(Uc,T)
     #get sigma
     if (os.path.exists(filesig)): 
         sigma = np.loadtxt(filesig)
