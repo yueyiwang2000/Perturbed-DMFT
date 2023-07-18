@@ -498,13 +498,14 @@ def sig_imp_pert_test(U,T,knum):
     sigimp11,sigimp22=perturb_imp.pertimp_func(G11_imp,G22_imp,delta_inf,beta,U,eps2_ave)
     return sigimp11,sigimp22
 
-def new_sig(U,T,knum,n,a=1):
+def new_sig(sigA,sigB,U,T,knum,a=1):
     start_time = time.time()
     mu=U/2
     beta=1/T
-    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:n,:]
-    sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
-    sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
+    n=sigA.size
+    # sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:n,:]
+    # sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
+    # sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
     z_A=z(beta,mu,sigA)#z-delta
     z_B=z(beta,mu,sigB)#z+delta
     # n=sigA.size
@@ -583,13 +584,13 @@ def new_sig(U,T,knum,n,a=1):
     return sig_new_11,sig_new_22,sig_new_12
 #clear. 
 
-def impurity_test(U,T,knum):
+def impurity_test(SigA,SigB,U,T,knum):
     # U=8.0
     # T=0.42
     mu=U/2
     # knum=10
     beta=1/T
-    n=500
+    n=sigA.size
 
     iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
     fermion_om=(2*np.arange(n)+1)*np.pi/beta
@@ -627,7 +628,7 @@ def impurity_test(U,T,knum):
     # end of test
 
 
-    sig_new_11,sig_new_22,sig_new_12=new_sig(U,T,knum,n)
+    sig_new_11,sig_new_22,sig_new_12=new_sig(SigA,SigB,U,T,knum,n)
     sig_imp_new_11=np.sum(sig_new_11,axis=(1,2,3))/knum**3
     sig_imp_new_22=np.sum(sig_new_22,axis=(1,2,3))/knum**3
 
@@ -681,29 +682,37 @@ def impurity_test(U,T,knum):
     plt.legend()
     plt.grid()
     plt.show()
-    return Delta_11,Delta_22
+    return Delta_11[n:2*n],Delta_22[n:2*n]
 
 
-T=0.01
-U=2.0
+T=0.3
+U=6.0
 knum=10
+nfreq=500
+
+if (len(sys.argv)!=3):
+    print('usually we need 2 parameters:T and U.')
+    
+if (len(sys.argv)==3):
+    U=float(sys.argv[1])
+    T=float(sys.argv[2])
+    print('T=',T)
+    print('U=',U)
+
+sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:nfreq,:]
+sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
+sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
+
 # sym_mapping(1,2,3)
 # calc_sym_array(10)
 # G_test()
 # precalcP_test()
-# sig_imp_pert_test(U,T,2*knum)
+# sig_imp_pert_test(U,T,knum)
 # new_sig(U,T,knum,500)
-impurity_test(U,T,knum)
+# impurity_test(sigA,sigB,U,T,knum)
 
 
-# if (len(sys.argv)!=3):
-#     print('usually we need 2 parameters:T and U.')
-    
-# if (len(sys.argv)==3):
-#     Uc=float(sys.argv[1])
-#     T=float(sys.argv[2])
-#     print('T=',T)
-#     print('Uc=',Uc)
+
 # nonlocal_diagram('Sig_test_para.dat',2.0,10.0,5.0)
 # nonlocal_diagram('Sig_test_afm.dat',20.0,4.0,2.0)
 # nonlocal_diagram('{}_{}.dat'.format(Uc,T),'Sig.pert_{}_{}.dat'.format(Uc,T),1/T,Uc,Uc/2)

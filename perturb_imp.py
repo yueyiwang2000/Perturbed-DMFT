@@ -131,14 +131,14 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
     # check the generated impurity green function!
     # plt.plot(G_A.real,label='Gimp_A real')
     # plt.plot(G_A.imag,label='Gimp_A imag')
-    # plt.plot(G_B[lenom:lenom*3].real,label='Gimp_B real')
-    # plt.plot(G_B[lenom:lenom*3].imag,label='Gimp_B imag')
+    plt.plot(G_B[lenom*2:lenom*3].real,label='Gimp_B real')
+    plt.plot(G_B[lenom*2:lenom*3].imag,label='Gimp_B imag')
     # plt.plot(G_A0.real,label='Gimp_A0 real')
     # plt.plot(G_A0.imag,label='Gimp_A0 imag')
     # plt.plot(G_B0.real,label='Gimp_B0 real')
     # plt.plot(G_B0.imag,label='Gimp_B0 imag')
-    # plt.legend()
-    # plt.show()
+    plt.legend()
+    plt.show()
 
     #calculate P. P is calculated on Boson matsubara freq points!
     P_A=np.zeros(lenom*2+1,dtype=complex)
