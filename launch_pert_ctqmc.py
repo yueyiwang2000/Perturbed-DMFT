@@ -3,7 +3,7 @@
 from scipy import * 
 import os,sys,subprocess
 import numpy as np
-import method_afm # this is method.py in the same directory 
+# import method_afm # this is method.py in the same directory 
 import matplotlib.pyplot as plt 
 from scipy import integrate
 import hilbert
@@ -36,15 +36,15 @@ else:
     subprocess.call(cmd_newfolder, shell=True)
     
 subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000', shell=True) 
-for i in np.arange(8):
-    subprocess.call('rm status.00{}'.format(i), shell=True)
+# for i in np.arange(8):
+#     subprocess.call('rm status.00{}'.format(i), shell=True)
    
 
 params = {"exe":   ["mpirun ./ctqmc",          "# Path to executable"],
           "U":     [Uc,                 "# Coulomb repulsion (F0)"],
           "mu":    [Uc/2.,              "# Chemical potential"],
           "beta":  [1/T,                "# Inverse temperature"],
-          "M" :    [1e7,                "# Number of Monte Carlo steps"],
+          "M" :    [2e7,                "# Number of Monte Carlo steps"],
           "mode":  ["SH",               "# S stands for self-energy sampling, M stands for high frequency moment tail"],
           "cix":   ["one_band.imp",     "# Input file with atomic state"],
           "Delta": ["Delta.inp",        "# Input bath function hybridization"],
@@ -93,19 +93,20 @@ def CreateInputFile(params):
         print(p, params[p][0], '\t', params[p][1], file=f)
     f.close()
 
-def DMFT_SCC(fDelta):
+def DMFT_SCC(fDelta,opt=0):
     """This subroutine creates Delta.inp from Gf.out for DMFT on bethe lattice: Delta=t^2*G
     If Gf.out does not exist, it creates Gf.out which corresponds to the non-interacting model
     In the latter case also creates the inpurity cix file, which contains information about
     the atomic states.
     """
     fileGf = 'Gf.out'
-    filesig='../trial_sigma/{}_{}.dat'.format(Uc,T)
+    filesig='./trial_sigma/{}_{}.dat'.format(Uc,T)
     #get sigma
     if (os.path.exists(filesig)): 
         sigma = np.loadtxt(filesig)
     else:# generate a trial sigma
-        print("preparing trial sigma...")
+        print("trial sigma cannot found...preparing trial sigma...")
+        return 0
         sigma=np.zeros((500,5),dtype=complex)
         for i in np.arange(500):
             omega=(2*i+1)*np.pi/params['beta'][0]
@@ -140,19 +141,32 @@ def DMFT_SCC(fDelta):
     #         print(Delta[i,k],end='\t', file=f)# print in the same line
     #     print('', file=f)# switch to another line
     # f.close()
-    om = sigma[:,0].real
-    Sg_A = sigma[:,1]+sigma[:,2]*1j
-    Sg_B = sigma[:,3]+sigma[:,4]*1j
+    freq_num=500
+    om = sigma[:freq_num,0].real
+    Sg_A = sigma[:freq_num,1]+sigma[:freq_num,2]*1j
+    Sg_B = sigma[:freq_num,3]+sigma[:freq_num,4]*1j
     # print(type(Sg_A),type(om),type(params['mu'][0]))
-    # Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'][0], params['mu'][0], params['U'][0], Sg_A, Sg_B, False)
-    Dlt_A,Dlt_B=perturb.impurity_test(Sg_A,Sg_B,Uc,T,10)
-    # Preparing input file Delta.inp
-    f = open(fDelta, 'w')
-    for i,iom in enumerate(om):
-        print(iom, Dlt_A[i].real, Dlt_A[i].imag, Dlt_B[i].real, Dlt_B[i].imag, file=f) 
-    f.close()
-    cmd = 'cp Delta.inp '+dir+'Delta.inp.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+
+    #also, prepare the original delta for comparison.
+    if opt==0:# no perturbation
+        ori_Dlt_A,ori_Dlt_B = hilbert.SCC_AFM(W, om, params['beta'][0], params['mu'][0], params['U'][0], Sg_A, Sg_B, False)
+        f = open(fDelta, 'w')
+        for i,iom in enumerate(om):
+            print(iom, ori_Dlt_A[i].real, ori_Dlt_A[i].imag, ori_Dlt_B[i].real, ori_Dlt_B[i].imag, file=f) 
+        f.close()
+        cmd = 'cp Delta.inp '+dir+'ori_Delta.inp.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+    elif opt==1:#perturbation
+
+        # use this line to run original DMFT.
+        Dlt_A,Dlt_B=perturb.impurity_test(Sg_A,Sg_B,Uc,T,10)
+        # Preparing input file Delta.inp
+        f = open(fDelta, 'w')
+        for i,iom in enumerate(om):
+            print(iom, Dlt_A[i].real, Dlt_A[i].imag, Dlt_B[i].real, Dlt_B[i].imag, file=f) 
+        f.close()
+        cmd = 'cp Delta.inp '+dir+'pert_Delta.inp.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
     print('Delta file is done!')
 
 
@@ -182,7 +196,7 @@ subprocess.call(cmd_dos, shell=True)
 
 for it in range(Niter):
     # Constructing bath Delta.inp from Green's function
-    DMFT_SCC(params['Delta'][0])
+    DMFT_SCC(params['Delta'][0],1)# DMFT with perturbation
 
     # Running ctqmc
     print('Running ---- qmc itt.: ', it, '-----')
@@ -204,13 +218,34 @@ for it in range(Niter):
     cmd = 'cp Delta.tau.01.000 '+dir+'Delta.tau.01.000.'+str(it)
     subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying
 
+
+    DMFT_SCC(params['Delta'][0],0)# DMFT without perturbation
+        # Running ctqmc
+    print('Running ---- qmc itt.: ', it, '-----')
+    subprocess.call(params['exe'][0], shell=True,stdout=sys.stdout,stderr=sys.stderr)
     
+    # Some copying to store data obtained so far (at each iteration)
+    cmd = 'cp Gf.out '+dir+'ori_Gf.out.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+    cmd = 'cp Sig.out '+dir+'ori_Sig.out.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying Sig
+    cmd = 'cp ctqmc.log '+dir+'ori_ctqmc.log.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying log file
+    cmd = 'cp rDelta.tau.00.000 '+dir+'ori_rDelta.tau.00.000.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying
+    cmd = 'cp rDelta.tau.01.000 '+dir+'ori_rDelta.tau.01.000.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying
+    cmd = 'cp Delta.tau.00.000 '+dir+'ori_Delta.tau.00.000.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying 
+    cmd = 'cp Delta.tau.01.000 '+dir+'ori_Delta.tau.01.000.'+str(it)
+    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying
+
     
     if it>0:
-        diff = Diff('Gf.out', '{}Gf.out.'.format(dir)+str(it-1))
+        diff = Diff('Gf.out', 'Gf.out.{}'.format(dir)+str(it-1))
         print('Diff=', diff)
 
-subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000', shell=True) 
+subprocess.call('rm Aw.out.001 Aw.out.000 Gcoeff.dat gs_qmc.dat Sig.outB Sig.outD Sw.dat Probability.dat Gt.dat Gw.dat histogram.dat nohup_imp.out.000 ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000 ori_Delta.inp', shell=True) 
 for i in np.arange(8):
     subprocess.call('rm status.00{}'.format(i), shell=True)
         

@@ -1,0 +1,28 @@
+# Cix file for cluster DMFT with CTQMC
+# cluster_size, number of states, number of baths, maximum matrix size
+1 4 2 1
+# baths, dimension, symmetry, global flip
+0       1 0 0
+1       1 1 0
+# cluster energies for unique baths, eps[k]
+0 0
+#   N   K   Sz size F^{+,dn}, F^{+,up}, Ea  S
+1   0   0    0   1   2         3        0   0
+2   1   0 -0.5   1   0         4        0   0.5
+3   1   0  0.5   1   4         0        0   0.5
+4   2   0    0   1   0         0        0   0
+# matrix elements
+1  2  1  1    1    # start-state,end-state, dim1, dim2, <2|F^{+,dn}|1>
+1  3  1  1    1    # start-state,end-state, dim1, dim2, <3|F^{+,up}|1>
+2  0  0  0
+2  4  1  1   -1    # start-state,end-state, dim1, dim2, <4|F^{+,up}|2>
+3  4  1  1    1
+3  0  0  0
+4  0  0  0
+4  0  0  0
+HB2                # Hubbard-I is used to determine high-frequency
+# UCoulomb : (m1,s1) (m2,s2) (m3,s2) (m4,s1)  Uc[m1,m2,m3,m4]
+0 0 0 0 0.0
+# number of operators needed
+0
+

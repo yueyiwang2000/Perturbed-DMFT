@@ -87,14 +87,14 @@ def SCC_AFM(W, om, beta, mu, U, Sg_A, Sg_B, Real, delta=0.01):
         Dlt_B = z_B[it] - 1/G_B
         yr_A[it] = Dlt_A
         yr_B[it] = Dlt_B
-    plot(om, g_A.real, label='GA_real')
-    plot(om, g_A.imag, label='GA_imag')
-    plot(om, g_B.real, label='GB_real')
-    plot(om, g_B.imag, label='GB_imag')
+    # plot(om, g_A.real, label='GA_real')
+    # plot(om, g_A.imag, label='GA_imag')
+    # plot(om, g_B.real, label='GB_real')
+    # plot(om, g_B.imag, label='GB_imag')
     
-    legend(loc='best')
-    grid()
-    show()
+    # legend(loc='best')
+    # grid()
+    # show()
     return (yr_A, yr_B)
 
     
