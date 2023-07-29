@@ -47,7 +47,7 @@ params = {"exe":   ["mpirun ./ctqmc",          "# Path to executable"],
           "U":     [Uc,                 "# Coulomb repulsion (F0)"],
           "mu":    [Uc/2.,              "# Chemical potential"],
           "beta":  [1/T,                "# Inverse temperature"],
-          "M" :    [3e7,                "# Number of Monte Carlo steps"],
+          "M" :    [1e7,                "# Number of Monte Carlo steps"],
           "mode":  ["SH",               "# S stands for self-energy sampling, M stands for high frequency moment tail"],
           "cix":   ["one_band.imp",     "# Input file with atomic state"],
           "Delta": ["Delta.inp",        "# Input bath function hybridization"],
@@ -103,8 +103,8 @@ def DMFT_SCC(fDelta,opt=0):
     the atomic states.
     """
     fileGf = 'Gf.out'
-    # filesig='./trial_sigma/{}_{}.dat'.format(Uc,T)# use this filesig, DMFT will start repeatedly from a same trial sigma, to test if it is stable.
-    filesig='Sig.out'
+    filesig='./trial_sigma/{}_{}.dat'.format(Uc,T)# use this filesig, DMFT will start repeatedly from a same trial sigma, to test if it is stable.
+    # filesig='Sig.out'
     #get sigma
     if (os.path.exists(filesig)): 
         sigma = np.loadtxt(filesig)
@@ -181,7 +181,7 @@ def Diff(fg1, fg2):
     return diff
 
 # Number of DMFT iterations
-Niter = 20
+Niter = 5
 
 # Creating parameters file PARAMS for qmc execution
 CreateInputFile(params)
@@ -256,7 +256,6 @@ for it in range(Niter):
     if it>0:
         diff = Diff('Gf.out', '{}Gf.out.'.format(dir)+str(it-1))
         print('Diff=', diff)
-        if (diff<1e-6): break
 
 subprocess.call('rm Aw.out.001 Aw.out.000 Gcoeff.dat gs_qmc.dat Sig.outB Sig.outD Sw.dat Probability.dat Gt.dat Gw.dat histogram.dat nohup_imp.out.000 ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000 ori_Delta.inp', shell=True) 
 for i in np.arange(8):

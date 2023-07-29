@@ -67,6 +67,7 @@ def calc_sym_point(in_k123,mat,knum):
     sgn=(-1)**(np.sum(out_kpoint_mod-out_kpoint)/knum)
     output=np.vstack((out_kpoint_mod,np.array([sgn])))
     # print(output)
+    # return out__.astype(int)
     return output.astype(int)
 
 
@@ -111,8 +112,11 @@ def sym_mapping(k1ind,k2ind,k3ind,knum=10):
                 # print(xinv,yinv,zinv)
                 sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv,knum)],axis=1)#xyz
                 sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv@xy_swap,knum)],axis=1)#yxz
-                sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv@xz_swap,knum)],axis=1)#zxy
+                sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv@xz_swap,knum)],axis=1)#zyx 
                 sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv@yz_swap,knum)],axis=1)#xzy
+                # sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,xy_swap@inv,knum)],axis=1)
+                # sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,xz_swap@inv,knum)],axis=1)
+                # sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,yz_swap@inv,knum)],axis=1)
                 sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv@xy_swap@xz_swap,knum)],axis=1)#zxy
                 sym_points=np.concatenate([sym_points,calc_sym_point(input_k123,inv@xz_swap@xy_swap,knum)],axis=1)#yzx
     # print('shifted_k123\n',shifted_output_k)
@@ -153,11 +157,11 @@ def G_11(knum,z_A,z_B,a=1):# and, G_22=-G_diag_11.conj
 
 # G12 is real, or effectively can be treated as real. We are gonna to define it as a real array to accelerate the calculation.
 def G_12(knum,z_A,z_B,a=1):
-    kx,ky,kz=gen_full_kgrids(knum,a)
+    k1,k2,k3=gen_full_kgrids(knum,a)
     n=z_A.size
     G_offdiag=np.zeros((n,knum,knum,knum))
     zazb=z_A*z_B
-    dis=dispersion(kx, ky, kz)
+    dis=dispersion(k1, k2, k3)
     G_offdiag = dis / (zazb[:, None, None, None].real - dis**2)
     return G_offdiag
 
@@ -399,19 +403,19 @@ def FT_test(quant,knum,a=1):
     return 0
 
 
-def G_test(a=1):
+def G_test(sigA,sigB,U,T,knum,a=1):
     start_time = time.time()
-    U=10.0
+    # U=4.0
     mu=U/2
-    T=0.4
+    # T=0.2
     beta=1/T
-    sigma=np.loadtxt('{}_{}.dat'.format(U,T))[:500,:]
-    sigA=sigma[:,1]+1j*sigma[:,2]
-    sigB=sigma[:,3]+1j*sigma[:,4]
+    # sigma=np.loadtxt('./trial_sigma/{}_{}.dat'.format(U,T))[:500,:]
+    # sigA=sigma[:,1]+1j*sigma[:,2]
+    # sigB=sigma[:,3]+1j*sigma[:,4]
     z_A=z(beta,mu,sigA)
     z_B=z(beta,mu,sigB)
     n=sigA.size
-    knum=20
+    knum=10
     G11=G_11(knum,z_A,z_B)
     G22=-G11.conjugate()
     G12=G_12(knum,z_A,z_B)
@@ -421,14 +425,17 @@ def G_test(a=1):
 
     kxind1=1
     kyind1=2
-    kzind1=3
-    kxind2=2
-    kyind2=9
-    kzind2=1
-    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind1,kyind1,kzind1].real,label='G11_k1_real')
-    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind1,kyind1,kzind1].imag,label='G11_k1_imag')
-    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind2,kyind2,kzind2].real,label='G11_k2_real')
-    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind2,kyind2,kzind2].imag,label='G11_k2_imag')
+    kzind1=6
+    kxind2=9
+    kyind2=8
+    kzind2=4
+    k1,k2,k3=gen_full_kgrids(knum,a)
+    dis=dispersion(k1, k2, k3)
+    print(dis[kxind1,kyind1,kzind1],dis[kxind2,kyind2,kzind2])
+    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind1,kyind1,kzind1].real,label='G12_k1_real')
+    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind1,kyind1,kzind1].imag,label='G12_k1_imag')
+    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind2,kyind2,kzind2].real,label='G12_k2_real')
+    plt.plot(fermion_om[2*n:3*n],G12[2*n:3*n,kxind2,kyind2,kzind2].imag,label='G12_k2_imag')
     # plt.plot(fermion_om,G_A[:,knum-1-kxind,kyind,kzind].real,label='G-k_A_real')
     # plt.plot(fermion_om,G_A[:,knum-1-kxind,kyind,kzind].imag,label='G-k_A_imag')
     # plt.plot(fermion_om[2*n:3*n],G22[2*n:3*n,kxind,kyind,kzind].real,label='G22_k_real')
@@ -438,7 +445,8 @@ def G_test(a=1):
     plt.legend()
     plt.grid()
     plt.show()
-    FT_test(G11[2*n:3*n],knum)
+
+    # FT_test(G11[2*n:3*n],knum)
     # FT_test(G12[2*n:3*n],knum)
     return 0
 #clear
@@ -485,13 +493,23 @@ def precalcP_test(sigA,sigB,U,T,knum,a=1):
     Boson_om = (2*np.arange(2*n+1)-2*n)*np.pi/beta
     # plt.plot(Boson_om,P11[:,qxind,qyind,qzind].real,label='P22_real')
     # plt.plot(Boson_om,P11[:,qxind,qyind,qzind].imag,label='P22_imag')
-    plt.plot(Boson_om,P12[:,qxind,qyind,qzind].real,label='P12_real')
-    plt.plot(Boson_om,P12[:,qxind,qyind,qzind].imag,label='P12_imag')
-    plt.plot(Boson_om,P12[:,kxind,kyind,kzind].real,label='P12_real')
-    plt.plot(Boson_om,P12[:,kxind,kyind,kzind].imag,label='P12_imag')
-    plt.legend()
-    plt.show()
+    # plt.plot(Boson_om,P12[:,qxind,qyind,qzind].real,label='P12_real')
+    # plt.plot(Boson_om,P12[:,qxind,qyind,qzind].imag,label='P12_imag')
+    # plt.plot(Boson_om,P12[:,kxind,kyind,kzind].real,label='P12_real')
+    # plt.plot(Boson_om,P12[:,kxind,kyind,kzind].imag,label='P12_imag')
+    # plt.legend()
+    # plt.show()
+
     # FT_test(P11[n:2*n],knum)
+    # k1,k2,k3=gen_full_kgrids(knum,a)
+    # dis=dispersion(k1, k2, k3)
+    # for kxind in np.arange(knum):
+    #     for kyind in np.arange(knum):
+    #         for kzind in np.arange(knum):
+
+    #             # print('sign of dispk and sig_12k',dis[kxind,kyind,kzind]/np.abs(dis[kxind,kyind,kzind]),sig_new_12[500,kxind,kyind,kzind]/np.abs(sig_new_12[500,kxind,kyind,kzind]))
+    #             if dis[kxind,kyind,kzind]*P12[500,kxind,kyind,kzind]>0:
+    #                 print(kxind,kyind,kzind,dis[kxind,kyind,kzind],P12[500,kxind,kyind,kzind])
     return 0
 #Clear.
 
@@ -542,12 +560,12 @@ def new_sig(sigA,sigB,U,T,knum,a=1):
     allsigA=ext_sig(beta,sigA)
     allsigB=ext_sig(beta,sigB)
     sig_pert_imp11,sig_pert_imp22=sig_imp_pert_test(sigA,sigB,U,T,knum)
-    qxind=2
-    qyind=5
-    qzind=7
-    kxind=0
-    kyind=1
-    kzind=2
+    # qxind=2
+    # qyind=5
+    # qzind=7
+    # kxind=0
+    # kyind=1
+    # kzind=2
 
     G11=G_11(knum,z_A,z_B)
     G12=G_12(knum,z_A,z_B)
@@ -610,7 +628,15 @@ def new_sig(sigA,sigB,U,T,knum,a=1):
     # plt.plot(sig_new_12[:,kxind,kyind,kzind].imag,label='sig_new_12_imag')
     # plt.legend()
     # plt.show()
+    # k1,k2,k3=gen_full_kgrids(knum,a)
+    # dis=dispersion(k1, k2, k3)
+    # for kxind in np.arange(knum):
+    #     for kyind in np.arange(knum):
+    #         for kzind in np.arange(knum):
 
+    #             # print('sign of dispk and sig_12k',dis[kxind,kyind,kzind]/np.abs(dis[kxind,kyind,kzind]),sig_new_12[500,kxind,kyind,kzind]/np.abs(sig_new_12[500,kxind,kyind,kzind]))
+    #             if dis[kxind,kyind,kzind]*sig_new_12[500,kxind,kyind,kzind]<0:
+    #                 print(kxind,kyind,kzind,dis[kxind,kyind,kzind],sig_new_12[500,kxind,kyind,kzind])
     return sig_new_11,sig_new_22,sig_new_12
 #clear. 
 
@@ -746,7 +772,7 @@ def impurity_test(SigA,SigB,U,T,knum):
 
 # sym_mapping(1,2,3)
 # calc_sym_array(10)
-# G_test()
+# G_test(sigA,sigB,U,T,knum)
 # precalcP_test(sigA,sigB,U,T,knum)
 # sig_imp_pert_test(sigA,sigB,U,T,2*knum)
 # new_sig(U,T,knum,500)

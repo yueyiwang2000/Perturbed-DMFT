@@ -46,7 +46,7 @@ subprocess.call('rm Gf.OCA PARAMS PPSigma.OCA Sig.OCA ', shell=True)
 Ms = 2e6
 params={
     "exe"       : "mpirun ./boldc", # Path to executable
-    "dos"       : "cubic_dos.dat",     # non-interacting DOS
+    "dos"       : "DOS_3D.dat",     # non-interacting DOS
     "U"         : Uc,               # Coulomb U
     "mu"        : Uc/2.,            # chemical potential
     "beta"      : 1/T,               # inverse temperature
@@ -109,7 +109,6 @@ def DMFT_SCC(W, fDelta,opt):
     Sg_A = Sf[1,:]+Sf[2,:]*1j
     Sg_B = Sf[3,:]+Sf[4,:]*1j
     if opt==0:
-
         Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
     # Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
     elif opt==1:
