@@ -19,7 +19,7 @@ def plot_sigma(filename,index):
 
 
 U=7.0
-T=0.4
+T=0.45
 #single mode
 def single_mode(num):
     ilist=np.arange(num)
@@ -57,15 +57,15 @@ def stable_test(num):
 
 def compare_sig(ind):
     freq_num=500
-    filename='./files/{}_{}/Sig.out.{}'.format(U,T,ind)
-    # filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
+    filename='./files_pert_ctqmc/{}_{}/pert_Sig.out.{}'.format(U,T,ind)
+    # filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
     sigma=np.loadtxt(filename)
     omega=sigma[:freq_num,0]
     plt.plot(omega,sigma[:freq_num,1],label='1th column after perturbed DMFT')
     plt.plot(omega,sigma[:freq_num,3],label='3rd column after perturbed DMFT')
 
-    filename='./files/{}_{}/ori_Sig.out.{}'.format(U,T,ind)
-    # filename='./files_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,ind+1)
+    filename='./files_pert_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,ind)
+    # filename='./files_pert_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,ind+1)
     sigma=np.loadtxt(filename)
     omega=sigma[:freq_num,0]
     plt.plot(omega,sigma[:freq_num,1],label='1th column after DMFT')
@@ -73,8 +73,8 @@ def compare_sig(ind):
     
     if ind>=1:
 
-        filename='./files/{}_{}/Sig.out.{}'.format(U,T,ind-1)
-        # filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind)
+        filename='./files_pert_ctqmc/{}_{}/pert_Sig.out.{}'.format(U,T,ind-1)
+        # filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind)
         sigma=np.loadtxt(filename)
         omega=sigma[:freq_num,0]
         plt.plot(omega,sigma[:freq_num,1],label='1th column in sigma we start with')
@@ -83,8 +83,8 @@ def compare_sig(ind):
     plt.show()
 
 def compare_Delta(ind):
-    filename='./files/{}_{}/pert_Delta.inp.{}'.format(U,T,ind)
-    # filename='./files_boldc/{}_{}/Delta.inp.{}'.format(U,T,ind+1)
+    # filename='./files/{}_{}/pert_Delta.inp.{}'.format(U,T,ind)
+    filename='./files_pert_boldc/{}_{}/Delta.inp.{}'.format(U,T,ind+1)
     sigma=np.loadtxt(filename)
     omega=sigma[:,0]
     # plt.plot(omega,sigma[:,1],label='1th column in Delta.inp.0')
@@ -92,8 +92,8 @@ def compare_Delta(ind):
     # plt.plot(omega,sigma[:,3],label='3rd column in Delta.inp.0')
     plt.plot(omega,sigma[:,4],label='4th column in pert_Delta.inp.0')
 
-    filename='./files/{}_{}/ori_Delta.inp.{}'.format(U,T,ind)
-    # filename='./files_boldc/{}_{}/ori_Delta.inp.{}'.format(U,T,ind+1)
+    # filename='./files/{}_{}/ori_Delta.inp.{}'.format(U,T,ind)
+    filename='./files_pert_boldc/{}_{}/ori_Delta.inp.{}'.format(U,T,ind+1)
     sigma=np.loadtxt(filename)
     omega=sigma[:,0]
     # plt.plot(omega,sigma[:,1],label='1th column in ori_Delta.inp.0')
@@ -107,14 +107,22 @@ def compare_Delta(ind):
 def burst_scatter(num):
     ilist=np.arange(num)
     for i in ilist:
-        filename='./files/{}_{}/Sig.out.{}'.format(U,T,int(i))
-        # filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
-        # filename='./files/{}_{}/Delta.out.{}'.format(U,T,int(i))
+        # filename='./files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,int(i))
+        filename='./files_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,int(i+1))
         if os.path.isfile(filename):
             sigma=np.loadtxt(filename)
             # omega=sigma[:,0]
-            plt.scatter(i,sigma[-1,1],label='real1',c='blue')
-            plt.scatter(i,sigma[-1,3],label='real1',c='red')
+            plt.scatter(i,sigma[-1,1],label='no perturbation',c='red')
+            plt.scatter(i,sigma[-1,3],label='no perturbation',c='red')
+        else:
+            print('cannot find {}'.format(filename))
+        filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
+        # filename='./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,int(i+1))
+        if os.path.isfile(filename):
+            sigma=np.loadtxt(filename)
+            # omega=sigma[:,0]
+            plt.scatter(i,sigma[-1,1],label='perturbation',c='blue')
+            plt.scatter(i,sigma[-1,3],label='perturbation',c='blue')
         else:
             print('cannot find {}'.format(filename))
     # plt.legend()
@@ -125,7 +133,7 @@ def burst_scatter(num):
 # stable_test(5)
 # compare_sig()
 # compare_Delta()
-burst_scatter(18)
-for ind in np.arange(18):
-    compare_sig(ind)
+burst_scatter(10)
+# for ind in np.arange(10):
+#     compare_sig(ind)
     # compare_Delta(ind)

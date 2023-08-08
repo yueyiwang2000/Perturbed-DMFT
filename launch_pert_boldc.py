@@ -33,7 +33,19 @@ if (len(sys.argv)==3):
     T=float(sys.argv[2])
     print('T=',T)
     print('Uc=',Uc)
-dir='./files_boldc/{}_{}/'.format(Uc,T)
+
+if (len(sys.argv)==4):
+    Uc=float(sys.argv[1])
+    T=float(sys.argv[2])
+    mode=float(sys.argv[3])#0: no perturbation. 1: with perturbation
+    print('T=',T)
+    print('Uc=',Uc)
+    print('mode=',mode)
+if mode ==1:
+    dir='./files_pert_boldc/{}_{}/'.format(Uc,T)
+elif mode==0:
+    dir='./files_boldc/{}_{}/'.format(Uc,T)
+
 if os.path.exists(dir):
     print('already have this directory: ', dir)
     # CAREFULL! delete any previous files
@@ -92,8 +104,8 @@ def DMFT_SCC(W, fDelta,opt):
         print('Starting from non-interacting model')
         Sf=[]
         om = (2*arange(500)+1)*pi/params['beta']
-        Sg_A=Uc/2.+0.001
-        Sg_B=Uc/2.-0.001
+        Sg_A=Uc/2.+0.01
+        Sg_B=Uc/2.-0.01
         for iom in om:
             Sf.append([iom,Sg_A,0,Sg_B,0])
         Sf = array(Sf).T
@@ -110,9 +122,9 @@ def DMFT_SCC(W, fDelta,opt):
     Sg_B = Sf[3,:]+Sf[4,:]*1j
     if opt==0:
         Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
-    # Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
+        # Dlt_A,Dlt_B = perturb.Delta_DMFT(Sg_A,Sg_B,Uc,T,20)
     elif opt==1:
-        Dlt_A,Dlt_B=perturb.impurity_test(Sg_A,Sg_B,Uc,T,10)
+        Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
     # Preparing input file Delta.inp
     f = open(fDelta, 'w')
     for i,iom in enumerate(om):
@@ -129,7 +141,7 @@ def Diff(fg1, fg2):
 
 # Number of DMFT iterations
 Niter = 10
-
+diff_arr=zeros(Niter)
 # Creating parameters file PARAMS for qmc execution
 CreateInputFile(params)
 # non0interacting DOS and its Hilbert transform
@@ -148,59 +160,70 @@ for it in range(1,Niter+1):
     # Constructing bath Delta.inp from Green's function
 
 
+    if mode ==0:
+        #calculate non-perturbation version firstly.
+        DMFT_SCC(W, params['Delta'],0)
+        # Some copying to store data obtained so far (at each iteration)                                                                                            
+        cmd = 'cp '+fileD+' '+dir+'ori_'+fileD+'.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+    
+        # Running boldc
+        print('Running ---- bold_impurity solver itt.: ', it, '-----')
+    
+        subprocess.call(params['exe'], shell=True,stdout=sys.stdout,stderr=sys.stderr)
+    
+        # Some copying to store data obtained so far (at each iteration)
+        cmd = 'cp '+fileG+' '+dir+'ori_'+fileG+'.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+        cmd = 'cp '+fileS+' '+dir+'ori_'+fileS+'.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying Sig
+        cmd = 'cp ctqmc.log '+dir+'ori_'+'ctqmc.log.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying log file
+    
+    
+    if mode ==1:
+        # then, getting perturbation version
+        DMFT_SCC(W, params['Delta'],1)
+        # Some copying to store data obtained so far (at each iteration)                                                                                            
+        cmd = 'cp '+fileD+' '+dir+fileD+'.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+    
+        # Running boldc
+        print('Running ---- pert_bold_impurity solver itt.: ', it, '-----')
+    
+        subprocess.call(params['exe'], shell=True,stdout=sys.stdout,stderr=sys.stderr)
+    
+        # Some copying to store data obtained so far (at each iteration)
+        cmd = 'cp '+fileG+' '+dir+fileG+'.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
+        cmd = 'cp '+fileS+' '+dir+fileS+'.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying Sig
+        cmd = 'cp ctqmc.log '+dir+'ctqmc.log.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying log file
+            # Constructing bath Delta.inp from Green's function
 
-    #calculate non-DMFT version firstly.
-    DMFT_SCC(W, params['Delta'],0)
-    # Some copying to store data obtained so far (at each iteration)                                                                                            
-    cmd = 'cp '+fileD+' '+dir+'ori_'+fileD+'.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
-    
-    # Running ctqmc
-    print('Running ---- bold_impurity solver itt.: ', it, '-----')
-    
-    subprocess.call(params['exe'], shell=True,stdout=sys.stdout,stderr=sys.stderr)
-    
-    # Some copying to store data obtained so far (at each iteration)
-    cmd = 'cp '+fileG+' '+dir+'ori_'+fileG+'.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
-    cmd = 'cp '+fileS+' '+dir+'ori_'+fileS+'.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying Sig
-    cmd = 'cp ctqmc.log '+dir+'ori_'+'ctqmc.log.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying log file
-    
-    
-    
-    # then, getting
-    DMFT_SCC(W, params['Delta'],1)
-    # Some copying to store data obtained so far (at each iteration)                                                                                            
-    cmd = 'cp '+fileD+' '+dir+fileD+'.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
-    
-    # Running ctqmc
-    print('Running ---- pert_bold_impurity solver itt.: ', it, '-----')
-    
-    subprocess.call(params['exe'], shell=True,stdout=sys.stdout,stderr=sys.stderr)
-    
-    # Some copying to store data obtained so far (at each iteration)
-    cmd = 'cp '+fileG+' '+dir+fileG+'.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
-    cmd = 'cp '+fileS+' '+dir+fileS+'.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying Sig
-    cmd = 'cp ctqmc.log '+dir+'ctqmc.log.'+str(it)
-    subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying log file
-        # Constructing bath Delta.inp from Green's function
     
     
     
  
     if it>1:
-        diff = Diff(fileG, dir+fileG+'.'+str(it-1))
+        if mode==1:
+            diff = Diff(fileG, dir+fileG+'.'+str(it-1))
+        elif mode==0:
+            diff = Diff(fileG, dir+'ori_'+fileG+'.'+str(it-1))
         print('Diff=', diff)
         #if (diff<3e-4 and params["Ms"]==Ms):
         #    params["Ms"] *= 3
         #    CreateInputFile(params)
         #if (diff<6e-5): break
+        diff_arr[it-1]=diff
         if (diff<1e-6): break
+        
+diff_dir=dir+'diff.log'
+f = open(diff_dir, 'w')
+for iter in arange(it):
+    print(diff_arr[iter], file=f) 
+f.close()
 
 # clean everything in the main directory. 
 # everything should be able to be find in the specified dir.

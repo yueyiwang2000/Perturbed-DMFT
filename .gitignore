@@ -2,5 +2,10 @@
 /trial_sigma/
 /files/
 /files_boldc/
+/files_ctqmc/
 /__pycache__/
 /test/
+/old_ctqmc_files/
+/old_boldc_files/
+/files_pert_ctqmc/
+/files_pert_boldc/

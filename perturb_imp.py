@@ -151,7 +151,7 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
         # lindhard1=0.25*(1-delta_inf**2/alpha_ave**2)*(2*fermi(alpha_ave)-1)/(iOm[i]+2*alpha_ave)
         # lindhard2=0.25*(1-delta_inf**2/alpha_ave**2)*(1-2*fermi(alpha_ave))/(iOm[i]-2*alpha_ave)
         output=G_A[0:lenom*3]*G_A[i-lenom:lenom*3+i-lenom]-G_A0[:lenom*3]*G_A0[i-lenom:lenom*3+i-lenom]
-        P_A[i]=lindhard[i]+T*np.sum(output)
+        P_A[i]=lindhard[i] +T*np.sum(output)#
         P_A[2*lenom-i]=P_A[i].conjugate()
         # if np.mod(i,100)==0:
         #     plt.plot(-output,label='output')
