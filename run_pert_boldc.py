@@ -5,8 +5,8 @@ import os,sys,subprocess
 def run(list):
     for (U,T) in list:
         print("U=",U,'T=',T)
-        cmd='python launch_pert_boldc.py {} {} 0'.format(U,T)
-        subprocess.call(cmd, shell=True)
+        # cmd='python launch_pert_boldc.py {} {} 0'.format(U,T)
+        # subprocess.call(cmd, shell=True)
         cmd='python launch_pert_boldc.py {} {} 1'.format(U,T)
         subprocess.call(cmd, shell=True)
 

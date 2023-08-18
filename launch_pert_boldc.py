@@ -8,14 +8,14 @@ import json
 import os,sys,subprocess
 import hilbert
 import matplotlib.pyplot as plt 
-import perturb
+# import perturb
 #from pylab import *
 
 """
 This module runs ctqmc impurity solver for one-band model.
 The executable should exist in directory params['exe']
 """
-#fileS = 'Sig.out'
+# fileS = 'Sig.out'
 #fileG = 'Gf.out'
 fileS = 'Sig.OCA'
 fileG = 'Gf.OCA'
@@ -100,36 +100,46 @@ def DMFT_SCC(W, fDelta,opt):
         # Gf = io.read_array(fileGf, columns=(0,-1), lines=(1,-1))
         # In the new Python, io.readarray is dropped and we should use loadtxt instead!
         Sf = loadtxt(fileS).T
+        om = Sf[0]# matsubara freqs
+        Sg_A = Sf[1,:]+Sf[2,:]*1j
+        Sg_B = Sf[3,:]+Sf[4,:]*1j
     else: # otherwise start from non-interacting limit
         print('Starting from non-interacting model')
-        Sf=[]
+        # Sf=[]
         om = (2*arange(500)+1)*pi/params['beta']
-        Sg_A=Uc/2.+0.01
-        Sg_B=Uc/2.-0.01
-        for iom in om:
-            Sf.append([iom,Sg_A,0,Sg_B,0])
-        Sf = array(Sf).T
-    om = Sf[0]# matsubara freqs
+        Sg_A=(Uc/2.+0.01)*ones_like(om)
+        Sg_B=(Uc/2.-0.01)*ones_like(om)
+        # for iom in om:
+        #     Sf.append([iom,Sg_A,0,Sg_B,0])
+        # Sf = array(Sf).T
+        f = open(fileS, 'w')
+        for i,iom in enumerate(om):
+            print(iom, Sg_A[i].real, Sg_A[i].imag, Sg_B[i].real, Sg_B[i].imag, file=f) 
+        f.close()
+    
     if (abs(om[0]-pi/params['beta'])>1e-6):
         # for the case that mstsubara freqs does not math the specified temperature.
-        print('It seems input '+fileS+' correspond to different temperature, hence interpolating')
-        om = (2*arange(len(om))+1)*pi/params['beta']
-        for i in range(1,5):
-            fS=interpolate.UnivariateSpline(Sf[0],Sf[i,:],s=0)
-            Sf[i,:] = fS(om)
+        print('It seems input '+fileS+' correspond to different temperature!')
+        return 0
+        # om = (2*arange(len(om))+1)*pi/params['beta']
+        # for i in range(1,5):
+        #     fS=interpolate.UnivariateSpline(Sf[0],Sf[i,:],s=0)
+        #     Sf[i,:] = fS(om)
     
-    Sg_A = Sf[1,:]+Sf[2,:]*1j
-    Sg_B = Sf[3,:]+Sf[4,:]*1j
+
     if opt==0:
         Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
+        f = open(fDelta, 'w')
+        for i,iom in enumerate(om):
+            print(iom, Dlt_A[i].real, Dlt_A[i].imag, Dlt_B[i].real, Dlt_B[i].imag, file=f) 
+        f.close()
         # Dlt_A,Dlt_B = perturb.Delta_DMFT(Sg_A,Sg_B,Uc,T,20)
     elif opt==1:
-        Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
+        # Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
+        cmd_pert='mpirun -np 8 python perturb_mpi.py {} {}'.format(Uc,T)
+        subprocess.call(cmd_pert, shell=True)
     # Preparing input file Delta.inp
-    f = open(fDelta, 'w')
-    for i,iom in enumerate(om):
-        print(iom, Dlt_A[i].real, Dlt_A[i].imag, Dlt_B[i].real, Dlt_B[i].imag, file=f) 
-    f.close()
+
     
 
 def Diff(fg1, fg2):

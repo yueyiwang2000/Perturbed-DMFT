@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from scipy import integrate
 import hilbert
-import perturb
+# import perturb
 """
 This module runs ctqmc impurity solver for one-band model.
 The executable should exist in directory params['exe']
@@ -127,12 +127,12 @@ def DMFT_SCC(fDelta,opt=0):
             sigma[i,3]=params['mu'][0]-0.01# Gaa, dn, real
             sigma[i,4]=0# Gaa, dn, imag
         print('writing trial sigma file')
-        f = open('trial_sigma.dat', 'w')
+        f = open(filesig, 'w')
         for i in range(np.shape(sigma)[0]):# consider the case that we may have many columns of Gf
             # print(Gf[i,0], 0.25*Gf[i,1], 0.25*Gf[i,2], file=f) # This is DMFT SCC: Delta = t**2*G (with t=1/2)
             # print(np.shape(Deltafile))
             for k in np.arange(np.shape(sigma)[1]):
-                print(sigma[i,k],end='\t', file=f)# print in the same line
+                print(sigma[i,k].real,end='\t', file=f)# print in the same line
             print('', file=f)# switch to another line
         f.close()
         print("trial sigma finished",np.shape(sigma))
@@ -171,12 +171,10 @@ def DMFT_SCC(fDelta,opt=0):
     elif opt==1:#perturbation
 
         # use this line to run original DMFT.
-        Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
+        # Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
         # Preparing input file Delta.inp
-        f = open(fDelta, 'w')
-        for i,iom in enumerate(om):
-            print(iom, Dlt_A[i].real, Dlt_A[i].imag, Dlt_B[i].real, Dlt_B[i].imag, file=f) 
-        f.close()
+        cmd_pert='mpirun -np 8 python perturb_mpi.py {} {} {}'.format(Uc,T,filesig)
+        subprocess.call(cmd_pert, shell=True)
         cmd = 'cp Delta.inp '+dir+'pert_Delta.inp.'+str(it)
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
     print('Delta file is done!')
