@@ -121,7 +121,7 @@ def pertimp():
 
 def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
     T=1/beta
-    lenom=int(G_A.size/4)
+    lenom=int(G_A.size/2)
     n=lenom
     iom= 1j*(2*np.arange(4*n)+1-4*n)*np.pi/beta
     iOm= 1j*(2*np.arange(2*n+1)-2*n)*np.pi/beta
