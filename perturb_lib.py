@@ -1,5 +1,13 @@
 import numpy as np
+import matplotlib.pyplot as plt
+"""
+This file contains simple python functions might be use in other perturbatio files.
+"""
+def fermi(eps,beta):
+    return 1/(np.exp(beta*eps)+1)
 
+def boson(eps,beta):
+    return 1/(np.exp(beta*eps)-1)
 
 def dispersion(k1,k2,k3,a=1,t=1):
     kx=(-k1+k2+k3)*np.pi/a
@@ -151,6 +159,15 @@ def G_11(knum,z_A,z_B,a=1):# and, G_22=-G_diag_11.conj
     G_diag_A = z_B[:, None, None, None] / (zazb[:, None, None, None] - dispersion(k1,k2,k3)**2)
     return G_diag_A
 
+def G_22(knum,z_A,z_B,a=1):# and, G_22=-G_diag_11.conj
+    n=z_A.size
+    k1,k2,k3=gen_full_kgrids(knum,a)
+    G_diag_A=np.zeros((n,knum,knum,knum),dtype=np.complex128)
+    zazb=z_A*z_B
+    G_diag_A = z_A[:, None, None, None] / (zazb[:, None, None, None] - dispersion(k1,k2,k3)**2)
+    return G_diag_A
+
+
 # G12 is real, or effectively can be treated as real. We are gonna to define it as a real array to accelerate the calculation.
 def G_12(knum,z_A,z_B,a=1):
     k1,k2,k3=gen_full_kgrids(knum,a)
@@ -160,3 +177,31 @@ def G_12(knum,z_A,z_B,a=1):
     dis=dispersion(k1, k2, k3)
     G_offdiag = dis / (zazb[:, None, None, None].real - dis**2)
     return G_offdiag
+
+
+def Delta_DMFT(sigA,sigB,U,T,knum=16,a=1):
+    mu=U/2
+    beta=1/T
+    n=sigA.size
+    om= (2*np.arange(n)+1)*np.pi/beta
+    iom=1j*om
+    z_A=z(beta,mu,sigA)
+    z_B=z(beta,mu,sigB)
+    G11=G_11(knum,z_A,z_B)
+    # G22=-G11.conjugate()
+    G22=G_22(knum,z_A,z_B)
+    G11_imp=np.sum(G11,axis=(1,2,3))/knum**3
+    G22_imp=np.sum(G22,axis=(1,2,3))/knum**3
+    Gimp_inv_11=1/G11_imp
+    Gimp_inv_22=1/G22_imp
+    Delta_11=iom+mu-sigA-Gimp_inv_11[n:]
+    Delta_22=iom+mu-sigB-Gimp_inv_22[n:]
+    # plt.plot(Delta_11.real,label='delta11 real')
+    # plt.plot(Delta_11.imag,label='delta11 imag')
+    # plt.plot(Delta_22.real,label='delta22 real')
+    # plt.plot(Delta_22.imag,label='delta22 imag')
+    # plt.legend()
+    # plt.grid()
+    # plt.show()
+    # print(np.shape(iom),np.shape(sigA),np.shape(Gimp_inv_11),np.shape(Delta_11))
+    return Delta_11,Delta_22

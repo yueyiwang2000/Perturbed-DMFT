@@ -8,6 +8,7 @@ import json
 import os,sys,subprocess
 import hilbert
 import matplotlib.pyplot as plt 
+import perturb_lib
 # import perturb
 #from pylab import *
 
@@ -54,10 +55,10 @@ else:
     print('directory does not exist... make a new one')
     cmd_newfolder='mkdir '+dir
     subprocess.call(cmd_newfolder, shell=True)
-subprocess.call('rm Gf.OCA PARAMS PPSigma.OCA Sig.OCA ', shell=True)
+subprocess.call('rm Gf.OCA PARAMS PPSigma.OCA Sig.OCA sig12.dat', shell=True)
 Ms = 2e6
 params={
-    "exe"       : "mpirun ./boldc", # Path to executable
+    "exe"       : "mpirun -np 8 ./boldc", # Path to executable
     "dos"       : "DOS_3D.dat",     # non-interacting DOS
     "U"         : Uc,               # Coulomb U
     "mu"        : Uc/2.,            # chemical potential
@@ -128,7 +129,8 @@ def DMFT_SCC(W, fDelta,opt):
     
 
     if opt==0:
-        Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
+        # Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
+        Dlt_A,Dlt_B =perturb_lib.Delta_DMFT(Sg_A,Sg_B,Uc,T)
         f = open(fDelta, 'w')
         for i,iom in enumerate(om):
             print(iom, Dlt_A[i].real, Dlt_A[i].imag, Dlt_B[i].real, Dlt_B[i].imag, file=f) 
@@ -136,7 +138,7 @@ def DMFT_SCC(W, fDelta,opt):
         # Dlt_A,Dlt_B = perturb.Delta_DMFT(Sg_A,Sg_B,Uc,T,20)
     elif opt==1:
         # Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
-        cmd_pert='mpirun -np 8 python perturb_mpi.py {} {}'.format(Uc,T)
+        cmd_pert='mpirun -np 8 python perturb.py {} {}'.format(Uc,T)
         subprocess.call(cmd_pert, shell=True)
     # Preparing input file Delta.inp
 
@@ -193,7 +195,10 @@ for it in range(1,Niter+1):
     
     if mode ==1:
         # then, getting perturbation version
-        DMFT_SCC(W, params['Delta'],1)
+        if it==1:
+            DMFT_SCC(W, params['Delta'],0)
+        else:
+            DMFT_SCC(W, params['Delta'],1)
         # Some copying to store data obtained so far (at each iteration)                                                                                            
         cmd = 'cp '+fileD+' '+dir+fileD+'.'+str(it)
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
@@ -210,6 +215,8 @@ for it in range(1,Niter+1):
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying Sig
         cmd = 'cp ctqmc.log '+dir+'ctqmc.log.'+str(it)
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying log file
+        cmd = 'cp sig12.dat '+dir+'sig12.dat.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying sig12 file
             # Constructing bath Delta.inp from Green's function
 
     
@@ -238,4 +245,4 @@ f.close()
 # clean everything in the main directory. 
 # everything should be able to be find in the specified dir.
 # if needed, this line could be commented.
-subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.OCA PARAMS PPSigma.OCA Sig.OCA uls.dat', shell=True) 
+subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.OCA PARAMS PPSigma.OCA Sig.OCA uls.dat sig12.dat', shell=True) 

@@ -6,10 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from scipy import integrate
 import hilbert
-# import perturb
+import perturb_lib
 """
 This module runs ctqmc impurity solver for one-band model.
 The executable should exist in directory params['exe']
+This controls the workflow of dmft.
 """
 # filedos='cubic_dos.dat'
 filedos='DOS_3D.dat'
@@ -42,19 +43,21 @@ else:
     cmd_newfolder='mkdir '+dir
     subprocess.call(cmd_newfolder, shell=True)
     
-subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000', shell=True) 
+subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000 sig12.dat', shell=True) 
 subprocess.call('rm Aw.out.001 Aw.out.000 Gcoeff.dat gs_qmc.dat Sig.outB Sig.outD Sw.dat Probability.dat Gt.dat Gw.dat histogram.dat nohup_imp.out.000 ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000 ori_Delta.inp', shell=True) 
-for i in np.arange(8):
+for i in np.arange(10):
     subprocess.call('rm status.00{}'.format(i), shell=True)
+subprocess.call('rm status.010', shell=True)
+subprocess.call('rm status.011', shell=True)
 # for i in np.arange(8):
 #     subprocess.call('rm status.00{}'.format(i), shell=True)
    
 
-params = {"exe":   ["mpirun ./ctqmc",          "# Path to executable"],
+params = {"exe":   ["mpirun -np 8 ./ctqmc",          "# Path to executable"],
           "U":     [Uc,                 "# Coulomb repulsion (F0)"],
           "mu":    [Uc/2.,              "# Chemical potential"],
           "beta":  [1/T,                "# Inverse temperature"],
-          "M" :    [5e7,                "# Number of Monte Carlo steps"],
+          "M" :    [2e7,                "# Number of Monte Carlo steps"],
           "mode":  ["SH",               "# S stands for self-energy sampling, M stands for high frequency moment tail"],
           "cix":   ["one_band.imp",     "# Input file with atomic state"],
           "Delta": ["Delta.inp",        "# Input bath function hybridization"],
@@ -160,8 +163,17 @@ def DMFT_SCC(fDelta,opt=0):
 
     #also, prepare the original delta for comparison.
     if opt==0:# no perturbation
-        ori_Dlt_A,ori_Dlt_B = hilbert.SCC_AFM(W, om, params['beta'][0], params['mu'][0], params['U'][0], Sg_A, Sg_B, False)
+        # ori_Dlt_A,ori_Dlt_B = hilbert.SCC_AFM(W, om, params['beta'][0], params['mu'][0], params['U'][0], Sg_A, Sg_B, False)
         # ori_Dlt_A,ori_Dlt_B =perturb.Delta_DMFT(Sg_A,Sg_B,Uc,T,20)# corrected delta. this is easy so we can use denser k points.
+        ori_Dlt_A,ori_Dlt_B =perturb_lib.Delta_DMFT( Sg_A, Sg_B,Uc,T)
+
+        # plt.plot(ori_Dlt_A.real,label='delta11 real')
+        # plt.plot(ori_Dlt_A.imag,label='delta11 imag')
+        # plt.plot(ori_Dlt_A_HT.real,label='delta11_HT real')
+        # plt.plot(ori_Dlt_A_HT.imag,label='delta11_HT imag')
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
         f = open(fDelta, 'w')
         for i,iom in enumerate(om):
             print(iom, ori_Dlt_A[i].real, ori_Dlt_A[i].imag, ori_Dlt_B[i].real, ori_Dlt_B[i].imag, file=f) 
@@ -173,7 +185,7 @@ def DMFT_SCC(fDelta,opt=0):
         # use this line to run original DMFT.
         # Dlt_A,Dlt_B=perturb.Delta_pert_DMFT(Sg_A,Sg_B,Uc,T,10)
         # Preparing input file Delta.inp
-        cmd_pert='mpirun -np 8 python perturb_mpi.py {} {} {}'.format(Uc,T,filesig)
+        cmd_pert='mpirun -np 8 python perturb.py {} {} {}'.format(Uc,T,filesig)
         subprocess.call(cmd_pert, shell=True)
         cmd = 'cp Delta.inp '+dir+'pert_Delta.inp.'+str(it)
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr)  # copying Gf
@@ -234,7 +246,10 @@ for it in range(Niter):
 
 
     if mode ==1:# if specified, do pert DMFT. otherwise, don't do.
-        DMFT_SCC(params['Delta'][0],1)# DMFT with perturbation
+        if it==0:
+            DMFT_SCC(params['Delta'][0],0)
+        else:
+            DMFT_SCC(params['Delta'][0],1)# DMFT with perturbation
 
         # Running ctqmc
         print('Running ---- pert qmc itt.: ', it, '-----')
@@ -255,7 +270,8 @@ for it in range(Niter):
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying 
         cmd = 'cp Delta.tau.01.000 '+dir+'Delta.tau.01.000.'+str(it)
         subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying
-
+        cmd = 'cp sig12.dat '+dir+'sig12.dat.'+str(it)
+        subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) # copying sig12 file
 
 
     
@@ -274,7 +290,7 @@ for iter in np.arange(it):
     print(diff_arr[iter], file=f) 
 f.close()
 
-subprocess.call('rm Aw.out.001 Aw.out.000 Gcoeff.dat gs_qmc.dat Sig.outB Sig.outD Sw.dat Probability.dat Gt.dat Gw.dat histogram.dat nohup_imp.out.000 ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000 ori_Delta.inp', shell=True) 
+subprocess.call('rm Aw.out.001 Aw.out.000 sig12.dat Gcoeff.dat gs_qmc.dat Sig.outB Sig.outD Sw.dat Probability.dat Gt.dat Gw.dat histogram.dat nohup_imp.out.000 ctqmc.log Delta.inp Deltat.inp Gf.out PARAMS PPSigma.OCA Sig.out Delta.tau.00.000 Delta.tau.01.000 rDelta.tau.01.000 rDelta.tau.00.000 ori_Delta.inp', shell=True) 
 for i in np.arange(8):
     subprocess.call('rm status.00{}'.format(i), shell=True)
         

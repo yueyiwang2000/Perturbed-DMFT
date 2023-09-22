@@ -3,29 +3,23 @@ import numpy as np
 import os,sys,subprocess
 import time
 import hilbert
+from perturb_lib import *
+# import fft_convolution as conv
 # this code is written to reproduce a few leading order of 
 
+def fermion_fft(Gk):
+    N=np.shape(Gk)[0]
+    # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
+    Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N),axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)
+    return Gktau
+
+def fermion_ifft(Gk):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
+    N=np.shape(Gk)[0]
+    Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
+    return Gkiom
 
 
 
-
-# from DMFT, we only have first 2000 positive Matsubara freqs.
-# hoeever we need to extend our sigma to 4 times as before.
-# The structure is:
-#|          first 2000                |     second 2000        |     third 2000        | last 2000  |
-#| high freq behavior at negative side|  negative-frequencies  |  original sigma data  |  sigma at high freq which is estimated using high-freq behavior  |
-def ext_sig(sig,beta):
-    lenom=sig.size
-    # print(lenom)
-    all_om=(2*np.arange(2*lenom)+1)*np.pi/beta
-    allsig=np.zeros(4*lenom,dtype=complex)
-    allsig[2*lenom:3*lenom]=sig
-    allsig[3*lenom:4*lenom]=sig[lenom-1].real+1j*sig[lenom-1].imag*all_om[lenom-1]/all_om[lenom:2*lenom]
-    allsig[:2*lenom]=allsig[4*lenom:2*lenom-1:-1].conjugate()
-    return allsig
-
-def fermi(eps,beta):
-    return 1/(np.exp(beta*eps)+1)
                          
 
 
@@ -44,9 +38,9 @@ def pertimp():
 
     sigma=np.loadtxt(sigfile)
     om=sigma[:,0]
-    lenom=om.size
-    print('# of frequencies: ',lenom)
-    allom=(2*np.arange(4*lenom)+1-lenom*4)*np.pi/beta
+    n=om.size
+    print('# of frequencies: ',n)
+    allom=(2*np.arange(4*n)+1-n*4)*np.pi/beta
     if om[0]/(np.pi/beta)>1.01 or om[0]/(np.pi/beta)<0.99:
         print('seems the temperature does not match!')
         return 0
@@ -64,7 +58,7 @@ def pertimp():
 
     G_A=np.zeros_like(sigA,dtype=complex)
     G_B=np.zeros_like(sigB,dtype=complex)
-    for i in np.arange(4*lenom):
+    for i in np.arange(4*n):
         z_A=1j*allom[i]+mu-sigA[i]
         z_B=1j*allom[i]+mu-sigB[i]
         G_A[i]=W(z_A)
@@ -78,11 +72,11 @@ def pertimp():
     plt.show()
     
     #calculate P. P is calculated on Boson matsubara freq points!
-    P_A=np.zeros(lenom*2,dtype=complex)
-    P_B=np.zeros(lenom*2,dtype=complex)
-    for i in np.arange(lenom*2):# here, i is the index of boson matsubara freq.
-        P_A[i]=T*np.sum(G_A[lenom:lenom*3]*G_A[lenom+i-lenom:lenom*3+i-lenom])
-        P_B[i]=T*np.sum(G_B[lenom:lenom*3]*G_B[lenom+i-lenom:lenom*3+i-lenom])
+    P_A=np.zeros(n*2,dtype=complex)
+    P_B=np.zeros(n*2,dtype=complex)
+    for i in np.arange(n*2):# here, i is the index of boson matsubara freq.
+        P_A[i]=T*np.sum(G_A[n:n*3]*G_A[n+i-n:n*3+i-n])
+        P_B[i]=T*np.sum(G_B[n:n*3]*G_B[n+i-n:n*3+i-n])
     # take a look at P
     plt.plot(P_A.real,label='P_A real')
     plt.plot(P_A.imag,label='P_A imag')
@@ -92,11 +86,11 @@ def pertimp():
     plt.show()
     
     #calculate sig. sig is calculate on fermion matsubara freq points!
-    sigp_A=np.zeros(lenom*2,dtype=complex)
-    sigp_B=np.zeros(lenom*2,dtype=complex)
-    for i in np.arange(lenom*2):# here, i is the index of fermion matsubara freq.
-        sigp_A[i]=-U**2*T*np.sum(P_B*G_A[lenom+i-lenom:lenom*3+i-lenom])
-        sigp_B[i]=-U**2*T*np.sum(P_A*G_B[lenom+i-lenom:lenom*3+i-lenom])
+    sigp_A=np.zeros(n*2,dtype=complex)
+    sigp_B=np.zeros(n*2,dtype=complex)
+    for i in np.arange(n*2):# here, i is the index of fermion matsubara freq.
+        sigp_A[i]=-U**2*T*np.sum(P_B*G_A[n+i-n:n*3+i-n])
+        sigp_B[i]=-U**2*T*np.sum(P_A*G_B[n+i-n:n*3+i-n])
     plt.plot(sigp_A.real,label='sigp_A real')
     plt.plot(sigp_A.imag,label='sigp_A imag')
     plt.plot(sigp_B.real,label='sigp_B real')
@@ -108,77 +102,92 @@ def pertimp():
     plt.plot(sigp_A.imag,label='sig_bf_pert_A imag')
     plt.plot(sigB_short[-1].real+sigp_B.real,label='sig_bf_pert_B real')
     plt.plot(sigp_B.imag,label='sig_bf_pert_B imag')
-    plt.plot(sigA[lenom:lenom*3].real,label='sigA real')
-    plt.plot(sigA[lenom:lenom*3].imag,label='sigA imag')
-    plt.plot(sigB[lenom:lenom*3].real,label='sigB real')
-    plt.plot(sigB[lenom:lenom*3].real,label='sigB imag')
+    plt.plot(sigA[n:n*3].real,label='sigA real')
+    plt.plot(sigA[n:n*3].imag,label='sigA imag')
+    plt.plot(sigB[n:n*3].real,label='sigB real')
+    plt.plot(sigB[n:n*3].real,label='sigB imag')
     plt.legend()
     plt.show()
     return 0 
 # sigtest=np.array([1+1j,2+2j,3+3j,4+4j])
 # print(ext_sig(sigtest))
-    
 
-def pertimp_func(G_A,G_B,delta_inf,beta,U,eps2_ave):
+
+
+#updated to faster fft version.
+def pertimp_func(G_A,G_B,delta_inf,beta,U,knum):
     T=1/beta
-    lenom=int(G_A.size/2)
-    n=lenom
-    iom= 1j*(2*np.arange(4*n)+1-4*n)*np.pi/beta
+    n=int(G_A.size/2)
+    N=2*n
+    iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
     iOm= 1j*(2*np.arange(2*n+1)-2*n)*np.pi/beta
-    G_A0=(iom+delta_inf)/(iom**2-delta_inf**2-eps2_ave)
-    # G_B0=(iom-delta_inf)/(iom**2-delta_inf**2-eps2_ave)
-    # print('n=',lenom)
+    # delta_inf=0
+    epsk=calc_disp(knum)
+    eps2=epsk**2
+    G_A0=np.sum((iom+delta_inf)[:,None,None,None]/(iom[:,None,None,None]**2-delta_inf**2-eps2[None,:,:,:]),axis=(1,2,3))/knum**3
+    # G_B0=(iom-delta_inf)/(iom**2-delta_inf**2-eps2)
+    # print('delta=',delta_inf)
     # check the generated impurity green function!
     # plt.plot(G_A.real,label='Gimp_A real')
     # plt.plot(G_A.imag,label='Gimp_A imag')
-    # plt.plot(G_B[lenom*2:lenom*3].real,label='Gimp_B real')
-    # plt.plot(G_B[lenom*2:lenom*3].imag,label='Gimp_B imag')
+    # plt.plot(G_B.real,label='Gimp_B real')
+    # plt.plot(G_B.imag,label='Gimp_B imag')
     # plt.plot(G_A0.real,label='Gimp_A0 real')
     # plt.plot(G_A0.imag,label='Gimp_A0 imag')
     # plt.plot(G_B0.real,label='Gimp_B0 real')
     # plt.plot(G_B0.imag,label='Gimp_B0 imag')
     # plt.legend()
     # plt.show()
-
+    tlist=(np.arange(N)+0.5)/N*beta
     #calculate P. P is calculated on Boson matsubara freq points!
-    P_A=np.zeros(lenom*2+1,dtype=complex)
-    P_B=np.zeros(lenom*2+1,dtype=complex)
-    alpha_ave=np.sqrt(eps2_ave+delta_inf**2)
-    lindhard1=0.25*(1-delta_inf**2/alpha_ave**2)*(2*fermi(alpha_ave,beta)-1)/(iOm+2*alpha_ave)
-    lindhard2=0.25*(1-delta_inf**2/alpha_ave**2)*(1-2*fermi(alpha_ave,beta))/(iOm-2*alpha_ave)
-    lindhard=lindhard1+lindhard2
-    for i in np.arange(lenom+1)+lenom:# here, i is the index of boson matsubara freq.
-        # lindhard1=0.25*(1-delta_inf**2/alpha_ave**2)*(2*fermi(alpha_ave)-1)/(iOm[i]+2*alpha_ave)
-        # lindhard2=0.25*(1-delta_inf**2/alpha_ave**2)*(1-2*fermi(alpha_ave))/(iOm[i]-2*alpha_ave)
-        output=G_A[0:lenom*3]*G_A[i-lenom:lenom*3+i-lenom]-G_A0[:lenom*3]*G_A0[i-lenom:lenom*3+i-lenom]
-        P_A[i]=lindhard[i] +T*np.sum(output)#
-        P_A[2*lenom-i]=P_A[i].conjugate()
-        # if np.mod(i,100)==0:
-        #     plt.plot(-output,label='output')
-        #     print(i,P_A[i])
-        #     plt.legend()
-        #     plt.show()
+    # P_A=np.zeros(n*2+1,dtype=complex)
+    # P_B=np.zeros(n*2+1,dtype=complex)
+    
+    alpha=np.sqrt(eps2+delta_inf**2)[None,:,:,:]
+    GA_tau_diff=fermion_fft(G_A-G_A0)
+    GA_tau_ana=np.sum(-beta/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
+                        (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
+    GA_tau=GA_tau_ana+GA_tau_diff
+    GA_bf=fermion_fft(G_A)
+    # GA_tau=(GA_tau+GA_bf)/2
+    # GA_tau=GA_bf
+    # plt.plot(GA_tau.real,label='GA_tau real')
+    # plt.plot(GA_tau.imag,label='GA_tau imag')
+    # plt.plot(GA_bf.real,label='GA_bf real')
+    # plt.plot(GA_bf.imag,label='GA_bf imag')
+    # plt.plot(GA_tau_diff.real,label='GA_tau_diff real')
+    # plt.plot(GA_tau_diff.imag,label='GA_tau_diff imag')
+    # plt.plot(GA_tau_ana.real,label='GA_tau_ana real')
+    # plt.plot(GA_tau_ana.imag,label='GA_tau_ana imag')
+    # plt.legend()
+    # plt.show()
+    # GB_tau_diff=fermion_fft(G_B-G_B0)
+    #check this!
+    # GB_tau_ana=-beta/2*((1-delta_inf/alpha_ave)*np.exp(alpha_ave*tlist)/(1+np.exp(alpha_ave*beta))+
+    #                     (1-delta_inf/alpha_ave)*np.exp(-alpha_ave*tlist)/(1+np.exp(-alpha_ave*beta)))
+    # GB_tau=GB_tau_ana+GB_tau_diff
+    # GB_tau=-GA_tau.conjugate()
+    PA_tau=-GA_tau[::-1]*GA_bf/beta
+    # PA_tau=(PA_tau+PA_tau[::-1])/2
+    # PB_tau=-GB_tau[::-1]*GB_tau/beta
 
-        
-        # P_B[i]=T*np.sum(G_B[lenom:lenom*3]*G_B[lenom+i-lenom:lenom*3+i-lenom]-G_B0[lenom:lenom*3]*G_B0[lenom+i-lenom:lenom*3+i-lenom])#
-    # 
-    P_B=P_A
     # take a look at P
-    # plt.plot(P_A.real,label='Pimp_A real')
-    # plt.plot(P_A.imag,label='Pimp_A imag')
-    # plt.plot(P_B.real,label='Pimp_B real')
-    # plt.plot(P_B.imag,label='Pimp_B imag')
+    # plt.plot(PA_tau.real,label='Pimp_A real')
+    # plt.plot(PA_tau.imag,label='Pimp_A imag')
+    # plt.plot(PB_tau.real,label='Pimp_B real')
+    # plt.plot(PB_tau.imag,label='Pimp_B imag')
     # plt.legend()
     # plt.show()
     
     #calculate sig. sig is calculate on fermion matsubara freq points!
-    sigp_A=np.zeros(lenom*2,dtype=complex)
-    sigp_B=np.zeros(lenom*2,dtype=complex)
-    for i in np.arange(lenom*2):# here, i is the index of fermion matsubara freq.
-        sigp_A[i]=-U**2*T*np.sum(P_B*G_A[lenom+i-lenom:lenom*3+i-lenom+1])
-        sigp_B[i]=-U**2*T*np.sum(P_A*G_B[lenom+i-lenom:lenom*3+i-lenom+1])
-    # plt.plot(sigp_A.real,label='sig(imp,2)_A real')
-    # plt.plot(sigp_A.imag,label='sig(imp,2)_A imag')
+    sigp_A=np.zeros(n*2,dtype=complex)
+    sigp_B=np.zeros(n*2,dtype=complex)
+    # sigB_tau=PA_tau*GB_tau*(-1)*U**2/beta
+    sigA_tau=PA_tau*GA_tau*(-1)*U**2/beta
+    sigp_A=fermion_ifft(sigA_tau)
+    sigp_B=-sigp_A.conjugate()
+    # plt.plot(sigA_tau.real,label='sigA_tau real')
+    # plt.plot(sigA_tau.imag,label='sigA_tau imag')
     # plt.plot(sigp_B.real,label='sig(imp,2)_B real')
     # plt.plot(sigp_B.imag,label='sig(imp,2)_B imag')
     # plt.legend()
