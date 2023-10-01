@@ -199,7 +199,7 @@ def Diff(fg1, fg2):
     return diff
 
 # Number of DMFT iterations
-Niter = 10
+Niter = 20
 diff_arr=np.zeros(Niter)
 # Creating parameters file PARAMS for qmc execution
 CreateInputFile(params)

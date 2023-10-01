@@ -18,8 +18,15 @@ def fermion_ifft(Gk):# same way back. in fft, we fft then shift; in ifft, we shi
     Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
     return Gkiom
 
+def boson_ifft(Pk):
+    N=np.shape(Pk)[0]
+    Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)
+    return Pkiom
 
-
+def boson_fft(Pk):
+    N=np.shape(Pk)[0]
+    Pktau=np.fft.fft(Pk*np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N))*np.exp(1j*(N)*np.pi*np.arange(N)/N)
+    return Pktau
                          
 
 
@@ -170,14 +177,6 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,knum):
     PA_tau=-GA_tau[::-1]*GA_bf/beta
     # PA_tau=(PA_tau+PA_tau[::-1])/2
     # PB_tau=-GB_tau[::-1]*GB_tau/beta
-
-    # take a look at P
-    # plt.plot(PA_tau.real,label='Pimp_A real')
-    # plt.plot(PA_tau.imag,label='Pimp_A imag')
-    # plt.plot(PB_tau.real,label='Pimp_B real')
-    # plt.plot(PB_tau.imag,label='Pimp_B imag')
-    # plt.legend()
-    # plt.show()
     
     #calculate sig. sig is calculate on fermion matsubara freq points!
     sigp_A=np.zeros(n*2,dtype=complex)
@@ -186,15 +185,34 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,knum):
     sigA_tau=PA_tau*GA_tau*(-1)*U**2/beta
     sigp_A=fermion_ifft(sigA_tau)
     sigp_B=-sigp_A.conjugate()
-    # plt.plot(sigA_tau.real,label='sigA_tau real')
-    # plt.plot(sigA_tau.imag,label='sigA_tau imag')
-    # plt.plot(sigp_B.real,label='sig(imp,2)_B real')
-    # plt.plot(sigp_B.imag,label='sig(imp,2)_B imag')
-    # plt.legend()
-    # plt.show()
     return sigp_A,sigp_B
 
 
+def pertimp_func3(G_A,G_B,delta_inf,beta,U,knum):
+    T=1/beta
+    n=int(G_A.size/2)
+    N=2*n
+    iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
+    iOm= 1j*(2*np.arange(2*n+1)-2*n)*np.pi/beta
+    # delta_inf=0
+    epsk=calc_disp(knum)
+    eps2=epsk**2
+    G_A0=np.sum((iom+delta_inf)[:,None,None,None]/(iom[:,None,None,None]**2-delta_inf**2-eps2[None,:,:,:]),axis=(1,2,3))/knum**3
+    tlist=(np.arange(N)+0.5)/N*beta
+    alpha=np.sqrt(eps2+delta_inf**2)[None,:,:,:]
+    GA_tau_diff=fermion_fft(G_A-G_A0)
+    GA_tau_ana=np.sum(-beta/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
+                        (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
+    GA_tau=GA_tau_ana+GA_tau_diff
+    GA_bf=fermion_fft(G_A)
+    PA_tau=-GA_tau[::-1]*GA_bf/beta
+    PA_iom=boson_ifft(PA_tau)
+    CA_iom=PA_iom*PA_iom
+    CA_tau=boson_fft(CA_iom)
+    SigA_tau=CA_tau*GA_bf*U**3/beta
+    SigA_iom=fermion_ifft(SigA_tau)
+    SigB_iom=-SigA_iom.conjugate()
+    return SigA_iom,SigB_iom
 
 
 

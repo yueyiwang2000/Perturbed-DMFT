@@ -143,11 +143,11 @@ def burst_scatter_sig(num):
     return 0
 
 if __name__ == "__main__":
-    mode=0
+    mode=1
     #boldc=0, ctqmc=1
-    U=10.0
-    T=0.5
+    U=7.0
+    T=0.38
     # print("format: plot_sigma.py U T")
-    burst_scatter_sig(10)
+    burst_scatter_sig(20)
     # compare_Delta(6)
     # single_mode(10)

@@ -234,7 +234,7 @@ for it in range(1,Niter+1):
         #    CreateInputFile(params)
         #if (diff<6e-5): break
         diff_arr[it-1]=diff
-        if (diff<1e-6): break
+        if (diff<5e-7): break
         
 diff_dir=dir+'diff.log'
 f = open(diff_dir, 'w')

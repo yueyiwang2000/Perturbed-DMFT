@@ -48,12 +48,27 @@ def fast_ft_fermion(Gk):
     N=np.shape(Gk)[0]
     # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
     Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None],axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)[:,None,None,None]
+    #the exp term inside is to move tau points on (0.5,1.5,2.5,...,N-0.5)beta/N. Outside means a shift.
     return Gktau
 
 def fast_ift_fermion(Gk):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
     N=np.shape(Gk)[0]
     Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N)[:,None,None,None],axis=0)*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
     return Gkiom
+
+# To modify ft_fermion version to ft_boson version:
+#1. np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N) this means a shift exp(-iOm_n*0.5*beta/N) which avoids putting tau points at tau=0 or tau=beta.
+#2. np.exp(1j*(N)*np.pi*np.arange(N)/N) gives correct matsubara freqs to the system. For sure it should be corrected to Boson freqs.
+def fast_ft_boson(Pk):
+    N=np.shape(Pk)[0]
+    # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
+    Pktau=np.fft.fft(Pk*np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N)[:,None,None,None],axis=0)*np.exp(1j*(N)*np.pi*np.arange(N)/N)[:,None,None,None]
+    return Pktau
+
+def fast_ift_boson(Pk):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
+    N=np.shape(Pk)[0]
+    Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N)[:,None,None,None],axis=0)*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)[:,None,None,None]
+    return Pkiom
 
 #-------boson fft----------
 # here i use stupid version because I want N+1 freq points.... may be this is not necessary but this is conceptially clear and only take a little time.
@@ -245,6 +260,12 @@ def sig_analytical(k,knum,n,beta,U):
 
     return 0
 
+
+def precalc_C(P1iom,P2iom):
+    # here Ps are bosonic quantities so we have to put them back on Bosonic matsubara freqs.
+    Ciom=P1iom*P2iom
+    Ctau=fast_ft_boson(Ciom)
+    return Ctau
 
 #-------------test---------------
 def conv_test(sigA,sigB,U,T,knum):
