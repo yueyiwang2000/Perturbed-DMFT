@@ -20,6 +20,21 @@ def plot_sigma(filename,index):
     # plt.ylim((-0.2,0.2))
 
 
+def plot_delta23():
+    filename='Delta2.inp'
+    delta=np.loadtxt(filename)
+    omega=delta[:,0]
+    plt.plot(omega[:10],delta[:10,1],label='Delta2 real')
+    plt.plot(omega[:10],delta[:10,2],label='Delta2 imag')
+    filename='Delta3.inp'
+    delta=np.loadtxt(filename)
+    plt.plot(omega[:10],delta[:10,1],label='Delta3 real')
+    plt.plot(omega[:10],delta[:10,2],label='Delta3 imag')
+    plt.title('Hybridization')
+    plt.legend()
+    plt.show()
+    return 0
+
 #single mode
 def single_mode(num):
     ilist=np.arange(num)
@@ -61,16 +76,16 @@ def compare_sig(ind):
         filename='./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,ind)
     elif mode==0:
         filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
-    sigma=np.loadtxt(filename)
-    omega=sigma[:freq_num,0]
-    plt.plot(omega,sigma[:freq_num,1],label='1st column after perturbed DMFT')
-    plt.plot(omega,sigma[:freq_num,2],label='2nd column after perturbed DMFT')
-    plt.plot(omega,sigma[:freq_num,3],label='3rd column after perturbed DMFT')
-    plt.plot(omega,sigma[:freq_num,4],label='4th column after perturbed DMFT')
+    # sigma=np.loadtxt(filename)
+    # omega=sigma[:freq_num,0]
+    # plt.plot(omega,sigma[:freq_num,1],label='1st column after perturbed DMFT')
+    # plt.plot(omega,sigma[:freq_num,2],label='2nd column after perturbed DMFT')
+    # plt.plot(omega,sigma[:freq_num,3],label='3rd column after perturbed DMFT')
+    # plt.plot(omega,sigma[:freq_num,4],label='4th column after perturbed DMFT')
     if mode ==1:
-        filename='./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,ind)
+        filename='./files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,ind)
     elif mode==0:
-        filename='./files_pert_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,ind+1)
+        filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
     sigma=np.loadtxt(filename)
     omega=sigma[:freq_num,0]
     plt.plot(omega,sigma[:freq_num,1],label='1st column after DMFT')
@@ -111,19 +126,20 @@ def compare_Delta(ind):
     plt.legend()
     plt.show()
 
-def burst_scatter_sig(num):
+def burst_scatter_sig(num,checkpoint):
     ilist=np.arange(num)
+    # checkpoint=0
     for i in ilist:
         if mode==0:
-            filename='./files_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,int(i+1))
+            filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
         elif mode==1:
             filename='./files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,int(i))
         
         if os.path.isfile(filename):
             sigma=np.loadtxt(filename)
             # omega=sigma[:,0]
-            plt.scatter(i,sigma[-1,1],c='red')
-            plt.scatter(i,sigma[-1,3],c='red')
+            plt.scatter(i,sigma[checkpoint,1],c='red')
+            plt.scatter(i,sigma[checkpoint,3],c='red')
         else:
             print('cannot find {}'.format(filename))
         if mode ==0:
@@ -133,21 +149,25 @@ def burst_scatter_sig(num):
         if os.path.isfile(filename):
             sigma=np.loadtxt(filename)
             # omega=sigma[:,0]
-            plt.scatter(i,sigma[-1,1],c='blue')
-            plt.scatter(i,sigma[-1,3],c='blue')
+            plt.scatter(i,sigma[checkpoint,1],c='blue')
+            plt.scatter(i,sigma[checkpoint,3],c='blue')
         else:
             print('cannot find {}'.format(filename))
-    plt.title('Sigma_imp(om->inf).real U={},T={}'.format(U,T))
+    plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
     plt.xlabel('DMFT iterations Red:DMFT Blue:DMFT+pert')
     plt.show()
     return 0
 
 if __name__ == "__main__":
-    mode=1
+    mode=0
     #boldc=0, ctqmc=1
-    U=7.0
-    T=0.38
+    U=5.0
+    T=0.35
     # print("format: plot_sigma.py U T")
-    burst_scatter_sig(20)
-    # compare_Delta(6)
+    burst_scatter_sig(5,0)
+    for i in np.arange(5)+1:
+        compare_sig(i)
+        # compare_Delta(i)
+        
     # single_mode(10)
+    # plot_delta23()

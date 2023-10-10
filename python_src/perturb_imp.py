@@ -209,8 +209,8 @@ def pertimp_func3(G_A,G_B,delta_inf,beta,U,knum):
     PA_iom=boson_ifft(PA_tau)
     CA_iom=PA_iom*PA_iom
     CA_tau=boson_fft(CA_iom)
-    SigA_tau=CA_tau*GA_bf*U**3/beta
-    SigA_iom=fermion_ifft(SigA_tau)
+    SigA_tau=CA_tau*GA_bf*U**3/beta**2
+    SigA_iom=2*fermion_ifft(SigA_tau)#2 comes from 2 different 3rd order diagrams. But essentially they are the same.
     SigB_iom=-SigA_iom.conjugate()
     return SigA_iom,SigB_iom
 

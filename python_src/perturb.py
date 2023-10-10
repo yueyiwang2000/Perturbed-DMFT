@@ -14,7 +14,10 @@ nprocs = comm.Get_size()
 # Yueyi Wang. Sept 2023
 # This file is usually not called or imported in other python files. Just for test and use command line to run it.
 """
-def precalcP12_mpi(beta, knum, G1, a=1):
+def precalcP12_mpi(beta, knum, G1):
+    '''
+    prime=0: calculate P; =1: calculate P'. definition see fft_convolution.precalcPp._fft
+    '''
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     nprocs = comm.Get_size()
@@ -45,10 +48,8 @@ def precalcP12_mpi(beta, knum, G1, a=1):
 
             q=essential_kpoints[qind+pointsperproc*rank]
             # print('calculating P12.Process {} has qpoint:'.format(rank), q)
-        
             partP[qind,:]=fft_convolution.precalcP_fft(q, knum, n, G1,beta,1)# convolution fast algorithm
             # partP[qind,:]-=precalcP12_innerloop(q, knum, n, G1)[::-1]/knum**3/beta# original slow algorithm
-
     gathered_P=np.zeros((nprocs,pointsperproc,2*n),dtype=np.float64)
     comm.Gather(partP,gathered_P,root=0)
     # gathered_P = comm.gather(partP, root=0)
@@ -72,7 +73,10 @@ def precalcP12_mpi(beta, knum, G1, a=1):
     #     MPI.Finalize()
     #     exit()
 
-def precalcP11_mpi(beta, knum, Gk, fullsig,mu,a=1):# here, we need original sigma.
+def precalcP11_mpi(beta, knum, Gk, fullsig,mu):# here, we need original sigma.
+    '''
+    prime=0: calculate P; =1: calculate P'. definition see fft_convolution.precalcPp._fft
+    '''
     n = int(np.shape(Gk)[0] / 2)
     if knum % 2 != 0:
         print('knum should be a even number!')
@@ -109,7 +113,10 @@ def precalcP11_mpi(beta, knum, Gk, fullsig,mu,a=1):# here, we need original sigm
             q=essential_kpoints[qind+pointsperproc*rank]
             # print('calculating P11.Process {} has qpoint:'.format(rank), q)
             # partP[qind,:]=precalcP11_innerloop(q, knum, n, Gk,Gk0,alphak,f_alphak,delta_inf,beta)
+            #actually used one
             partP[qind,:]=fft_convolution.precalcP_fft_diag(q, knum, n, Gk,beta,delta_inf,alphak)
+            # this also works, more direct but not so good.
+            # partP[qind,:]=fft_convolution.precalcP_fft(q, knum, n, Gk,beta,0)
     gathered_P=np.zeros((nprocs,pointsperproc,2*n),dtype=np.complex128)
     comm.Gather(partP,gathered_P,root=0)
     # gathered_P = comm.gather(partP, root=0)
@@ -223,7 +230,7 @@ def FT_test(quant,knum,lab,a=1):
     plt.plot(quantR2.real,label='2nd NN unit cell.real')
     plt.plot(quantR2.imag,label='2nd NN unit cell.imag')
     # plt.plot(quantR3,label='quantR(3,0,0)')
-    plt.title('{} Real space Sigma(2): U={},T={}'.format(lab,U,T))
+    # plt.title('{} Real space Sigma(2): U={},T={}'.format(lab,U,T))
     plt.legend()
     plt.grid()
     plt.show()
@@ -326,7 +333,7 @@ def sig_imp_pert_test(sigA,sigB,U,T,knum,order):
         sigimp11,sigimp22=perturb_imp.pertimp_func3(G11_imp,G22_imp,delta_inf,beta,U,knum)
         return sigimp11,sigimp22
 
-def new_sig(sigA,sigB,U,T,knum,a=1):
+def new_sig(sigA,sigB,U,T,knum,order=3):
     # print("doing perturbation......")
     if rank ==0:
         start_time = time.time()
@@ -341,97 +348,116 @@ def new_sig(sigA,sigB,U,T,knum,a=1):
     G12=G_12(knum,z_A,z_B)
     P12_tau=precalcP12_mpi(beta,knum,G12)
     P11_tau=precalcP11_mpi(beta,knum,G11,allsigA,mu)
-    
     if rank !=0:
         P12_tau=np.zeros((2*n,knum,knum,knum),dtype=float)
         P11_tau=np.zeros((2*n,knum,knum,knum),dtype=complex)
-
     comm.Bcast(P12_tau, root=0)
     comm.Bcast(P11_tau, root=0)
     Boson_om = (2*np.arange(2*n+1)-2*n)*np.pi/beta 
     sig_11=precalcsig_mpi(U,beta,knum,P11_tau,G11,11,allsigA,mu)# actually P22 and G11. BUT P11=P22
-    sig_new_12=precalcsig_mpi(U,beta,knum,P12_tau,G12,12,allsigA,mu)
+    sig2_12=precalcsig_mpi(U,beta,knum,P12_tau,G12,12,allsigA,mu)
     #above:2nd order
     #below:3rd order
+    # 1st 3rd order diagram
     P11_iom=fft_convolution.fast_ift_boson(P11_tau)
     P12_iom=fft_convolution.fast_ift_boson(P12_tau)
-    C111_tau=(-1)*U*fft_convolution.precalc_C(P11_iom,P11_iom)
-    C121_tau=(-1)*U*fft_convolution.precalc_C(P12_iom,P12_iom)
-    C112_tau=2*(-1)*U*fft_convolution.precalc_C(P11_iom,P12_iom)
-    #for P we have coeff 1/beta. C has 1/beta**2. sig has -1*U**2/beta**3. what we should have is U**3/beta**3. so we need a extra -U.
+    #Note: 2 comes from 2 different 3rd order diagrams. But essentially they are the same.
+    C111_tau=2*(-1)*U*fft_convolution.precalc_C(P11_iom,P11_iom)/beta
+    C121_tau=2*(-1)*U*fft_convolution.precalc_C(P12_iom,P12_iom)/beta
+    C112_tau=2*2*(-1)*U*fft_convolution.precalc_C(P11_iom,P12_iom)/beta
+    #Note:for P we have coeff 1/beta. C has 1/beta**2. sig has -1*U**2/beta**3. what we should have is U**3/beta**3. so we need a extra -U.
     Sig3_111=precalcsig_mpi(U,beta,knum,C111_tau,G11,11,allsigA,mu)
     Sig3_121=precalcsig_mpi(U,beta,knum,C121_tau,G11,11,allsigA,mu)
     Sig3_112=precalcsig_mpi(U,beta,knum,C112_tau,G12,12,allsigA,mu)
     #Note: C112=C122 so Sig3_112=Sig3_122. Proofed in research note.
-
+    
 
     # this P11 and P12, can be also used in 3rd order;
     if rank ==0:
         sig_22=-sig_11.conjugate()
-
         sig_pert_imp11,sig_pert_imp22=sig_imp_pert_test(sigA,sigB,U,T,knum,2)
         sig_pert_imp111,sig_pert_imp222=sig_imp_pert_test(sigA,sigB,U,T,knum,3)
-        sig_new_11=allsigA[:, None, None, None]+sig_11-sig_pert_imp11[:, None, None, None]
-        sig_new_22=allsigB[:, None, None, None]+sig_22-sig_pert_imp22[:, None, None, None]
+        #2nd order
+        sig2_new_11=allsigA[:, None, None, None]+sig_11-sig_pert_imp11[:, None, None, None]
+        sig2_new_22=allsigB[:, None, None, None]+sig_22-sig_pert_imp22[:, None, None, None]
+
+        if order ==2:
+            sig_new_11=sig2_new_11
+            sig_new_22=sig2_new_22
+            sig_new_12=sig2_12
+        #3rd order
+        elif order==3:
+            sig_new_11=allsigA[:, None, None, None]+sig_11-sig_pert_imp11[:, None, None, None]+Sig3_111+Sig3_121-sig_pert_imp111[:, None, None, None] 
+            sig_new_22=allsigB[:, None, None, None]+sig_22-sig_pert_imp22[:, None, None, None]-(Sig3_111+Sig3_121-sig_pert_imp111[:, None, None, None] ).conjugate()
+            sig_new_12=sig2_12+Sig3_112
         # FT_test(G11[2*n:3*n],knum)
         # FT_test(P11[n:2*n],knum)
-        
+        correction_sig=Sig3_111+Sig3_121+sig_11
+        correction3_sig=Sig3_111+Sig3_121
         end_time=time.time()
         print('perturbation time=',end_time-start_time,'s')
         if sig_plot==1:
-            # FT_test(sig_11[n:2*n],knum,'diagonal')
-            
+            # FT_test(sig_new_11[n:n+freqdisplayed],knum,'diagonal')
             max_sym_index,essential_kpoints, sym_array=calc_sym_array(knum)
-            # for k in essential_kpoints[:pltkpts]:
-            #     kxind=k[0]
-            #     kyind=k[1]
-            #     kzind=k[2]
-            #     # plt.plot(allsigA[n:2*n].real,label='Sig_DMFT11 real')
-            #     # plt.plot(allsigA[n:2*n].imag,label='Sig_DMFT11 imag') 
-            #     # plt.plot(allsigB[n:2*n].real,label='Sig_DMFT22 real')
-            #     # plt.plot(allsigB[n:2*n].imag,label='Sig_DMFT22 imag') 
-            #     # plt.plot(sig_11[n:2*n, kxind, kyind, kzind].real,label='Sig_(2,11,k) real')
-            #     # plt.plot(sig_11[n:2*n, kxind, kyind, kzind].imag,label='Sig_(2,11,k) imag')
-            #     plt.plot(sig_pert_imp11[n:2*n].real,label='Sig_(2,11,imp) real')
-            #     plt.plot(sig_pert_imp11[n:2*n].imag,label='Sig_(2,11,imp) imag') 
-            #     # plt.plot(sig_new_11[n:2*n, kxind, kyind, kzind].real,label='Sig_new_(2,11,k) real')
-            #     # plt.plot(sig_new_11[n:2*n, kxind, kyind, kzind].imag,label='Sig_new_(2,11,k) imag')
-            #     # plt.plot(sig_new_22[n:2*n, kxind, kyind, kzind].real,label='Sig_new_(2,22,k) real')
-            #     # plt.plot(sig_new_22[n:2*n, kxind, kyind, kzind].imag,label='Sig_new_(2,22,k) imag')
-            #     plt.plot(Sig3_111[n:2*n, kxind, kyind, kzind].real,label='Sig_(3,111,k) real')
-            #     plt.plot(Sig3_111[n:2*n, kxind, kyind, kzind].imag,label='Sig_(3,111,k) imag')     
-            #     plt.plot(Sig3_121[n:2*n, kxind, kyind, kzind].real,label='Sig_(3,121,k) real')
-            #     plt.plot(Sig3_121[n:2*n, kxind, kyind, kzind].imag,label='Sig_(3,121,k) imag')         
-            #     plt.plot(sig_pert_imp111[n:2*n].real,label='Sig_(3,111,imp) real')
-            #     plt.plot(sig_pert_imp111[n:2*n].imag,label='Sig_(3,111,imp) imag')                                     
-            #     plt.title('Diagonal: U={},T={},k={}'.format(U,T,k))
-            #     plt.legend()
-            #     plt.grid()
-            #     plt.show()
             for k in essential_kpoints[:pltkpts]:
                 kxind=k[0]
                 kyind=k[1]
                 kzind=k[2]
-                plt.plot(sig_new_12[n:n+100, kxind, kyind, kzind].real,label='sig(2)_12 real')
-                plt.plot(sig_new_12[n:n+100, kxind, kyind, kzind].imag,label='sig(2)_12 imag')
-                plt.plot(Sig3_112[n:n+100, kxind, kyind, kzind].real,label='sig(3)_12 real')
-                plt.plot(Sig3_112[n:n+100, kxind, kyind, kzind].imag,label='sig(3)_12 imag')
-                plt.title('Off-diagonal: U={},T={},k={},eps_k={}'.format(U,T,k,-1*dispersion(kxind/knum,kyind/knum,kzind/knum)))
+                plt.plot(allsigA[n:n+freqdisplayed].real,label='Sig_DMFT11 real')
+                plt.plot(allsigA[n:n+freqdisplayed].imag,label='Sig_DMFT11 imag') 
+                # plt.plot(allsigB[n:n+100].real,label='Sig_DMFT22 real')
+                # plt.plot(allsigB[n:n+100].imag,label='Sig_DMFT22 imag') 
+                # plt.plot(sig_new_11[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig_new_11 real')
+                # plt.plot(sig_new_11[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig_new_11 imag')
+                plt.plot(sig_11[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(2,11,k) real')
+                plt.plot(sig_11[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(2,11,k) imag')
+                # plt.plot(sig_pert_imp11[n:n+freqdisplayed].real,label='Sig_(2,11,imp) real')
+                # plt.plot(sig_pert_imp11[n:n+freqdisplayed].imag,label='Sig_(2,11,imp) imag') 
+
+                # plt.plot(Sig3_111[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(3,111,k) real')
+                # plt.plot(Sig3_111[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(3,111,k) imag')   
+                # plt.plot(sig_pert_imp111[n:2*n].real,label='Sig_(3,111,imp) real')
+                # plt.plot(sig_pert_imp111[n:2*n].imag,label='Sig_(3,111,imp) imag') 
+                # plt.plot(Sig3_121[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(3,121,k) real')
+                # plt.plot(Sig3_121[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(3,121,k) imag') 
+                plt.plot(correction3_sig[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(3,11,k) real')
+                plt.plot(correction3_sig[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(3,11,k) imag')
+
+                plt.plot(correction_sig[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(2+3,11,k) real')
+                plt.plot(correction_sig[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(2+3,11,k) imag')
+                                                    
+                plt.title('Diagonal: U={},T={},k={}'.format(U,T,k))
                 plt.legend()
                 plt.grid()
                 plt.show()
-            # for i in np.arange(max_sym_index):
-            #     k=essential_kpoints[i]
-            #     kxind=k[0]
-            #     kyind=k[1]
-            #     kzind=k[2]
-            #     if dispersion(kxind/knum,kyind/knum,kzind/knum)**2>0.001:
-            #         plt.scatter(i,sig_new_12[n,kxind,kyind,kzind].real,color='red',label='Sig_12(k)')
-            #         plt.scatter(i,-1*dispersion(kxind/knum,kyind/knum,kzind/knum)*(sig_new_12[n,0,0,0].real/((-1)*(-6))),color='blue',label='dispersion')
-            # plt.xlabel("different k points")
-            # plt.ylabel("relative intensity of -eps_k and Sig_12_k")
-            # plt.title('U={},T={}. Red=sig, Blue=-1*disp'.format(U,T))
-            # plt.show()
+            #off_diagonal
+            for k in essential_kpoints[:pltkpts]:
+                kxind=k[0]
+                kyind=k[1]
+                kzind=k[2]
+                plt.plot(sig2_12[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(2)_12 real')
+                plt.plot(sig2_12[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(2)_12 imag')
+                plt.plot(Sig3_112[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(3)_12 real')
+                plt.plot(Sig3_112[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(3)_12 imag')
+                plt.plot(sig_new_12[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(2+3)_12 real')
+                plt.plot(sig_new_12[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(2+3)_12 imag')
+                plt.title('Off-diagonal: U={},T={},k={},eps_k={}'.format(U,T,k,dispersion(kxind/knum,kyind/knum,kzind/knum)))
+                plt.legend()
+                plt.grid()
+                plt.show()
+
+            for i in np.arange(max_sym_index):
+                k=essential_kpoints[i]
+                kxind=k[0]
+                kyind=k[1]
+                kzind=k[2]
+                if dispersion(kxind/knum,kyind/knum,kzind/knum)**2>0.001:
+                    plt.scatter(i,sig_new_12[n,kxind,kyind,kzind].real/dispersion(kxind/knum,kyind/knum,kzind/knum),color='red')
+                    plt.scatter(i,sig2_12[n,kxind,kyind,kzind].real/dispersion(kxind/knum,kyind/knum,kzind/knum),color='blue')
+                    # plt.scatter(i,dispersion(kxind/knum,kyind/knum,kzind/knum)*(sig_new_12[n,0,0,0].real/((-1)*(-6))),color='blue',label='')
+            plt.xlabel("different k points")
+            plt.title('Sig_12(k)/disp_k at U={},T={}.'.format(U,T))
+            plt.show()
         return sig_new_11,sig_new_22,sig_new_12
     else:
         MPI.Finalize()
@@ -440,10 +466,8 @@ def new_sig(sigA,sigB,U,T,knum,a=1):
 #clear. 
 
 
-# non-perturbation method
 
-
-def Delta_pert_DMFT(SigA,SigB,U,T,knum):
+def Delta_pert_DMFT(SigA,SigB,U,T,knum,order=3):
     mu=U/2
     beta=1/T
     n=SigA.size
@@ -451,87 +475,44 @@ def Delta_pert_DMFT(SigA,SigB,U,T,knum):
     fermion_om=(2*np.arange(n)+1)*np.pi/beta
     # to generate dispertion 
     disp=calc_disp(knum)
-
     # just for test. without perturbation.
     Delta0_11,Delta0_22=Delta_DMFT(SigA,SigB,U,T,knum)
     # end of test
-    sig_new_11,sig_new_22,sig_new_12=new_sig(SigA,SigB,U,T,knum,n)
-    # print("perturbed sigma finished!")
+    sig_new_11,sig_new_22,sig_new_12=new_sig(SigA,SigB,U,T,knum,order)
     sig_imp_new_11=np.sum(sig_new_11,axis=(1,2,3))/knum**3
     sig_imp_new_22=np.sum(sig_new_22,axis=(1,2,3))/knum**3
     # -------plot sigma12 in real space------
 
-    factor=calc_expikdel(knum)
-    sig_imp_new_12=np.sum(sig_new_12*factor,axis=(1,2,3))[n:]/knum**3
+    # factor=calc_expikdel(knum)
+    # sig_imp_new_12=np.sum(sig_new_12*factor,axis=(1,2,3))[n:]/knum**3
     
-    if sig_plot==1:
-        FT_test((sig_new_12*factor)[n:,:,:,:],knum,'off-diagonal')
-        plt.plot(sig_imp_new_12.real,label='real')
-        plt.plot(sig_imp_new_12.imag,label='imag')
-        plt.legend()
-        plt.title('Sigma_12(delta R=0) U={},T={}'.format(U,T))
-        plt.grid()
-        plt.show()
+    # if sig_plot==1:
+    #     FT_test((sig_new_12*factor)[n:n+freqdisplayed,:,:,:],knum,'off-diagonal')
+    #     plt.plot(sig_imp_new_12.real,label='real')
+    #     plt.plot(sig_imp_new_12.imag,label='imag')
+    #     plt.legend()
+    #     plt.title('Sigma_12(delta R=0) U={},T={}'.format(U,T))
+    #     plt.grid()
+    #     plt.show()
     # -------plot sigma12 in real space------
     Gk_new_11=(iom[:, None, None, None]+mu-sig_new_22)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(-1*disp[None, :, :, :]-sig_new_12)**2)#
     Gk_new_22=(iom[:, None, None, None]+mu-sig_new_11)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(-1*disp[None, :, :, :]-sig_new_12)**2)#
-
-    
     Gk_imp_new_11=np.sum(Gk_new_11,axis=(1,2,3))/knum**3
     Gk_imp_new_22=np.sum(Gk_new_22,axis=(1,2,3))/knum**3
-
-    # which part gives the most contribution to the delta?
-
-    #full perturbation delta
     Delta_11=iom[n:]+mu-sig_imp_new_11[n:]-1/Gk_imp_new_11[n:]
     Delta_22=iom[n:]+mu-sig_imp_new_22[n:]-1/Gk_imp_new_22[n:]
-    # Delta_11=iom[n:]+mu-sigA-1/Gk_imp_new_11[n:]
-    # Delta_22=iom[n:]+mu-sigB-1/Gk_imp_new_22[n:]
+
     if sig_plot==1:
-        plt.plot(Delta_11.real,label='pert1 real')
-        plt.plot(Delta_11.imag,label='pert1 imag')
-        plt.plot(Delta_22.real,label='pert2 real')
-        plt.plot(Delta_22.imag,label='pert2 imag')
-        plt.plot(Delta0_11.real,label='DMFT1 real')
-        plt.plot(Delta0_11.imag,label='DMFT1 imag')
-        plt.plot(Delta0_22.real,label='DMFT2 real')
-        plt.plot(Delta0_22.imag,label='DMFT2 imag')
+        # plt.plot(sig_new_11[:freqdisplayed,0,0,0].real,label='sig_imp_new_11 real')
+        # plt.plot(sig_new_11[:freqdisplayed,0,0,0].imag,label='sig_imp_new_11 imag')
+        plt.plot(Delta_11[:freqdisplayed].real,label='pert3 real')
+        plt.plot(Delta_11[:freqdisplayed].imag,label='pert3 imag')
+        plt.plot(Delta0_11[:freqdisplayed].real,label='DMFT real')
+        plt.plot(Delta0_11[:freqdisplayed].imag,label='DMFT imag')
         plt.title('Hybridization: U={},T={}'.format(U,T))
         plt.legend()
         plt.grid()
         plt.show()
-    # plt.plot(Delta_11[n:].real,label='perturbed DMFT real')
-    # plt.plot(Delta_11[n:].imag,label='perturbed DMFT imag')
-    # plt.legend()
-    # plt.grid()
-    # plt.show()
-    # # without sig12 off diagonal term
-    # Gk1_new_11=(iom[:, None, None, None]+mu-sig_new_22)/((iom[:, None, None, None]+mu-sig_new_11)*(iom[:, None, None, None]+mu-sig_new_22)-(disp[None, :, :, :])**2)#
-    # Gk1_imp_new_11=np.sum(Gk1_new_11,axis=(1,2,3))/knum**3
-    # Delta1_11=iom+mu-sig_imp_new_11-1/Gk1_imp_new_11
-    # plt.plot(fermion_om,Delta1_11[n:2*n].imag,label='Delta1_11 imag')
-
-    # use original sigma_imp in z
-    # Delta2_11=iom[n:2*n]+mu-SigA-1/Gk_imp_new_11[n:2*n]
-    # plt.plot(fermion_om,Delta2_11.imag,label='Delta2_11 imag')
-
-    #use original sigma_DMFT_11 in Gk11
-    # Gk3_new_11=(iom[:, None, None, None]+mu-allsigB[:, None, None, None])/((iom[:, None, None, None]+mu-allsigA[:, None, None, None])*(iom[:, None, None, None]+mu-allsigB[:, None, None, None])-(-1*disp[None, :, :, :]+sig_new_12)**2)#
-    # Gk3_imp_new_11=np.sum(Gk3_new_11,axis=(1,2,3))/knum**3
-    # Delta3_11=iom+mu-sig_imp_new_11-1/Gk3_imp_new_11
-    # plt.plot(fermion_om,Delta3_11[n:2*n].imag,label='Delta3_11 imag')
-
-    #use cluster DMFT
-    # Delta4_11=iom+mu-sig_imp_new_11-Gk_imp_new_22/(Gk_imp_new_11*Gk_imp_new_22-Gk_imp_new_12**2)
-    # plt.plot(Delta4_11[n:2*n].imag,label='cluster DMFT')
-
-    # analytical limit
-    # eps2=calc_eps2_ave(knum)
-    # plt.plot(-1*(eps2/fermion_om).real,label='high freq limit')
-
-    # delta without perturbation.
-    # plt.plot(Delta0_11[n:2*n].imag,label='DMFT')
-
     #generate delta from HT
     # x, Di = np.loadtxt('DOS_3D.dat').T
     # W = hilbert.Hilb(x,Di)
@@ -541,42 +522,43 @@ def Delta_pert_DMFT(SigA,SigB,U,T,knum):
         for i,iom in enumerate(om):
             print(iom, Delta_11[i].real, Delta_11[i].imag, Delta_22[i].real, Delta_22[i].imag, file=f) 
         f.close()
-        f = open(fileS12, 'w')
-        for i,iom in enumerate(om):
-            print(iom, sig_imp_new_12[i].real, sig_imp_new_12[i].imag, file=f) 
-        f.close()
+        print('delta file saved!')
+        # f = open(fileS12, 'w')
+        # for i,iom in enumerate(om):
+        #     print(iom, sig_imp_new_12[i].real, sig_imp_new_12[i].imag, file=f) 
+        # f.close()
     return 0#Delta_11[n:2*n],Delta_22[n:2*n]
 
-
-#when call functions in this file, comment everything below!
 
 
 if __name__ == "__main__":
     fileS = 'Sig.OCA'
     fileD= 'Delta.inp'
     fileS12='Sig12.dat'
-    knum=16 # default
+    knum=10 # default
     sig_plot=0  #1=plot 0= do not plot
-    pltkpts=47      # max:47 for knum=10
+    pltkpts=1    # max:47 for knum=10
+    freqdisplayed=50 # only show first # Matsubara freqs
+    ordernum=3# order of perturbation
     if (len(sys.argv)==1):# this is for test
         # standard test
         if rank==0:
             print('This is test mode')
         sig_plot=1# in the test mode, plot the sigma. in the import/calling mode, do not plot.
-        U=7.0  
-        T=0.38
+        U=5.0  
+        T=0.27
         knum=10
         nfreq=500
         
-        index=8#index start from 1, not 0
+        index=9#index start from 1, not 0
         # sigma=np.loadtxt('./files_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
         # sigma=np.loadtxt('./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
-        sigma=np.loadtxt('./files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,index))[:nfreq,:]
+        sigma=np.loadtxt('../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,index))[:nfreq,:]
         # sigma=np.loadtxt('./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,index))[:nfreq,:]
         sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
         sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
-        # sigA=U/2+0.01+1j*sigma[:,2]#sig+delta
-        # sigB=U/2-0.01+1j*sigma[:,4]#sig-delta
+        # sigA=(+U/2-0.01)*np.ones(nfreq,dtype=complex)#+1j*sigma[:,2]#sig+delta
+        # sigB=(+U/2+0.01)*np.ones(nfreq,dtype=complex)#+U/2+1j*sigma[:,4]#sig-delta
         if sigma[-1,1]<sigma[-1,3]:
             sigA=sigma[:,3]+1j*sigma[:,4]#sig+delta
             sigB=sigma[:,1]+1j*sigma[:,2]#sig-delta
@@ -594,8 +576,8 @@ if __name__ == "__main__":
         # Delta_DMFT(sigA,sigB,U,T,knum)
         # precalcP_test(sigA,sigB,U,T,knum)
         # sig_imp_pert_test(sigA,sigB,U,T,knum)
-        new_sig(sigA,sigB,U,T,knum)
-        # Delta_pert_DMFT(sigA,sigB,U,T,knum)
+        # new_sig(sigA,sigB,U,T,knum)
+        Delta_pert_DMFT(sigA,sigB,U,T,knum,ordernum)
     # collect command line parameters
     # In actual calcs we use more parameters to control.
     else:# this is for actual getting data
@@ -627,4 +609,4 @@ if __name__ == "__main__":
         else:
             if rank==0:
                 print('cannot find {}!'.format(fileS))
-        Delta_pert_DMFT(sigA,sigB,U,T,knum)
+        Delta_pert_DMFT(sigA,sigB,U,T,knum,ordernum)

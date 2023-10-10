@@ -1,14 +1,17 @@
-/files_1it/
 /trial_sigma/
 /files/
 /files_boldc/
 /files_ctqmc/
+python_src/__pycache__/
 /__pycache__/
 /test/
 /old_ctqmc_files/
 /old_boldc_files/
 /files_pert_ctqmc/
 /files_pert_boldc/
+boldc_cache/*
+ctqmc_cache/*
+/backup/
 status.*
 debug.*
 /previous_version/
@@ -16,3 +19,5 @@ Sig12.dat
 Delta.inp
 PARAMS
 one_band.imp
+!boldc_cache/launch_pert_boldc.py
+!ctqmc_cache/launch_pert_ctqmc.py
