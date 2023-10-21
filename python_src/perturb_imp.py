@@ -122,7 +122,7 @@ def pertimp():
 
 
 #updated to faster fft version.
-def pertimp_func(G_A,G_B,delta_inf,beta,U,knum):
+def pertimp_func(G_A,G_B,delta_inf,beta,U,knum,order=2):
     T=1/beta
     n=int(G_A.size/2)
     N=2*n
@@ -132,23 +132,7 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,knum):
     epsk=calc_disp(knum)
     eps2=epsk**2
     G_A0=np.sum((iom+delta_inf)[:,None,None,None]/(iom[:,None,None,None]**2-delta_inf**2-eps2[None,:,:,:]),axis=(1,2,3))/knum**3
-    # G_B0=(iom-delta_inf)/(iom**2-delta_inf**2-eps2)
-    # print('delta=',delta_inf)
-    # check the generated impurity green function!
-    # plt.plot(G_A.real,label='Gimp_A real')
-    # plt.plot(G_A.imag,label='Gimp_A imag')
-    # plt.plot(G_B.real,label='Gimp_B real')
-    # plt.plot(G_B.imag,label='Gimp_B imag')
-    # plt.plot(G_A0.real,label='Gimp_A0 real')
-    # plt.plot(G_A0.imag,label='Gimp_A0 imag')
-    # plt.plot(G_B0.real,label='Gimp_B0 real')
-    # plt.plot(G_B0.imag,label='Gimp_B0 imag')
-    # plt.legend()
-    # plt.show()
     tlist=(np.arange(N)+0.5)/N*beta
-    #calculate P. P is calculated on Boson matsubara freq points!
-    # P_A=np.zeros(n*2+1,dtype=complex)
-    # P_B=np.zeros(n*2+1,dtype=complex)
     
     alpha=np.sqrt(eps2+delta_inf**2)[None,:,:,:]
     GA_tau_diff=fermion_fft(G_A-G_A0)
@@ -156,36 +140,31 @@ def pertimp_func(G_A,G_B,delta_inf,beta,U,knum):
                         (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
     GA_tau=GA_tau_ana+GA_tau_diff
     GA_bf=fermion_fft(G_A)
-    # GA_tau=(GA_tau+GA_bf)/2
-    # GA_tau=GA_bf
-    # plt.plot(GA_tau.real,label='GA_tau real')
-    # plt.plot(GA_tau.imag,label='GA_tau imag')
-    # plt.plot(GA_bf.real,label='GA_bf real')
-    # plt.plot(GA_bf.imag,label='GA_bf imag')
-    # plt.plot(GA_tau_diff.real,label='GA_tau_diff real')
-    # plt.plot(GA_tau_diff.imag,label='GA_tau_diff imag')
-    # plt.plot(GA_tau_ana.real,label='GA_tau_ana real')
-    # plt.plot(GA_tau_ana.imag,label='GA_tau_ana imag')
-    # plt.legend()
-    # plt.show()
-    # GB_tau_diff=fermion_fft(G_B-G_B0)
-    #check this!
-    # GB_tau_ana=-beta/2*((1-delta_inf/alpha_ave)*np.exp(alpha_ave*tlist)/(1+np.exp(alpha_ave*beta))+
-    #                     (1-delta_inf/alpha_ave)*np.exp(-alpha_ave*tlist)/(1+np.exp(-alpha_ave*beta)))
-    # GB_tau=GB_tau_ana+GB_tau_diff
-    # GB_tau=-GA_tau.conjugate()
-    PA_tau=-GA_tau[::-1]*GA_bf/beta
+
+
+    # PA_tau=-GA_tau[::-1]*GA_bf/beta
+    PA_tau=-GA_tau[::-1]*GA_tau/beta
     # PA_tau=(PA_tau+PA_tau[::-1])/2
     # PB_tau=-GB_tau[::-1]*GB_tau/beta
     
     #calculate sig. sig is calculate on fermion matsubara freq points!
-    sigp_A=np.zeros(n*2,dtype=complex)
-    sigp_B=np.zeros(n*2,dtype=complex)
-    # sigB_tau=PA_tau*GB_tau*(-1)*U**2/beta
-    sigA_tau=PA_tau*GA_tau*(-1)*U**2/beta
-    sigp_A=fermion_ifft(sigA_tau)
-    sigp_B=-sigp_A.conjugate()
-    return sigp_A,sigp_B
+    Sigp_A=np.zeros(n*2,dtype=complex)
+    Sigp_B=np.zeros(n*2,dtype=complex)
+    # sigA_tau=PA_tau*GA_tau*(-1)*U**2/beta
+    SigA_tau=PA_tau*GA_bf*(-1)*U**2/beta
+    # sigp_A=fermion_ifft(sigA_tau)
+    if order ==3:# only 111 part shoule be cancelled:
+        QA_tau=GA_tau*GA_tau/beta
+        PA_iom=boson_ifft(PA_tau)
+        QA_iom=boson_ifft(QA_tau)
+        CA_iom=PA_iom*PA_iom
+        BA_iom=QA_iom*QA_iom
+        CA_tau=boson_fft(CA_iom)
+        BA_tau=boson_fft(BA_iom)
+        SigA_tau+=(CA_tau*GA_bf-BA_tau*GA_bf[::-1])*U**3/beta**2#
+    Sigp_A=fermion_ifft(SigA_tau)
+    Sigp_B=-Sigp_A.conjugate()
+    return Sigp_A,Sigp_B
 
 
 def pertimp_func3(G_A,G_B,delta_inf,beta,U,knum):
@@ -212,6 +191,9 @@ def pertimp_func3(G_A,G_B,delta_inf,beta,U,knum):
     SigA_tau=CA_tau*GA_bf*U**3/beta**2
     SigA_iom=2*fermion_ifft(SigA_tau)#2 comes from 2 different 3rd order diagrams. But essentially they are the same.
     SigB_iom=-SigA_iom.conjugate()
+    sig2Alocal,sig2Blocal=pertimp_func(G_A,G_B,delta_inf,beta,U,knum)
+    SigA_tdapole3=U/beta*np.sum(G_A*sig2Alocal*G_A)
+    SigB_tdapole3=U/beta*np.sum(G_B*sig2Blocal*G_B)
     return SigA_iom,SigB_iom
 
 

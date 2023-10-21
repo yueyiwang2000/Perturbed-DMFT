@@ -370,6 +370,7 @@ def new_sig(sigA,sigB,U,T,knum,order=3):
     Sig3_121=precalcsig_mpi(U,beta,knum,C121_tau,G11,11,allsigA,mu)
     Sig3_112=precalcsig_mpi(U,beta,knum,C112_tau,G12,12,allsigA,mu)
     #Note: C112=C122 so Sig3_112=Sig3_122. Proofed in research note.
+   
     
 
     # this P11 and P12, can be also used in 3rd order;
@@ -387,13 +388,15 @@ def new_sig(sigA,sigB,U,T,knum,order=3):
             sig_new_12=sig2_12
         #3rd order
         elif order==3:
-            sig_new_11=allsigA[:, None, None, None]+sig_11-sig_pert_imp11[:, None, None, None]+Sig3_111+Sig3_121-sig_pert_imp111[:, None, None, None] 
-            sig_new_22=allsigB[:, None, None, None]+sig_22-sig_pert_imp22[:, None, None, None]-(Sig3_111+Sig3_121-sig_pert_imp111[:, None, None, None] ).conjugate()
+            #skeleton tadpole diagram which belongs to 3rd order:11-11-11 12-21-11 12-22-21 11-12-21
+            Sig3_tadpole11=U/beta*np.sum(G11*sig_11*G11 + G12*sig2_12*G11 + G12*sig_22*G12 +G11*sig2_12*G12)/knum**3#
+            sig_new_11=allsigA[:, None, None, None]+sig_11-sig_pert_imp11[:, None, None, None]+Sig3_111+Sig3_121+Sig3_tadpole11-sig_pert_imp111[:, None, None, None] 
+            sig_new_22=allsigB[:, None, None, None]+sig_22-sig_pert_imp22[:, None, None, None]-(Sig3_111+Sig3_121+Sig3_tadpole11-sig_pert_imp111[:, None, None, None] ).conjugate()
             sig_new_12=sig2_12+Sig3_112
         # FT_test(G11[2*n:3*n],knum)
         # FT_test(P11[n:2*n],knum)
-        correction_sig=Sig3_111+Sig3_121+sig_11
-        correction3_sig=Sig3_111+Sig3_121
+        correction_sig=Sig3_111+Sig3_121+sig_11+Sig3_tadpole11
+        correction3_sig=Sig3_111+Sig3_121+Sig3_tadpole11
         end_time=time.time()
         print('perturbation time=',end_time-start_time,'s')
         if sig_plot==1:
@@ -405,12 +408,14 @@ def new_sig(sigA,sigB,U,T,knum,order=3):
                 kzind=k[2]
                 plt.plot(allsigA[n:n+freqdisplayed].real,label='Sig_DMFT11 real')
                 plt.plot(allsigA[n:n+freqdisplayed].imag,label='Sig_DMFT11 imag') 
-                # plt.plot(allsigB[n:n+100].real,label='Sig_DMFT22 real')
-                # plt.plot(allsigB[n:n+100].imag,label='Sig_DMFT22 imag') 
-                # plt.plot(sig_new_11[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig_new_11 real')
-                # plt.plot(sig_new_11[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig_new_11 imag')
-                plt.plot(sig_11[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(2,11,k) real')
-                plt.plot(sig_11[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(2,11,k) imag')
+                plt.plot(allsigB[n:n+freqdisplayed].real,label='Sig_DMFT22 real')
+                plt.plot(allsigB[n:n+freqdisplayed].imag,label='Sig_DMFT22 imag') 
+                plt.plot(sig_new_11[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig_new_11 real')
+                plt.plot(sig_new_11[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig_new_11 imag')
+                plt.plot(sig_new_22[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig_new_22 real')
+                plt.plot(sig_new_22[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig_new_22 imag')
+                # plt.plot(sig_11[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(2,11,k) real')
+                # plt.plot(sig_11[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(2,11,k) imag')
                 # plt.plot(sig_pert_imp11[n:n+freqdisplayed].real,label='Sig_(2,11,imp) real')
                 # plt.plot(sig_pert_imp11[n:n+freqdisplayed].imag,label='Sig_(2,11,imp) imag') 
 
@@ -420,44 +425,46 @@ def new_sig(sigA,sigB,U,T,knum,order=3):
                 # plt.plot(sig_pert_imp111[n:2*n].imag,label='Sig_(3,111,imp) imag') 
                 # plt.plot(Sig3_121[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(3,121,k) real')
                 # plt.plot(Sig3_121[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(3,121,k) imag') 
-                plt.plot(correction3_sig[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(3,11,k) real')
-                plt.plot(correction3_sig[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(3,11,k) imag')
+                # plt.plot(Sig3_tadpole11*np.ones(freqdisplayed).real,label='Sig3_tadpole real')
+                # plt.plot(Sig3_tadpole11*np.ones(freqdisplayed).imag,label='Sig3_tadpole imag') 
+                # plt.plot(correction3_sig[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(3,11,k) real')
+                # plt.plot(correction3_sig[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(3,11,k) imag')
 
-                plt.plot(correction_sig[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(2+3,11,k) real')
-                plt.plot(correction_sig[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(2+3,11,k) imag')
+                # plt.plot(correction_sig[n:n+freqdisplayed, kxind, kyind, kzind].real,label='Sig_(2+3,11,k) real')
+                # plt.plot(correction_sig[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='Sig_(2+3,11,k) imag')
                                                     
                 plt.title('Diagonal: U={},T={},k={}'.format(U,T,k))
                 plt.legend()
                 plt.grid()
                 plt.show()
             #off_diagonal
-            for k in essential_kpoints[:pltkpts]:
-                kxind=k[0]
-                kyind=k[1]
-                kzind=k[2]
-                plt.plot(sig2_12[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(2)_12 real')
-                plt.plot(sig2_12[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(2)_12 imag')
-                plt.plot(Sig3_112[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(3)_12 real')
-                plt.plot(Sig3_112[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(3)_12 imag')
-                plt.plot(sig_new_12[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(2+3)_12 real')
-                plt.plot(sig_new_12[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(2+3)_12 imag')
-                plt.title('Off-diagonal: U={},T={},k={},eps_k={}'.format(U,T,k,dispersion(kxind/knum,kyind/knum,kzind/knum)))
-                plt.legend()
-                plt.grid()
-                plt.show()
+            # for k in essential_kpoints[:pltkpts]:
+            #     kxind=k[0]
+            #     kyind=k[1]
+            #     kzind=k[2]
+            #     plt.plot(sig2_12[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(2)_12 real')
+            #     plt.plot(sig2_12[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(2)_12 imag')
+            #     plt.plot(Sig3_112[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(3)_12 real')
+            #     plt.plot(Sig3_112[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(3)_12 imag')
+            #     plt.plot(sig_new_12[n:n+freqdisplayed, kxind, kyind, kzind].real,label='sig(2+3)_12 real')
+            #     plt.plot(sig_new_12[n:n+freqdisplayed, kxind, kyind, kzind].imag,label='sig(2+3)_12 imag')
+            #     plt.title('Off-diagonal: U={},T={},k={},eps_k={}'.format(U,T,k,dispersion(kxind/knum,kyind/knum,kzind/knum)))
+            #     plt.legend()
+            #     plt.grid()
+            #     plt.show()
 
-            for i in np.arange(max_sym_index):
-                k=essential_kpoints[i]
-                kxind=k[0]
-                kyind=k[1]
-                kzind=k[2]
-                if dispersion(kxind/knum,kyind/knum,kzind/knum)**2>0.001:
-                    plt.scatter(i,sig_new_12[n,kxind,kyind,kzind].real/dispersion(kxind/knum,kyind/knum,kzind/knum),color='red')
-                    plt.scatter(i,sig2_12[n,kxind,kyind,kzind].real/dispersion(kxind/knum,kyind/knum,kzind/knum),color='blue')
-                    # plt.scatter(i,dispersion(kxind/knum,kyind/knum,kzind/knum)*(sig_new_12[n,0,0,0].real/((-1)*(-6))),color='blue',label='')
-            plt.xlabel("different k points")
-            plt.title('Sig_12(k)/disp_k at U={},T={}.'.format(U,T))
-            plt.show()
+            # for i in np.arange(max_sym_index):
+            #     k=essential_kpoints[i]
+            #     kxind=k[0]
+            #     kyind=k[1]
+            #     kzind=k[2]
+            #     if dispersion(kxind/knum,kyind/knum,kzind/knum)**2>0.001:
+            #         plt.scatter(i,sig_new_12[n,kxind,kyind,kzind].real/dispersion(kxind/knum,kyind/knum,kzind/knum),color='red')
+            #         plt.scatter(i,sig2_12[n,kxind,kyind,kzind].real/dispersion(kxind/knum,kyind/knum,kzind/knum),color='blue')
+            #         # plt.scatter(i,dispersion(kxind/knum,kyind/knum,kzind/knum)*(sig_new_12[n,0,0,0].real/((-1)*(-6))),color='blue',label='')
+            # plt.xlabel("different k points")
+            # plt.title('Sig_12(k)/disp_k at U={},T={}.'.format(U,T))
+            # plt.show()
         return sig_new_11,sig_new_22,sig_new_12
     else:
         MPI.Finalize()
@@ -505,10 +512,14 @@ def Delta_pert_DMFT(SigA,SigB,U,T,knum,order=3):
     if sig_plot==1:
         # plt.plot(sig_new_11[:freqdisplayed,0,0,0].real,label='sig_imp_new_11 real')
         # plt.plot(sig_new_11[:freqdisplayed,0,0,0].imag,label='sig_imp_new_11 imag')
-        plt.plot(Delta_11[:freqdisplayed].real,label='pert3 real')
-        plt.plot(Delta_11[:freqdisplayed].imag,label='pert3 imag')
-        plt.plot(Delta0_11[:freqdisplayed].real,label='DMFT real')
-        plt.plot(Delta0_11[:freqdisplayed].imag,label='DMFT imag')
+        plt.plot(Delta_11[:freqdisplayed].real,label='pert3_11 real')
+        plt.plot(Delta_11[:freqdisplayed].imag,label='pert3_11 imag')
+        plt.plot(Delta_22[:freqdisplayed].real,label='pert3_22 real')
+        plt.plot(Delta_22[:freqdisplayed].imag,label='pert3_22 imag')
+        plt.plot(Delta0_11[:freqdisplayed].real,label='DMFT11 real')
+        plt.plot(Delta0_11[:freqdisplayed].imag,label='DMFT11 imag')
+        plt.plot(Delta0_22[:freqdisplayed].real,label='DMFT22 real')
+        plt.plot(Delta0_22[:freqdisplayed].imag,label='DMFT22 imag')
         plt.title('Hybridization: U={},T={}'.format(U,T))
         plt.legend()
         plt.grid()
@@ -551,10 +562,10 @@ if __name__ == "__main__":
         nfreq=500
         
         index=9#index start from 1, not 0
-        # sigma=np.loadtxt('./files_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
-        # sigma=np.loadtxt('./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
+        # sigma=np.loadtxt('../files_boldc/{}_{}/ori_Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
+        # sigma=np.loadtxt('../files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
         sigma=np.loadtxt('../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,index))[:nfreq,:]
-        # sigma=np.loadtxt('./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,index))[:nfreq,:]
+        # sigma=np.loadtxt('../files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,index))[:nfreq,:]
         sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
         sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
         # sigA=(+U/2-0.01)*np.ones(nfreq,dtype=complex)#+1j*sigma[:,2]#sig+delta
@@ -562,14 +573,6 @@ if __name__ == "__main__":
         if sigma[-1,1]<sigma[-1,3]:
             sigA=sigma[:,3]+1j*sigma[:,4]#sig+delta
             sigB=sigma[:,1]+1j*sigma[:,2]#sig-delta
-        # if rank==0:
-        #     plt.plot(sigA.real,label='sigA.real')
-        #     plt.plot(sigA.imag,label='sigA.imag')
-        #     plt.plot(sigB.real,label='sigB.real')
-        #     plt.plot(sigB.imag,label='sigB.imag')
-        #     plt.legend()
-        #     plt.grid()
-        #     plt.show()
         # sym_mapping(1,2,3)
         # calc_sym_array(10)
         # G_test(sigA,sigB,U,T,knum)

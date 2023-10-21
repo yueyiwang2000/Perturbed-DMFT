@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from memory_profiler import profile
 """
 This file contains simple python functions might be use in other perturbatio files.
 """
@@ -37,18 +38,31 @@ def z(beta,mu,sig):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
     n=sig.size
     om=(2*np.arange(2*n)+1-2*n)*np.pi/beta
-    allsig=ext_sig(beta,sig)
+    allsig=ext_sig(sig)
     z=om*1j+mu-allsig
     return z
 
-def ext_sig(beta,sig):
-    lenom=sig.size
+def ext_sig(sig):
+    n=sig.size
     # print(lenom)
-    all_om=(2*np.arange(2*lenom)+1)*np.pi/beta
-    allsig=np.zeros(2*lenom,dtype=complex)
-    allsig[1*lenom:2*lenom]=sig
+    allsig=np.zeros(2*n,dtype=complex)
+    allsig[1*n:2*n]=sig
     # allsig[3*lenom:4*lenom]=sig[lenom-1].real+1j*sig[lenom-1].imag*all_om[lenom-1]/all_om[lenom:2*lenom]
-    allsig[:1*lenom]=allsig[2*lenom:lenom-1:-1].conjugate()
+    allsig[:1*n]=allsig[2*n:n-1:-1].conjugate()
+    return allsig
+
+# @profile
+def z4D(beta,mu,sig,knum,n):
+    # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
+    om=(2*np.arange(2*n)+1-2*n)*np.pi/beta
+    # allsig=ext_sig4D(sig,knum,n)
+    z=om[:,None,None,None]*1j+mu-sig
+    return z
+
+def ext_sig4D(sig,knum,n):
+    allsig=np.zeros((2*n,knum,knum,knum),dtype=complex)
+    allsig[1*n:2*n,:,:,:]=sig
+    allsig[:1*n,:,:,:]=allsig[2*n:n-1:-1,:,:,:].conjugate()
     return allsig
 
 def gen_full_kgrids(knum,a=1):
@@ -156,8 +170,10 @@ def G_11(knum,z_A,z_B,a=1):# and, G_22=-G_diag_11.conj
     k1,k2,k3=gen_full_kgrids(knum,a)
     G_diag_A=np.zeros((n,knum,knum,knum),dtype=np.complex128)
     zazb=z_A*z_B
-    G_diag_A = z_B[:, None, None, None] / (zazb[:, None, None, None] - dispersion(k1,k2,k3)**2)
+    G_diag_A = z_B / (zazb - dispersion(k1,k2,k3)**2)
     return G_diag_A
+
+
 
 def G_22(knum,z_A,z_B,a=1):# and, G_22=-G_diag_11.conj
     n=z_A.size
@@ -178,30 +194,61 @@ def G_12(knum,z_A,z_B,a=1):
     G_offdiag = dis / (zazb[:, None, None, None].real - dis**2)
     return G_offdiag
 
+@profile
+def G_11_iterative(knum,z_A,z_B,sigma12):# and, G_22=-G_diag_11.conj
+    n=z_A.size
+    k1,k2,k3=gen_full_kgrids(knum)
+    G_diag_A=np.zeros((n,knum,knum,knum),dtype=np.complex128)
+    zazb=z_A*z_B
+    G_diag_A = z_B / (zazb - (dispersion(k1,k2,k3)[None,:,:,:]+sigma12)**2)
+    return G_diag_A
 
-def Delta_DMFT(sigA,sigB,U,T,knum=16,a=1):
+# @profile
+def G_12_iterative(knum,z_A,z_B,sigma12):
+    k1,k2,k3=gen_full_kgrids(knum)
+    n=z_A.size
+    G_offdiag=np.zeros((n,knum,knum,knum))
+    zazb=z_A*z_B
+    dis_eff=dispersion(k1, k2, k3)[None,:,:,:]+sigma12
+    G_offdiag = dis_eff / (zazb[:, None, None, None].real - dis_eff**2)
+    return G_offdiag
+
+
+# @profile
+def G_iterative(knum,z_A,z_B,sigma12):
+    n=z_A.size
+    k1,k2,k3=gen_full_kgrids(knum)
+    G_diag_A=np.zeros((n,knum,knum,knum),dtype=np.complex128)
+    zazb=z_A*z_B
+    dis_eff=dispersion(k1, k2, k3)[None,:,:,:]+sigma12
+    denom=1/(zazb - dis_eff**2)
+    G_11 = z_B *denom
+    G_12 = dis_eff *denom
+    return G_11,G_12
+
+def Delta_DMFT(sig1,sig2,U,T,knum=10,a=1):
     mu=U/2
     beta=1/T
-    n=sigA.size
+    n=sig1.size
+    if sig1[-1].real>sig2[-1].real:
+        sigA=sig1
+        sigB=sig2
+    else:
+        sigA=sig2
+        sigB=sig1
     om= (2*np.arange(n)+1)*np.pi/beta
     iom=1j*om
-    z_A=z(beta,mu,sigA)
-    z_B=z(beta,mu,sigB)
-    G11=G_11(knum,z_A,z_B)
-    # G22=-G11.conjugate()
-    G22=G_22(knum,z_A,z_B)
-    G11_imp=np.sum(G11,axis=(1,2,3))/knum**3
-    G22_imp=np.sum(G22,axis=(1,2,3))/knum**3
-    Gimp_inv_11=1/G11_imp
-    Gimp_inv_22=1/G22_imp
+    Sigma11=np.zeros((2*n,knum,knum,knum),dtype=complex)
+    Sigma11+=ext_sig(sigA)[:,None,None,None]
+    Sigma22=np.zeros((2*n,knum,knum,knum),dtype=complex)
+    Sigma22+=ext_sig(sigB)[:,None,None,None]
+    z_1=z4D(beta,mu,Sigma11,knum,n)#z-delta
+    z_2=z4D(beta,mu,Sigma22,knum,n)#z+delta
+    G11_iom=G_11(knum,z_1,z_2)
+    G11imp_iom=np.sum(G11_iom,axis=(1,2,3))/knum**3
+    G22imp_iom=-G11imp_iom.conjugate()
+    Gimp_inv_11=1/G11imp_iom
+    Gimp_inv_22=1/G22imp_iom
     Delta_11=iom+mu-sigA-Gimp_inv_11[n:]
     Delta_22=iom+mu-sigB-Gimp_inv_22[n:]
-    # plt.plot(Delta_11.real,label='delta11 real')
-    # plt.plot(Delta_11.imag,label='delta11 imag')
-    # plt.plot(Delta_22.real,label='delta22 real')
-    # plt.plot(Delta_22.imag,label='delta22 imag')
-    # plt.legend()
-    # plt.grid()
-    # plt.show()
-    # print(np.shape(iom),np.shape(sigA),np.shape(Gimp_inv_11),np.shape(Delta_11))
     return Delta_11,Delta_22

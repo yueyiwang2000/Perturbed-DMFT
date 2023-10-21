@@ -7,6 +7,9 @@ import perturb_lib
 from numba.types import float64, complex128
 # experimental features. try to avoid tau=0 and tau=beta to get well-defined physical quantities
 def G12_shift(G12,q,knum,opt):
+    """
+    opt==1 means shift with sign!
+    """
     qx=q[0]
     qy=q[1]
     qz=q[2]
@@ -101,24 +104,19 @@ def stupid_ift_boson(Pq_tau, beta, boson_om):
 #-----------convolution-----------
 # This is only for G12, which means, for Green's functions that have well-defined fourier transformations.
 def precalcP_fft(q, knum, n, Gk,beta,opt):# this function deal with Gk*Gkq. they should be well sliced and shifted.
-    N=2*n
-    fermion_om = (2*np.arange(2*n)+1-2*n)*np.pi/beta
-    boson_om = (2*np.arange(n+1))*np.pi/beta
     Gk_tau=fast_ft_fermion(Gk)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
     Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3/beta
     return Pq_tau.real
 
-def precalcPp_fft(q, knum, n, Gk,beta,opt):
+def precalcQ_fft(q, knum, Gk,beta,opt):
     '''
-    Pprime is another quantity which looks like P. In PM, P=-P' but in AFM they're different in principle.
-    P'(q,tau)=sum_k'(G(k,tau)*(G(k+q,tau)))
+    Q is another quantity which looks like P. In PM, P=-P' but in AFM they're different in principle.
+    Q(q,tau)=sum_k'(G(k,tau)*(G(k+q,tau)))
     while
-    P'(q,tau)=sum_k'(G(k,-tau)*(G(k+q,tau)))
+    P(q,tau)=sum_k'(G(k,-tau)*(G(k+q,tau)))
+    opt==1 means shift with sign!
     '''
-    N=2*n
-    # fermion_om = (2*np.arange(2*n)+1-2*n)*np.pi/beta
-    # boson_om = (2*np.arange(n+1))*np.pi/beta
     Gk_tau=fast_ft_fermion(Gk)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
     Pq_tau=np.sum(Gk_tau*Gkq_tau,axis=(1,2,3))/knum**3/beta
@@ -150,6 +148,14 @@ def precalcsig_fft(q, knum, Gk,Pq_tau,beta,U,opt):#for off-diagonal
     sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
     return sig_iom
 
+
+def precalcsigp_fft(q, knum, Gk,Pq_tau,beta,U,opt):#for off-diagonal
+    N=np.shape(Pq_tau)[0]
+    Gk_tau=fast_ft_fermion(Gk)
+    Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
+    sig_tau=np.sum(-Pq_tau*Gkq_tau[::-1,:,:,:],axis=(1,2,3))*(-1)*U**2/knum**3/beta
+    sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
+    return sig_iom
 
 def precalcsig_fft_diag(q, knum, Gk,Pq_tau,beta,U,delta_inf,alpha_k):
     N=np.shape(Pq_tau)[0]

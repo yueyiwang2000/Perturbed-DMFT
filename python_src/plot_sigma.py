@@ -73,9 +73,10 @@ def stable_test(num):
 def compare_sig(ind):
     freq_num=500
     if mode ==1:
-        filename='./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,ind)
+        filename='../files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,ind)
     elif mode==0:
-        filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
+        # filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
+        filename='../files_pert_boldc/{}_{}/Sig.out.{}'.format(U,T,ind+1)
     # sigma=np.loadtxt(filename)
     # omega=sigma[:freq_num,0]
     # plt.plot(omega,sigma[:freq_num,1],label='1st column after perturbed DMFT')
@@ -83,9 +84,10 @@ def compare_sig(ind):
     # plt.plot(omega,sigma[:freq_num,3],label='3rd column after perturbed DMFT')
     # plt.plot(omega,sigma[:freq_num,4],label='4th column after perturbed DMFT')
     if mode ==1:
-        filename='./files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,ind)
+        filename='../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,ind)
     elif mode==0:
-        filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
+        # filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
+        filename='../files_boldc/{}_{}/Sig.out.{}'.format(U,T,ind+1)
     sigma=np.loadtxt(filename)
     omega=sigma[:freq_num,0]
     plt.plot(omega,sigma[:freq_num,1],label='1st column after DMFT')
@@ -131,9 +133,10 @@ def burst_scatter_sig(num,checkpoint):
     # checkpoint=0
     for i in ilist:
         if mode==0:
-            filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
+            # filename='../files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
+            filename='../files_boldc/{}_{}/Sig.out.{}'.format(U,T,int(i+1))
         elif mode==1:
-            filename='./files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,int(i))
+            filename='../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,int(i))
         
         if os.path.isfile(filename):
             sigma=np.loadtxt(filename)
@@ -142,10 +145,13 @@ def burst_scatter_sig(num,checkpoint):
             plt.scatter(i,sigma[checkpoint,3],c='red')
         else:
             print('cannot find {}'.format(filename))
+
+
         if mode ==0:
-            filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
+            # filename='../files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
+            filename='../files_pert_boldc/{}_{}/Sig.out.{}'.format(U,T,int(i+1))
         elif mode ==1:
-            filename='./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,int(i))
+            filename='../files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,int(i))
         if os.path.isfile(filename):
             sigma=np.loadtxt(filename)
             # omega=sigma[:,0]
@@ -153,6 +159,8 @@ def burst_scatter_sig(num,checkpoint):
             plt.scatter(i,sigma[checkpoint,3],c='blue')
         else:
             print('cannot find {}'.format(filename))
+
+
     plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
     plt.xlabel('DMFT iterations Red:DMFT Blue:DMFT+pert')
     plt.show()
@@ -161,12 +169,12 @@ def burst_scatter_sig(num,checkpoint):
 if __name__ == "__main__":
     mode=0
     #boldc=0, ctqmc=1
-    U=5.0
-    T=0.35
+    U=7.0
+    T=0.41
     # print("format: plot_sigma.py U T")
-    burst_scatter_sig(5,0)
-    for i in np.arange(5)+1:
-        compare_sig(i)
+    burst_scatter_sig(50,0)
+    # for i in np.arange(5)+1:
+    #     compare_sig(i)
         # compare_Delta(i)
         
     # single_mode(10)

@@ -14,10 +14,10 @@ import perturb_lib
 This module runs ctqmc impurity solver for one-band model.
 The executable should exist in directory params['exe']
 """
-#fileS = 'Sig.out'
-#fileG = 'Gf.out'
-fileS = 'Sig.OCA'
-fileG = 'Gf.OCA'
+fileS = 'Sig.out'
+fileG = 'Gf.out'
+# fileS = 'Sig.OCA'
+# fileG = 'Gf.OCA'
 nameD='Delta.inp'
 fileD = '../boldc_cache/'+nameD
 
@@ -53,17 +53,17 @@ else:
     print('directory does not exist... make a new one')
     cmd_newfolder='mkdir '+dir
     subprocess.call(cmd_newfolder, shell=True)
-subprocess.call('rm Gf.OCA PARAMS PPSigma.OCA Sig.OCA', shell=True)
+subprocess.call('rm Gf.out PARAMS PPSigma.OCA Sig.out debu* dF* dG* diags* dSig* gf* histogram* PPG* PPSigma* status* *.OCA ctqmc.log Sig.out_Dyson uls.dat Delta.inp sampled_data', shell=True)
 # subprocess.call('rm ../boldc_cache/*', shell=True)
 # subprocess.call('cp boldc ../boldc_cache/', shell=True)
-Ms = 2e6
+Ms = 5e6
 params={
     "exe"       : "mpirun -np 8 ../boldc_cache/boldc", # Path to executable
     "dos"       : "../python_src/DOS_3D.dat",     # non-interacting DOS
     "U"         : Uc,               # Coulomb U
     "mu"        : Uc/2.,            # chemical potential
     "beta"      : 1/T,               # inverse temperature
-    "Norder"    : 2,                # the maximum perturbation order
+    "Norder"    : 4,                # the maximum perturbation order
   "N_min_order" : 2,                # the minimal order at which we run MC (the rest analytic)
     "Ms"        : Ms,               # Number of Monte Carlo steps at each iteration
     "Nbath"     :  2,               # paramagnetic
@@ -105,8 +105,8 @@ def DMFT_SCC(W, fDelta,mode=0):
         print('Starting from non-interacting model')
         Sf=[]
         om = (2*arange(500)+1)*pi/params['beta']
-        Sg_A=Uc/2.+0.2
-        Sg_B=Uc/2.-0.2
+        Sg_A=Uc/2.+0.05
+        Sg_B=Uc/2.-0.05
         for iom in om:
             Sf.append([iom,Sg_A,0,Sg_B,0])
         Sf = array(Sf).T
@@ -130,7 +130,7 @@ def DMFT_SCC(W, fDelta,mode=0):
         f.close()
     elif mode==1:
         # cmd_pert='mpirun -np 8 python perturb.py {} {}'.format(Uc,T)
-        cmd_pert='mpirun -np 8 python ../python_src/perturb.py {} {} {} {}'.format(Uc,T,fileS,fDelta)
+        cmd_pert='mpirun -np 4 python ../python_src/sc_pert.py {} {} {} {}'.format(Uc,T,fileS,fDelta)
         subprocess.call(cmd_pert, shell=True)
     
 
@@ -142,7 +142,7 @@ def Diff(fg1, fg2):
     return diff
 
 # Number of DMFT iterations
-Niter = 5
+Niter = 50
 
 # Creating parameters file PARAMS for qmc execution
 CreateInputFile(params)
@@ -200,5 +200,5 @@ for it in range(1,Niter+1):
         #    params["Ms"] *= 3
         #    CreateInputFile(params)
         #if (diff<6e-5): break
-        if (diff<1e-6): break
-subprocess.call('rm ctqmc.log Delta.inp Deltat.inp Gf.OCA PARAMS PPSigma.OCA Sig.OCA uls.dat', shell=True) 
+        # if (diff<1e-6): break
+subprocess.call('rm Gf.out PARAMS PPSigma.OCA Sig.out debug* dF* dG* diags* dSig* gf* histogram* PPG* PPSigma* status*', shell=True)

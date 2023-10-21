@@ -20,4 +20,8 @@ Delta.inp
 PARAMS
 one_band.imp
 !boldc_cache/launch_pert_boldc.py
+!boldc_cache/run_pert_boldc.py
 !ctqmc_cache/launch_pert_ctqmc.py
+!ctqmc_cache/run_pert_ctqmc.py
+/python_src/boldc
+/python_src/ctqmc
