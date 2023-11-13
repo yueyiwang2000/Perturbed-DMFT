@@ -122,7 +122,7 @@ def pertimp():
 
 
 #updated to faster fft version.
-def pertimp_func(G_A,G_B,delta_inf,beta,U,knum,order=2):
+def pertimp_func(G_A,delta_inf,beta,U,knum,order=2):
     T=1/beta
     n=int(G_A.size/2)
     N=2*n

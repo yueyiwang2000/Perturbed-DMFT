@@ -25,3 +25,4 @@ one_band.imp
 !ctqmc_cache/run_pert_ctqmc.py
 /python_src/boldc
 /python_src/ctqmc
+/Tools/spec_plot

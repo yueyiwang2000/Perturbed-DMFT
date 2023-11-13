@@ -34,12 +34,12 @@ def calc_expikdel(knum):
     factor=np.exp(phase)
     return factor
 
-def z(beta,mu,sig):
+def z(beta,mu,sig,nfreq):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
-    n=sig.size
-    om=(2*np.arange(2*n)+1-2*n)*np.pi/beta
-    allsig=ext_sig(sig)
-    z=om*1j+mu-allsig
+    # n=sig.size
+    om=(2*np.arange(2*nfreq)+1-2*nfreq)*np.pi/beta
+    # allsig=ext_sig(sig)
+    z=om*1j+mu-sig
     return z
 
 def ext_sig(sig):
@@ -52,7 +52,7 @@ def ext_sig(sig):
     return allsig
 
 # @profile
-def z4D(beta,mu,sig,knum,n):
+def z4D(beta,mu,sig,knum,n,extramu=0):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
     om=(2*np.arange(2*n)+1-2*n)*np.pi/beta
     # allsig=ext_sig4D(sig,knum,n)
@@ -232,10 +232,10 @@ def Delta_DMFT(sig1,sig2,U,T,knum=10,a=1):
     n=sig1.size
     if sig1[-1].real>sig2[-1].real:
         sigA=sig1
-        sigB=sig2
+        sigB=U-sig1.real+1j*sig1.imag
     else:
         sigA=sig2
-        sigB=sig1
+        sigB=U-sig2.real+1j*sig2.imag
     om= (2*np.arange(n)+1)*np.pi/beta
     iom=1j*om
     Sigma11=np.zeros((2*n,knum,knum,knum),dtype=complex)

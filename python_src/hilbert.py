@@ -129,7 +129,7 @@ if __name__ == '__main__':
     plot(om, Dlt_A.real, label='Dlt_A_real')
     plot(om, Dlt_A.imag, label='Dlt_A_imag')
     plot(om, Dlt_B.real, label='Dlt_B_real')
-    plot(om, Dlt_B.imag, label='Dlt_B_mag')
+    plot(om, Dlt_B.imag, label='Dlt_B_imag')
     
     legend(loc='best')
     grid()
