@@ -7,26 +7,27 @@ from perturb_lib import *
 # import fft_convolution as conv
 # this code is written to reproduce a few leading order of 
 
-def fermion_fft(Gk):
+def fermion_fft(Gk,beta):
     N=np.shape(Gk)[0]
     # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
-    Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N),axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)
+    Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N),axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)/beta
     return Gktau
 
-def fermion_ifft(Gk):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
+def fermion_ifft(Gk,beta):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
     N=np.shape(Gk)[0]
-    Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
+    Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)*beta
     return Gkiom
 
-def boson_ifft(Pk):
+def boson_fft(Pk,beta):
     N=np.shape(Pk)[0]
-    Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)
+    Pktau=np.fft.fft(Pk*np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N))*np.exp(1j*(N)*np.pi*np.arange(N)/N)/beta
+    return Pktau
+
+def boson_ifft(Pk,beta):
+    N=np.shape(Pk)[0]
+    Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)*beta
     return Pkiom
 
-def boson_fft(Pk):
-    N=np.shape(Pk)[0]
-    Pktau=np.fft.fft(Pk*np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N))*np.exp(1j*(N)*np.pi*np.arange(N)/N)
-    return Pktau
                          
 
 
@@ -135,15 +136,13 @@ def pertimp_func(G_A,delta_inf,beta,U,knum,order=2):
     tlist=(np.arange(N)+0.5)/N*beta
     
     alpha=np.sqrt(eps2+delta_inf**2)[None,:,:,:]
-    GA_tau_diff=fermion_fft(G_A-G_A0)
-    GA_tau_ana=np.sum(-beta/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
+    GA_tau_diff=fermion_fft(G_A-G_A0,beta)
+    GA_tau_ana=np.sum(-1/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
                         (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
     GA_tau=GA_tau_ana+GA_tau_diff
-    GA_bf=fermion_fft(G_A)
-
-
+    GA_bf=fermion_fft(G_A,beta)
     # PA_tau=-GA_tau[::-1]*GA_bf/beta
-    PA_tau=-GA_tau[::-1]*GA_tau/beta
+    PA_tau=-GA_tau[::-1]*GA_tau
     # PA_tau=(PA_tau+PA_tau[::-1])/2
     # PB_tau=-GB_tau[::-1]*GB_tau/beta
     
@@ -151,18 +150,18 @@ def pertimp_func(G_A,delta_inf,beta,U,knum,order=2):
     Sigp_A=np.zeros(n*2,dtype=complex)
     Sigp_B=np.zeros(n*2,dtype=complex)
     # sigA_tau=PA_tau*GA_tau*(-1)*U**2/beta
-    SigA_tau=PA_tau*GA_bf*(-1)*U**2/beta
-    # sigp_A=fermion_ifft(sigA_tau)
+    if order==2:
+        SigA_tau=PA_tau*GA_bf*(-1)*U**2
     if order ==3:# only 111 part shoule be cancelled:
-        QA_tau=GA_tau*GA_tau/beta
-        PA_iom=boson_ifft(PA_tau)
-        QA_iom=boson_ifft(QA_tau)
-        CA_iom=PA_iom*PA_iom
-        BA_iom=QA_iom*QA_iom
-        CA_tau=boson_fft(CA_iom)
-        BA_tau=boson_fft(BA_iom)
-        SigA_tau+=(CA_tau*GA_bf-BA_tau*GA_bf[::-1])*U**3/beta**2#
-    Sigp_A=fermion_ifft(SigA_tau)
+        QA_tau=GA_tau*GA_tau
+        PA_iom=boson_ifft(PA_tau,beta)
+        QA_iom=boson_ifft(QA_tau,beta)
+        BA_iom=PA_iom*PA_iom
+        AA_iom=QA_iom*QA_iom
+        BA_tau=boson_fft(BA_iom,beta)
+        AA_tau=boson_fft(AA_iom,beta)
+        SigA_tau=-AA_tau*GA_bf[::-1]*U**3+BA_tau*GA_bf*U**3#
+    Sigp_A=fermion_ifft(SigA_tau,beta)
     Sigp_B=-Sigp_A.conjugate()
     return Sigp_A,Sigp_B
 

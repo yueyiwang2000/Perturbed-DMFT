@@ -56,7 +56,7 @@ def z4D(beta,mu,sig,knum,n,extramu=0):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
     om=(2*np.arange(2*n)+1-2*n)*np.pi/beta
     # allsig=ext_sig4D(sig,knum,n)
-    z=om[:,None,None,None]*1j+mu-sig
+    z=om[:,None,None,None]*1j-sig+mu
     return z
 
 def ext_sig4D(sig,knum,n):

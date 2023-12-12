@@ -98,8 +98,8 @@ def DMFT_SCC(W, fDelta,mode=0):
         print('Starting from non-interacting model')
         Sf=[]
         om = (2*arange(500)+1)*pi/params['beta']
-        Sg_A=Uc/2.+0.000001
-        Sg_B=Uc/2.-0.000001
+        Sg_A=Uc/2.+0.05
+        Sg_B=Uc/2.-0.05
         for iom in om:
             Sf.append([iom,Sg_A,0,Sg_B,0])
         Sf = array(Sf).T
@@ -146,7 +146,7 @@ def Diff(fg1, fg2):
     return diff
 
 # Number of DMFT iterations
-Niter = 1000
+Niter = 250
 
 # Creating parameters file PARAMS for qmc execution
 CreateInputFile(params)

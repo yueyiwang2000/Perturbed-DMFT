@@ -472,8 +472,6 @@ def new_sig(sigA,sigB,U,T,knum,order=3):
 
 #clear. 
 
-
-
 def Delta_pert_DMFT(SigA,SigB,U,T,knum,order=3):
     mu=U/2
     beta=1/T

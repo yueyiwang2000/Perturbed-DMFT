@@ -271,8 +271,6 @@ def precalcsig_mpi(U,beta, knum, Pk, Gk, opt,fullsig,mu,a=1):
         # full_sig[N-1::-1,:,:,:]=full_sig[N:,:,:,:].conjugate()
     comm.Bcast(full_sig, root=0)
     return full_sig#*-1*U*U / beta * ( 1/ a / knum) ** 3#2*np.pi
-    # else:
-    #     return np.zeros_like(full_sig)
 
 def precalcsigp_mpi(U,beta, knum, Pk, Gk, opt,fullsig,mu,a=1):
     n = int(np.shape(Gk)[0]/2)

@@ -70,7 +70,7 @@ def shifted_Gloc(hartree,oriSigma11,oriSigma22,delta,beta,mu,knum):
     return eff_delta,Gloc
 
 
-def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=2):
+def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=5):
     '''
     the main function doiong iterative pertubation. 
     Input:
@@ -194,8 +194,8 @@ def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=2):
             # plt.plot(SigDMFT1.real,label='SigDMFT1 real')
             # plt.plot(SigDMFT1.imag,label='SigDMFT1 imag') 
             # plt.plot(Sigma12[nfreq:nfreq+freqdisplayed,0,0,0].real,label='Sigma12 {} real'.format(it))
-            # plt.plot(Sigma11[nfreq:,0,0,0].real,label='Sigma11 {} real'.format(it))
-            # plt.plot(Sigma11[nfreq:,0,0,0].imag,label='Sigma11 {} imag'.format(it))
+            plt.plot(Sigma11[nfreq:nfreq+freqdisplayed,0,0,0].real,label='Sigma11 {} real'.format(it))
+            plt.plot(Sigma11[nfreq:nfreq+freqdisplayed,0,0,0].imag,label='Sigma11 {} imag'.format(it))
             # plt.plot(Sigma22[nfreq:nfreq+freqdisplayed,0,0,0].real,label='Sigma22 {} real'.format(it))
             # plt.plot(Sigma22[nfreq:nfreq+freqdisplayed,0,0,0].imag,label='Sigma22 {} imag'.format(it))
             # plt.plot(Sig1_11[nfreq:nfreq+freqdisplayed,0,0,0].real+Sig2_11[nfreq:nfreq+freqdisplayed,0,0,0].real,label='sig12_11 {} real'.format(it))
@@ -227,9 +227,9 @@ def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=2):
         print('\textramu=',(delta_eff-delta_inf)/delta_inf,'delta')
         # plt.plot(SigDMFT1.real,label='SigDMFT1 real')
         # plt.plot(SigDMFT1.imag,label='SigDMFT1 imag') 
-        # plt.legend()
-        # plt.grid()
-        # plt.show()
+        plt.legend()
+        plt.grid()
+        plt.show()
     return Sigma11,Sigma22,Sigma12,(delta_eff-delta_inf)
 
 def Delta_pert_DMFT(SigA,SigB,U,T,knum,nfreq,order):
@@ -294,27 +294,27 @@ if __name__ == "__main__":
         if rank==0:
             print('This is test mode')
         sig_plot=1# in the test mode, plot the sigma. in the import/calling mode, do not plot.
-        U=10.0  
-        T=0.473        
+        # U=10.0  
+        # T=0.473        
         # U=7.0  
         # T=0.4
-        # U=5.0  
-        # T=0.26       
+        U=5.0  
+        T=0.26       
         # U=3.0  
         # T=0.12   
         knum=10
         nfreq=500
         
         index=49#index start from 1, not 0
-        # sigma=np.loadtxt('../files_boldc/{}_{}_{}/Sig.out.{}'.format(0,U,T,index))[:nfreq,:]
-        sigma=np.loadtxt('../files_boldc/0_{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
+        sigma=np.loadtxt('../files_boldc/{}_{}_{}/Sig.out.{}'.format(0,U,T,index))[:nfreq,:]
+        # sigma=np.loadtxt('../files_boldc/0_{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
         # sigma=np.loadtxt('../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,index))[:nfreq,:]
         # sigma=np.loadtxt('../files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,index))[:nfreq,:]
-        sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
-        sigB=U-sigma[:,1]+1j*sigma[:,2]#sig+delta
+        # sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
+        # sigB=U-sigma[:,1]+1j*sigma[:,2]#sig+delta
         # sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
-        # sigA=(+U/2+1)*np.ones(nfreq,dtype=complex)+1j*sigma[:,2]#sig+delta
-        # sigB=(+U/2-1)*np.ones(nfreq,dtype=complex)+1j*sigma[:,2]#sig-delta
+        sigA=(+U/2+0.001)*np.ones(nfreq,dtype=complex)+1j*sigma[:,2]#sig+delta
+        sigB=(+U/2-0.001)*np.ones(nfreq,dtype=complex)+1j*sigma[:,2]#sig-delta
         if sigma[-1,1]<sigma[-1,3]:
             sigA=sigma[:,3]+1j*sigma[:,2]#sig+delta
             sigB=sigma[:,1]+1j*sigma[:,2]#sig-delta

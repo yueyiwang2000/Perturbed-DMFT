@@ -2,6 +2,7 @@
 /files/
 /files_boldc/
 /files_ctqmc/
+/files_variational/
 python_src/__pycache__/
 /__pycache__/
 /test/
@@ -11,6 +12,7 @@ python_src/__pycache__/
 /files_pert_boldc/
 boldc_cache/*
 ctqmc_cache/*
+cache_variational/*
 /backup/
 status.*
 debug.*
@@ -23,6 +25,7 @@ one_band.imp
 !boldc_cache/run_pert_boldc.py
 !ctqmc_cache/launch_pert_ctqmc.py
 !ctqmc_cache/run_pert_ctqmc.py
+!cache_variational/launch_DMFT_impshift.py
 /python_src/boldc
 /python_src/ctqmc
 /Tools/spec_plot

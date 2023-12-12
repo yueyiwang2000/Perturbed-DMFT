@@ -6,12 +6,12 @@ import os,sys,subprocess
 """
 This file contains useful functions to examine various output files.
 """
-sizefont=20# default:12
-plt.rc('font', size=sizefont) # 设置所有文字元素的默认大小
-plt.rc('axes', titlesize=sizefont) # 设置默认轴标题大小
-plt.rc('axes', labelsize=sizefont) # 设置默认轴标签大小
-plt.rc('xtick', labelsize=sizefont) # 设置x轴刻度标签大小
-plt.rc('ytick', labelsize=sizefont) # 设置y轴刻度标签大小
+# sizefont=20# default:12
+# plt.rc('font', size=sizefont) 
+# plt.rc('axes', titlesize=sizefont) 
+# plt.rc('axes', labelsize=sizefont) 
+# plt.rc('xtick', labelsize=sizefont) 
+# plt.rc('ytick', labelsize=sizefont) 
 
 
 def plot_sigma(filename,index):
@@ -151,7 +151,7 @@ def compare_Delta(ind):
 
 def burst_scatter_sig(num,checkpoint,interval=1):
     ilist=np.arange(num)
-    checkpoint=0
+    # checkpoint=0
     for i in ilist:
         if i%interval==0:
             if mode==0:
@@ -182,23 +182,57 @@ def burst_scatter_sig(num,checkpoint,interval=1):
             # else:
             #     print('cannot find {}'.format(filename))
 
-            if mode ==0:
-                filename='../files_boldc/3_{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
-                # filename='../files_boldc/3_{}_{}/Sig.out.{}'.format(U,T,int(i+1))
-            elif mode ==1:
-                filename='../files_ctqmc/3_{}_{}/Sig.out.{}'.format(U,T,int(i))
-            if os.path.isfile(filename):
-                sigma=np.loadtxt(filename)
-                # omega=sigma[:,0]
-                plt.scatter(i,sigma[checkpoint,1],c='green')
-                plt.scatter(i,sigma[checkpoint,3],c='green')
-            else:
-                print('cannot find {}'.format(filename))
+            # if mode ==0:
+            #     filename='../files_boldc/3_{}_{}/Sig.OCA.{}'.format(U,T,int(i+1))
+            #     # filename='../files_boldc/3_{}_{}/Sig.out.{}'.format(U,T,int(i+1))
+            # elif mode ==1:
+            #     filename='../files_ctqmc/3_{}_{}/Sig.out.{}'.format(U,T,int(i))
+            # if os.path.isfile(filename):
+            #     sigma=np.loadtxt(filename)
+            #     # omega=sigma[:,0]
+            #     plt.scatter(i,sigma[checkpoint,1],c='green')
+            #     plt.scatter(i,sigma[checkpoint,3],c='green')
+            # else:
+            #     print('cannot find {}'.format(filename))
 
     plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
     plt.xlabel('DMFT iterations Red:DMFT Blue:DMFT+pert2 Green:DMFT+pert3')
     plt.show()
     return 0
+
+
+def burst_variational(num,checkpoint,interval=1):
+    ilist=np.arange(num)
+    # checkpoint=0
+    for i in ilist:
+        if i%interval==0:
+            filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,int(i+1))
+        
+            if os.path.isfile(filename):
+                sigma=np.loadtxt(filename)
+                # omega=sigma[:,0]
+                plt.scatter(i,sigma[checkpoint,1],c='red')
+                plt.scatter(i,sigma[checkpoint,3],c='red')
+            else:
+                print('cannot find {}'.format(filename))
+    plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
+    plt.xlabel('DMFT iterations Red:DMFT Blue:DMFT+pert2 Green:DMFT+pert3')
+    plt.show()
+    return 0
+
+def mag_vs_B(U,T):
+    for B in np.arange(40)/100:
+        filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,100)
+        if os.path.isfile(filename):
+            sigma=np.loadtxt(filename)
+            # omega=sigma[:,0]
+            plt.scatter(B,(sigma[-1,1]-sigma[-1,3])/U,c='red')
+        else:
+            print('cannot find {}'.format(filename))
+    # plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
+    plt.xlabel('B field')
+    plt.ylabel('n_up-n_dn')
+    plt.show()
 
 def plot_Tn():
     Ulist=np.array([3,4,5,6,7,8,9,10,11,12,13,14,15])#
@@ -211,20 +245,15 @@ def plot_Tn():
     plt.legend()
     plt.show()
     return 0
-
+    
 
 if __name__ == "__main__":
     mode=0
     #boldc=0, ctqmc=1
     U=10.0
-    T=0.4733
-    # U=3.0
-    # T=0.1
-    # print("format: plot_sigma.py U T")
-    # burst_scatter_sig(120,0,1)
-    # for i in np.arange(5)+1:
-    #     compare_sig(i)
-        # compare_Delta(i)
-        
+    T=0.43
+    B=0.19
+    # burst_variational(100,0,1)
+    mag_vs_B(U,T)
     # single_mode(10)
-    plot_Tn()
+    # plot_Tn()

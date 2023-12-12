@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from numba import jit, complex128
 import perturb_lib
 from numba.types import float64, complex128
-# experimental features. try to avoid tau=0 and tau=beta to get well-defined physical quantities
 def G12_shift(G12,q,knum,opt):
     """
     opt==1 means shift with sign!
@@ -31,7 +30,8 @@ def alpha_shift(alpha,q,knum):
     alpha_kq = alpha[ np.mod(kxind + qx, knum), np.mod(kyind + qy, knum), np.mod(kzind + qz, knum)]
     return alpha_kq
 
-#-------fermion fft----------
+# stupid functions for test:
+
 def stupid_ft_fermion(Gk,n,taulist,fermion_om,k):
     Gktau=np.zeros(2*n,dtype=complex)
     for i in np.arange(2*n):
@@ -47,48 +47,6 @@ def stupid_ift_fermion(Gktau,n,beta,fermion_om):
         G_iom[i]=np.sum(Gktau*np.exp(1j*fermion_om*tau))
     return G_iom
 
-def fast_ft_fermion(Gk):
-    '''
-    iom->tau
-    '''
-    N=np.shape(Gk)[0]
-    # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
-    Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None],axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)[:,None,None,None]
-    #the exp term inside is to move tau points on (0.5,1.5,2.5,...,N-0.5)beta/N. Outside means a shift.
-    return Gktau
-
-def fast_ift_fermion(Gk):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
-    '''
-    tau->iom
-    '''
-    N=np.shape(Gk)[0]
-    Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N)[:,None,None,None],axis=0)*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
-    return Gkiom
-
-# To modify ft_fermion version to ft_boson version:
-#1. np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N) this means a shift exp(-iOm_n*0.5*beta/N) which avoids putting tau points at tau=0 or tau=beta.
-#2. np.exp(1j*(N)*np.pi*np.arange(N)/N) gives correct matsubara freqs to the system. For sure it should be corrected to Boson freqs.
-def fast_ft_boson(Pk):
-    '''
-    iom->tau
-    '''
-    N=np.shape(Pk)[0]
-    # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
-    Pktau=np.fft.fft(Pk*np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N)[:,None,None,None],axis=0)*np.exp(1j*(N)*np.pi*np.arange(N)/N)[:,None,None,None]
-    return Pktau
-
-def fast_ift_boson(Pk):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
-    '''
-    tau->iom
-    '''
-    N=np.shape(Pk)[0]
-    Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N)[:,None,None,None],axis=0)*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)[:,None,None,None]
-    return Pkiom
-
-#-------boson fft----------
-# here i use stupid version because I want N+1 freq points.... may be this is not necessary but this is conceptially clear and only take a little time.
-# THIS IS REALLY SLOW! rewrite it when have time, use the basic idea of fft.
-# HERE I just use numba.... I am lazy. It's faster than the most stupid numpy version.
 @jit(nopython=True)
 def stupid_ift_boson(Pq_tau, beta, boson_om):
     N = len(Pq_tau)
@@ -101,12 +59,76 @@ def stupid_ift_boson(Pq_tau, beta, boson_om):
         P_iom[i] = sum_val / N 
     return P_iom
 
+#-------fermion fft----------
+# Note: all FFT and iFFT here follows the FT definition of matsubara freqs defined in Negele & Orland's book!
+# For the details about how to take advantage of np.fft to do FT of Matsubara freqs, see note '231205 Matsubara Freq FFT'
+# these 2 functions are for imp GF, which are 1D arrays.
+def fermion_fft(Gk,beta):
+    '''
+    iom->tau
+    '''
+    N=np.shape(Gk)[0]
+    # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
+    Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N),axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)/beta
+    return Gktau
+
+def fermion_ifft(Gk,beta):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
+    '''
+    tau->iom
+    '''
+    N=np.shape(Gk)[0]
+    Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)*beta
+    return Gkiom
+
+# these 2 functions are for k-dep GF, which are 4D arrays.
+def fast_ft_fermion(Gk,beta):
+    '''
+    iom->tau
+    '''
+    N=np.shape(Gk)[0]
+    Gktau=np.fft.fft(Gk*np.exp(-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None],axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N)[:,None,None,None]/beta
+    #the exp term inside is to move tau points on (0.5,1.5,2.5,...,N-0.5)beta/N. Outside means a shift.
+    return Gktau
+
+def fast_ift_fermion(Gk,beta):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
+    '''
+    tau->iom
+    '''
+    N=np.shape(Gk)[0]
+    Gkiom=np.fft.ifft(Gk*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N)[:,None,None,None],axis=0)*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]*beta
+    return Gkiom
+#-------boson fft----------
+# To modify ft_fermion version to ft_boson version:
+#1. np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N) this means a shift exp(-iOm_n*0.5*beta/N) which avoids putting tau points at tau=0 or tau=beta.
+#2. np.exp(1j*(N)*np.pi*np.arange(N)/N) gives correct matsubara freqs to the system. For sure it should be corrected to Boson freqs.
+def fast_ft_boson(Pk,beta):
+    '''
+    iom->tau
+    '''
+    N=np.shape(Pk)[0]
+    # Gktau=np.fft.fft(Gk,axis=0)*np.exp(1j*(N-1)*np.pi*np.arange(N)/N-1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)[:,None,None,None]
+    Pktau=np.fft.fft(Pk*np.exp(-1j*(2*np.arange(N)-N)*np.pi*0.5/N)[:,None,None,None],axis=0)*np.exp(1j*(N)*np.pi*np.arange(N)/N)[:,None,None,None]/beta
+    return Pktau
+
+def fast_ift_boson(Pk,beta):# same way back. in fft, we fft then shift; in ifft, we shift back then fft.
+    '''
+    tau->iom
+    '''
+    N=np.shape(Pk)[0]
+    Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N)[:,None,None,None],axis=0)*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)[:,None,None,None]*beta
+    return Pkiom
+
+
+
+
+
+
 #-----------convolution-----------
 # This is only for G12, which means, for Green's functions that have well-defined fourier transformations.
 def precalcP_fft(q, knum, n, Gk,beta,opt):# this function deal with Gk*Gkq. they should be well sliced and shifted.
-    Gk_tau=fast_ft_fermion(Gk)
+    Gk_tau=fast_ft_fermion(Gk,beta)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
-    Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3/beta
+    Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3
     return Pq_tau.real
 
 def precalcQ_fft(q, knum, Gk,beta,opt):
@@ -117,9 +139,9 @@ def precalcQ_fft(q, knum, Gk,beta,opt):
     P(q,tau)=sum_k'(G(k,-tau)*(G(k+q,tau)))
     opt==1 means shift with sign!
     '''
-    Gk_tau=fast_ft_fermion(Gk)
+    Gk_tau=fast_ft_fermion(Gk,beta)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
-    Pq_tau=np.sum(Gk_tau*Gkq_tau,axis=(1,2,3))/knum**3/beta
+    Pq_tau=np.sum(Gk_tau*Gkq_tau,axis=(1,2,3))/knum**3
     return Pq_tau
 
 # this is for those function which has ill-defined Green's functions. like 1/iom scaling.
@@ -132,29 +154,30 @@ def precalcP_fft_diag(q, knum, n, Gk,beta,delta_inf,alpha_k):
     # calculating Gk+q(tau)
     Gk0=1/2*((1+delta_inf/alpk)/(1j*fermion_om[:,None,None,None]-alpk)+
              (1-delta_inf/alpk)/(1j*fermion_om[:,None,None,None]+alpk))
-    Gk_tau_diff=fast_ft_fermion(Gk-Gk0)
-    Gk_tau_ana=-beta/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
+    Gk_tau_diff=fast_ft_fermion(Gk-Gk0,beta)
+    Gk_tau_ana=-1/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
                         (1-delta_inf/alpk)*np.exp(alpk*tlist[:,None,None,None])/(1+np.exp(alpk*beta)))
     Gk_tau=Gk_tau_ana+Gk_tau_diff
     Gkq_tau=G12_shift(Gk_tau,q,knum,0)
-    Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3/beta
+    Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3# note: G(-\tau)=-G(beta-tau)
     return Pq_tau.real
 
 def precalcsig_fft(q, knum, Gk,Pq_tau,beta,U,opt):#for off-diagonal
     N=np.shape(Pq_tau)[0]
-    Gk_tau=fast_ft_fermion(Gk)
+    Gk_tau=fast_ft_fermion(Gk,beta)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
-    sig_tau=np.sum(Pq_tau*Gkq_tau,axis=(1,2,3))*(-1)*U**2/knum**3/beta
-    sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
+    sig_tau=np.sum(Pq_tau*Gkq_tau,axis=(1,2,3))*(-1)*U**2/knum**3
+    sig_iom=fermion_ifft(sig_tau,beta)
+    # sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)*beta
     return sig_iom
-
 
 def precalcsigp_fft(q, knum, Gk,Pq_tau,beta,U,opt):#for off-diagonal
     N=np.shape(Pq_tau)[0]
-    Gk_tau=fast_ft_fermion(Gk)
+    Gk_tau=fast_ft_fermion(Gk,beta)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
-    sig_tau=np.sum(-Pq_tau*Gkq_tau[::-1,:,:,:],axis=(1,2,3))*(-1)*U**2/knum**3/beta
-    sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
+    sig_tau=np.sum(-Pq_tau*Gkq_tau[::-1,:,:,:],axis=(1,2,3))*(-1)*U**2/knum**3
+    sig_iom=fermion_ifft(sig_tau,beta)
+    # sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
     return sig_iom
 
 def precalcsig_fft_diag(q, knum, Gk,Pq_tau,beta,U,delta_inf,alpha_k):
@@ -164,9 +187,9 @@ def precalcsig_fft_diag(q, knum, Gk,Pq_tau,beta,U,delta_inf,alpha_k):
     tlist=np.arange(N)/N*beta
     Gk0=1/2*((1+delta_inf/alpk)/(1j*fermion_om[:,None,None,None]-alpk)+
              (1-delta_inf/alpk)/(1j*fermion_om[:,None,None,None]+alpk))
-    Gk_tau_ana=-beta/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
+    Gk_tau_ana=-1/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
                         (1-delta_inf/alpk)*np.exp(alpk*tlist[:,None,None,None])/(1+np.exp(alpk*beta)))
-    Gk_tau_diff=fast_ft_fermion(Gk-Gk0)
+    Gk_tau_diff=fast_ft_fermion(Gk-Gk0,beta)
     Gkq_tau_diff=G12_shift(Gk_tau_diff,q,knum,0)
     Gkq_tau_ana=G12_shift(Gk_tau_ana,q,knum,0)
     Gkq_tau=Gkq_tau_diff+Gkq_tau_ana
@@ -174,7 +197,16 @@ def precalcsig_fft_diag(q, knum, Gk,Pq_tau,beta,U,delta_inf,alpha_k):
     sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
     return sig_iom
 
-# brute-force method.
+def precalc_C(P1iom,P2iom,beta):
+    # here Ps are bosonic quantities so we have to put them back on Bosonic matsubara freqs.
+    Ciom=P1iom*P2iom
+    Ctau=fast_ft_boson(Ciom,beta) 
+    return Ctau
+
+
+
+
+# other methods. just for test,
 def precalcP_bf(q, knum, n, G12,beta,opt=1):
     P_partial = np.zeros((n+1),dtype=np.complex128)
     if opt==1:
@@ -294,18 +326,12 @@ def sig_analytical(k,knum,n,beta,U):
     return 0
 
 
-def precalc_C(P1iom,P2iom):
-    # here Ps are bosonic quantities so we have to put them back on Bosonic matsubara freqs.
-    Ciom=P1iom*P2iom
-    Ctau=fast_ft_boson(Ciom)
-    return Ctau
-
 #-------------test---------------
 def conv_test(sigA,sigB,U,T,knum):
     mu=U/2
     beta=1/T
-    z_A=perturb_lib.z(beta,mu,sigA)
-    z_B=perturb_lib.z(beta,mu,sigB)
+    z_A=perturb_lib.z(beta,mu,sigA,nfreq)
+    z_B=perturb_lib.z(beta,mu,sigB,nfreq)
     n=sigA.size
     boson_om=(2*np.arange(n)+2)*np.pi/beta
     N=2*n
@@ -346,11 +372,11 @@ def conv_test(sigA,sigB,U,T,knum):
 if __name__ == "__main__":
     T=0.12
     U=3.0
-    knum=10
+    knum=8
     nfreq=1000
     index=1#index start from 1, not 0
     # sigma=np.loadtxt('./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
-    sigma=np.loadtxt('./files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,index))[:nfreq,:]
+    sigma=np.loadtxt('../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,index))[:nfreq,:]
 
     # sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
     # sigB=sigma[:,3]+1j*sigma[:,4]#sig-delta
