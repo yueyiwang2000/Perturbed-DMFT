@@ -17,7 +17,7 @@ This module runs ctqmc impurity solver for one-band model.
 The executable should exist in directory params['exe']
 """
 def cleanfile():
-    cmd='rm '+fileS+' '+fileG+' '+fileD
+    cmd='rm '+fileS+' '+fileG+' '+fileD+' debug.* Sigma* status* Sig* PPG* Gf* Delta* PPSigma*'
     # subprocess.call('rm Gf.out PARAMS PPSigma.OCA Sig.out debu* dF* dG* diags* dSig* gf* histogram* PPG* PPSigma* status* *.OCA ctqmc.log Sig.out_Dyson uls.dat Delta.inp sampled_data', shell=True)
     subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) 
     return 0
@@ -27,29 +27,30 @@ def Delta_DMFT_var(sig1,sig2,U,T,B,knum=10,a=1):
     mu=U/2
     beta=1/T
     n=sig1.size
-    if sig1[-1].real>sig2[-1].real:
-        sigA=sig1
-        sigB=U-sig1.real+1j*sig1.imag
-    else:
-        sigA=sig2
-        sigB=U-sig2.real+1j*sig2.imag
+    sigA=sig1
+    sigB=U-sig1.real+1j*sig1.imag    
+    # if sig1[-1].real>sig2[-1].real:
+    #     sigA=sig1
+    #     sigB=U-sig1.real+1j*sig1.imag
+    # else:
+    #     sigA=sig2
+    #     sigB=U-sig2.real+1j*sig2.imag
     om= (2*np.arange(n)+1)*np.pi/beta
     iom=1j*om
     Sigma11=np.zeros((2*n,knum,knum,knum),dtype=complex)
     Sigma11+=ext_sig(sigA)[:,None,None,None]
     Sigma22=np.zeros((2*n,knum,knum,knum),dtype=complex)
     Sigma22+=ext_sig(sigB)[:,None,None,None]
-    z_1=z4D(beta,mu,Sigma11,knum,n)+B#za=iom+mu-SigA+B
-    z_2=z4D(beta,mu,Sigma22,knum,n)-B#zb=iom+mu-SigB-B
+    z_1=z4D(beta,mu,Sigma11,knum,n)+B #za=iom+mu-SigA+B
+    z_2=z4D(beta,mu,Sigma22,knum,n)-B #zb=iom+mu-SigB-B
     G11_iom=G_11(knum,z_1,z_2)
-    G11imp_iom=np.sum(G11_iom,axis=(1,2,3))/knum**3
-    G22imp_iom=-G11imp_iom.conjugate()
-    Gimp_inv_11=1/G11imp_iom
-    Gimp_inv_22=1/G22imp_iom
-    Delta_11=iom+mu-sigA-Gimp_inv_11[n:]+B
-    Delta_22=iom+mu-sigB-Gimp_inv_22[n:]-B
-    return Delta_11,Delta_22,G11imp_iom,G22imp_iom
-
+    G11loc_iom=np.sum(G11_iom,axis=(1,2,3))[n:]/knum**3
+    G22loc_iom=-G11loc_iom.conjugate()
+    Gloc_inv_11=1/G11loc_iom
+    Gloc_inv_22=1/G22loc_iom
+    Delta_11=iom+mu-sigA-Gloc_inv_11+B
+    Delta_22=iom+mu-sigB-Gloc_inv_22-B
+    return Delta_11,Delta_22,G11loc_iom,G22loc_iom
 
 def CreateInputFile(params):
     " Creates input file (PARAMS) for bolc-ctqmc solver"
@@ -67,9 +68,16 @@ def DMFT_SCC(W, fDelta,mode=0):
         # Gf = io.read_array(fileGf, columns=(0,-1), lines=(1,-1))
         # In the new Python, io.readarray is dropped and we should use loadtxt instead!
         Sf = loadtxt(fileS).T
-        # SfB = loadtxt(fileSB).T
         Sg_A = Sf[1,:]+Sf[2,:]*1j
-        Sg_B = Sf[3,:]+Sf[4,:]*1j
+        Sg_B = Sf[3,:]+Sf[4,:]*1j      
+
+        # An alternative way to do this: swap these 2 when the B prefers AFM state. Usually   
+        # if Sf[1,-1]>Sf[3,-1]:
+        #     Sg_A = Sf[1,:]+Sf[2,:]*1j
+        #     Sg_B = Sf[3,:]+Sf[4,:]*1j
+        # else:
+        #     Sg_B = Sf[1,:]+Sf[2,:]*1j
+        #     Sg_A = Sf[3,:]+Sf[4,:]*1j
         om = Sf[0]
     else: # otherwise start from non-interacting limit
         print('Starting from non-interacting model')
@@ -97,8 +105,8 @@ def DMFT_SCC(W, fDelta,mode=0):
     
 
     if mode==0:
-        # Dlt_A,Dlt_B = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
-        Dlt_A,Dlt_B,GlocA,GlocB =Delta_DMFT_var(Sg_A,Sg_B,Uc,T,B,20)
+        # Dlt_A,Dlt_B,GlocA,GlocB = hilbert.SCC_AFM(W, om, params['beta'], params['mu'], params['U'], Sg_A, Sg_B, False)
+        Dlt_A,Dlt_B,GlocA,GlocB =Delta_DMFT_var(Sg_A,Sg_B,Uc,T,B,30)
         # plt.plot(HT_Dlt_A.real,label='HT_Dlt_A real')
         # plt.plot(HT_Dlt_A.imag,label='HT_Dlt_A imag')
         # plt.plot(HT_Dlt_B.real,label='HT_Dlt_B real')
@@ -130,18 +138,18 @@ def Diff(fg1, fg2):
     return diff
 
 #Names of files
-# fileS = 'Sig.out'
-# fileG = 'Gf.out'
-fileS = 'Sig.OCA'
-fileG = 'Gf.OCA'# impurity GF from impurity solver
+fileS = 'Sig.out'
+fileG = 'Gf.out'
+# fileS = 'Sig.OCA'
+# fileG = 'Gf.OCA'# impurity GF from impurity solver
 fileGloc = 'Gfloc.OCA'# local part of lattice GF
 fileD='Delta.inp'
 
 # parameter for tuning
-B=0.1# B>0 means prefer paramagnetic, B<0 means prefer AFM. 
+# B=0.1# B>0 means prefer paramagnetic, B<0 means prefer AFM. 
 # For reference, at U=10, TN~0.48, at T=0.45, critical B is 0.115
-splitting=0.5
-Niter = 30
+splitting=1
+Niter = 100
 
 
 # print(len(sys.argv))
@@ -151,9 +159,7 @@ if (len(sys.argv)==4):
     B=float(sys.argv[1])
     Uc=float(sys.argv[2])
     T=float(sys.argv[3])
-    print('T=',T)
-    print('Uc=',Uc)
-    print('B=',B)
+    print('T=',T,'Uc=',Uc,'B=',B)
     dir='../files_variational/{}_{}_{}/'.format(B,Uc,T)
 
 if os.path.exists(dir):
@@ -174,17 +180,17 @@ params={
     "mu"        : Uc/2.,            # chemical potential
     "B"         : B,              # external magnetic field
     "beta"      : 1/T,               # inverse temperature
-    "Norder"    : 2,                # the maximum perturbation order
+    "Norder"    : 3,                # the maximum perturbation order
   "N_min_order" : 2,                # the minimal order at which we run MC (the rest analytic)
     "Ms"        : Ms,               # Number of Monte Carlo steps at each iteration
     "Nbath"     :  2,               # paramagnetic               # seems we have to choose nbath=1?
-    "mix"       : 0.2,              # mixing of pseudo self-energy
+    "mix"       : 0.5,              # mixing of pseudo self-energy
     "Nitt"      : 100,              # Number of iterations of the loop
     "cmpPhysG"  : False,            # Should we compute G00 at each step?
     "iseed"     :  0,               # seed for random number generator
     "V0norm"    : 0.001,            # constant to reweight higher order diagrams
     "tsample"   : 5,                # How often to make a measurement
-    "svd_lmax"  : 13,               # using SVD functions up to cutoff
+    "svd_lmax"  : 20,               # using SVD functions up to cutoff
     "Delta"     : fileD,            # Input bath function hybridization
     "Nt"        : 300,              # How many times we try to change time before we consider change of diagram
     "Nd"        : 1,                # How many times we try to change diagram before we consider next change of time
@@ -227,8 +233,9 @@ for it in range(1,Niter+1):
 
     
     if it>1:
-        diff = Diff(fileG, dir+fileGloc+'.'+str(it-1))
-        print('Diff=', diff)
+        diff = Diff(fileG, fileGloc)
+        diff1 = Diff(fileG, dir+fileG+'.'+str(it-1))
+        print('Gimp-Gloc=', diff,'\tGimp-prevGimp=',diff1)
         #if (diff<3e-4 and params["Ms"]==Ms):
         #    params["Ms"] *= 3
         #    CreateInputFile(params)

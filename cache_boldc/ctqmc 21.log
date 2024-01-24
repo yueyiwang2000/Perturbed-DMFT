@@ -1,0 +1,205 @@
+Parallel start of bold_ctqmc on process 0 of 8
+{
+    "Delta": "../boldc_cache/Delta.inp",
+    "Ms": 8000000.0,
+    "NVrecompute": 5000000,
+    "N_min_order": 2,
+    "N_rescale_histogram": 1000000,
+    "Nbath": 2,
+    "Nbin": 512,
+    "Ncout": 1000000,
+    "Nd": 1,
+    "Nitt": 100,
+    "Norder": 2,
+    "Nrecompute_fake": 50000,
+    "Nt": 300,
+    "Ntau": 512,
+    "PPG": "PPG.",
+    "PPSig": "PPSigma.",
+    "P_v_P_percent": 0.05,
+    "U": 10.0,
+    "V0norm": 0.001,
+    "beta": 2.1128248468201987,
+    "cmpPhysG": false,
+    "converge_OCA": true,
+    "d_fraction": 3,
+    "diff_stop": 0.01,
+    "dos": "../python_src/DOS_3D.dat",
+    "exe": "mpirun -np 8 ../boldc_cache/boldc",
+    "fGf": "Gf.out",
+    "fSig": "Sig.out",
+    "fastFilesystem": true,
+    "iseed": 0,
+    "mix": 0.2,
+    "mu": 5.0,
+    "multiples_last_step": 5,
+    "multiples_no_histogram": 3,
+    "rescale": 0.4,
+    "startGuessVolDiagrams": false,
+    "svd_L": 10.0,
+    "svd_Nw": 500,
+    "svd_lmax": 13,
+    "svd_x0": 0.01,
+    "tNbin": 200,
+    "tsample": 5,
+    "warmup": 1
+}
+iseed=1699378701 in rank 0
+Dlt[0,1,1,0]= 1
+Dlt[0,1,3,2]= 1
+Dlt[0,2,2,0]= 3
+Dlt[0,2,3,1]= -3
+Dlt[1,0,0,1]= 2
+Dlt[1,0,2,3]= 2
+Dlt[1,3,2,0]= -3
+Dlt[1,3,3,1]= 3
+Dlt[2,0,0,2]= 4
+Dlt[2,0,1,3]= -4
+Dlt[2,3,1,0]= 1
+Dlt[2,3,3,2]= 1
+Dlt[3,1,0,2]= -4
+Dlt[3,1,1,3]= 4
+Dlt[3,2,0,1]= 2
+Dlt[3,2,2,3]= 2
+# Read ../boldc_cache/Delta.inp with 500 entries
+setup time=0.004295
+svd time=0.086965
+last and first singular value=6.88692e-07 0.169208
+Final overlap is smaller than 4.33989e-14
+log(Zatom)=11.2573 F_atom=-5.32808
+0) nf=1 <<Sz>>=0 Pr(:)=[1.29127e-05,0.499987,0.499987,1.29127e-05]  Q=2.00005 lambda0=-5 i_gs=1
+t_dyson_laplace=0 t_nca=0.000594584 t_oca=0
+0) Difference between OCA steps=1.74578
+WARNING: Iteration 1 to find ground state old:i_gs=1 and new i_gs=2 old_P=0.490926 new_P=0.495488
+1) nf=1 <<Sz>>=0.00456328 Pr(:)=[0.0068506,0.490868,0.495431,0.0068506]  Q=1.99116 lambda0=-5.12504 i_gs=2
+t_dyson_laplace=0 t_nca=0.00117442 t_oca=0
+1) Difference between OCA steps=1.38337
+2) nf=1 <<Sz>>=0.0080361 Pr(:)=[0.0123982,0.483584,0.49162,0.0123982]  Q=1.97648 lambda0=-5.22748 i_gs=2
+t_dyson_laplace=0 t_nca=0.00221254 t_oca=0
+2) Difference between OCA steps=1.09318
+3) nf=1 <<Sz>>=0.0106965 Pr(:)=[0.0168849,0.477767,0.488463,0.0168849]  Q=1.95878 lambda0=-5.31133 i_gs=2
+t_dyson_laplace=0 t_nca=0.00306033 t_oca=0
+3) Difference between OCA steps=0.861433
+4) nf=1 <<Sz>>=0.0127461 Pr(:)=[0.0204949,0.473132,0.485878,0.0204949]  Q=1.93997 lambda0=-5.3799 i_gs=2
+t_dyson_laplace=0 t_nca=0.00315704 t_oca=0
+4) Difference between OCA steps=0.676858
+5) nf=1 <<Sz>>=0.0143329 Pr(:)=[0.0233814,0.469452,0.483785,0.0233814]  Q=1.92129 lambda0=-5.4359 i_gs=2
+t_dyson_laplace=0 t_nca=0.00382262 t_oca=0
+5) Difference between OCA steps=0.530255
+6) nf=1 <<Sz>>=0.0155667 Pr(:)=[0.0256731,0.466544,0.48211,0.0256731]  Q=1.90352 lambda0=-5.48157 i_gs=2
+t_dyson_laplace=0 t_nca=0.004081 t_oca=0
+6) Difference between OCA steps=0.414136
+7) nf=1 <<Sz>>=0.0165297 Pr(:)=[0.0274789,0.464256,0.480786,0.0274789]  Q=1.88714 lambda0=-5.51876 i_gs=2
+t_dyson_laplace=0 t_nca=0.00441133 t_oca=0
+7) Difference between OCA steps=0.32242
+8) nf=1 <<Sz>>=0.0172838 Pr(:)=[0.0288905,0.462468,0.479751,0.0288905]  Q=1.87235 lambda0=-5.54899 i_gs=2
+t_dyson_laplace=0 t_nca=0.00643837 t_oca=0
+8) Difference between OCA steps=0.250188
+9) nf=1 <<Sz>>=0.017876 Pr(:)=[0.0299849,0.461077,0.478953,0.0299849]  Q=1.85923 lambda0=-5.57353 i_gs=2
+t_dyson_laplace=0 t_nca=0.0067365 t_oca=0
+9) Difference between OCA steps=0.193466
+10) nf=1 <<Sz>>=0.0183423 Pr(:)=[0.0308259,0.460003,0.478345,0.0308259]  Q=1.84774 lambda0=-5.59341 i_gs=2
+t_dyson_laplace=0 t_nca=0.00799921 t_oca=0
+10) Difference between OCA steps=0.149058
+11) nf=1 <<Sz>>=0.0187103 Pr(:)=[0.031466,0.459179,0.477889,0.031466]  Q=1.83781 lambda0=-5.6095 i_gs=2
+t_dyson_laplace=0 t_nca=0.00862316 t_oca=0
+11) Difference between OCA steps=0.114399
+12) nf=1 <<Sz>>=0.0190013 Pr(:)=[0.0319482,0.458551,0.477552,0.0319482]  Q=1.8293 lambda0=-5.62249 i_gs=2
+t_dyson_laplace=0 t_nca=0.0102385 t_oca=0
+12) Difference between OCA steps=0.087436
+13) nf=1 <<Sz>>=0.0192317 Pr(:)=[0.0323073,0.458077,0.477308,0.0323073]  Q=1.82206 lambda0=-5.63297 i_gs=2
+t_dyson_laplace=0 t_nca=0.0113429 t_oca=0
+13) Difference between OCA steps=0.0665315
+14) nf=1 <<Sz>>=0.0194144 Pr(:)=[0.0325713,0.457721,0.477136,0.0325713]  Q=1.81596 lambda0=-5.64141 i_gs=2
+t_dyson_laplace=0 t_nca=0.012171 t_oca=0
+14) Difference between OCA steps=0.0503815
+15) nf=1 <<Sz>>=0.0195596 Pr(:)=[0.0327624,0.457458,0.477017,0.0327624]  Q=1.81084 lambda0=-5.64819 i_gs=2
+t_dyson_laplace=0 t_nca=0.0150194 t_oca=0
+15) Difference between OCA steps=0.0379517
+16) nf=1 <<Sz>>=0.019675 Pr(:)=[0.032898,0.457264,0.476939,0.032898]  Q=1.80659 lambda0=-5.65363 i_gs=2
+t_dyson_laplace=0 t_nca=0.0158896 t_oca=0
+16) Difference between OCA steps=0.0284234
+17) nf=1 <<Sz>>=0.0197668 Pr(:)=[0.0329921,0.457125,0.476891,0.0329921]  Q=1.80306 lambda0=-5.65798 i_gs=2
+t_dyson_laplace=0 t_nca=0.0167177 t_oca=0
+17) Difference between OCA steps=0.0211506
+18) nf=1 <<Sz>>=0.0198399 Pr(:)=[0.0330552,0.457025,0.476865,0.0330552]  Q=1.80015 lambda0=-5.66147 i_gs=2
+t_dyson_laplace=0 t_nca=0.0179999 t_oca=0
+18) Difference between OCA steps=0.0164703
+19) nf=1 <<Sz>>=0.0198982 Pr(:)=[0.0330957,0.456955,0.476853,0.0330957]  Q=1.79778 lambda0=-5.66425 i_gs=2
+t_dyson_laplace=0 t_nca=0.0180345 t_oca=0
+19) Difference between OCA steps=0.0134424
+20) nf=1 <<Sz>>=0.0199447 Pr(:)=[0.0331198,0.456908,0.476853,0.0331198]  Q=1.79584 lambda0=-5.66647 i_gs=2
+t_dyson_laplace=0 t_nca=0.0188377 t_oca=0
+20) Difference between OCA steps=0.0110804
+21) nf=1 <<Sz>>=0.0199819 Pr(:)=[0.0331324,0.456877,0.476859,0.0331324]  Q=1.79426 lambda0=-5.66824 i_gs=2
+t_dyson_laplace=0 t_nca=0.0197667 t_oca=0
+21) Difference between OCA steps=0.00916581
+22) nf=1 <<Sz>>=0.0200115 Pr(:)=[0.0331369,0.456857,0.476869,0.0331369]  Q=1.79299 lambda0=-5.66965 i_gs=2
+t_dyson_laplace=0 t_nca=0.020946 t_oca=0
+22) Difference between OCA steps=0.00759077
+23) nf=1 <<Sz>>=0.0200352 Pr(:)=[0.033136,0.456846,0.476882,0.033136]  Q=1.79197 lambda0=-5.67076 i_gs=2
+t_dyson_laplace=0 t_nca=0.0220892 t_oca=0
+23) Difference between OCA steps=0.00628631
+24) nf=1 <<Sz>>=0.0200541 Pr(:)=[0.0331318,0.456841,0.476895,0.0331318]  Q=1.79115 lambda0=-5.67165 i_gs=2
+t_dyson_laplace=0 t_nca=0.0226651 t_oca=0
+24) Difference between OCA steps=0.00520256
+25) nf=1 <<Sz>>=0.0200693 Pr(:)=[0.0331255,0.45684,0.476909,0.0331255]  Q=1.7905 lambda0=-5.67234 i_gs=2
+t_dyson_laplace=0 t_nca=0.0230728 t_oca=0
+25) Difference between OCA steps=0.004301
+26) nf=1 <<Sz>>=0.0200814 Pr(:)=[0.0331182,0.456841,0.476923,0.0331182]  Q=1.78999 lambda0=-5.6729 i_gs=2
+t_dyson_laplace=0 t_nca=0.0231945 t_oca=0
+26) Difference between OCA steps=0.00355081
+27) nf=1 <<Sz>>=0.0200911 Pr(:)=[0.0331105,0.456844,0.476935,0.0331105]  Q=1.78958 lambda0=-5.67333 i_gs=2
+t_dyson_laplace=0 t_nca=0.0240547 t_oca=0
+27) Difference between OCA steps=0.00292685
+28) nf=1 <<Sz>>=0.0200989 Pr(:)=[0.0331029,0.456848,0.476947,0.0331029]  Q=1.78926 lambda0=-5.67368 i_gs=2
+t_dyson_laplace=0 t_nca=0.0254485 t_oca=0
+28) Difference between OCA steps=0.00240832
+29) nf=1 <<Sz>>=0.0201051 Pr(:)=[0.0330957,0.456852,0.476957,0.0330957]  Q=1.78901 lambda0=-5.67395 i_gs=2
+t_dyson_laplace=0 t_nca=0.0262881 t_oca=0
+29) Difference between OCA steps=0.00197794
+30) nf=1 <<Sz>>=0.0201101 Pr(:)=[0.0330891,0.456856,0.476966,0.0330891]  Q=1.78882 lambda0=-5.67416 i_gs=2
+t_dyson_laplace=0 t_nca=0.0271316 t_oca=0
+30) Difference between OCA steps=0.00162124
+31) nf=1 <<Sz>>=0.020114 Pr(:)=[0.0330831,0.45686,0.476974,0.0330831]  Q=1.78867 lambda0=-5.67432 i_gs=2
+t_dyson_laplace=0 t_nca=0.0280067 t_oca=0
+31) Difference between OCA steps=0.0013261
+32) nf=1 <<Sz>>=0.0201172 Pr(:)=[0.0330778,0.456864,0.476981,0.0330778]  Q=1.78855 lambda0=-5.67445 i_gs=2
+t_dyson_laplace=0 t_nca=0.0288619 t_oca=0
+32) Difference between OCA steps=0.00108235
+33) nf=1 <<Sz>>=0.0201198 Pr(:)=[0.0330731,0.456867,0.476987,0.0330731]  Q=1.78846 lambda0=-5.67456 i_gs=2
+t_dyson_laplace=0 t_nca=0.0291433 t_oca=0
+33) Difference between OCA steps=0.000881438
+34) nf=1 <<Sz>>=0.0201219 Pr(:)=[0.0330691,0.45687,0.476992,0.0330691]  Q=1.7884 lambda0=-5.67464 i_gs=2
+t_dyson_laplace=0 t_nca=0.0303749 t_oca=0
+34) Difference between OCA steps=0.000716184
+35) nf=1 <<Sz>>=0.0201235 Pr(:)=[0.0330656,0.456873,0.476996,0.0330656]  Q=1.78835 lambda0=-5.6747 i_gs=2
+t_dyson_laplace=0 t_nca=0.0313825 t_oca=0
+35) Difference between OCA steps=0.000580556
+36) nf=1 <<Sz>>=0.0201248 Pr(:)=[0.0330626,0.456875,0.477,0.0330626]  Q=1.78831 lambda0=-5.67475 i_gs=2
+t_dyson_laplace=0 t_nca=0.0326585 t_oca=0
+36) Difference between OCA steps=0.000469754
+37) nf=1 <<Sz>>=0.0201259 Pr(:)=[0.0330601,0.456877,0.477003,0.0330601]  Q=1.78829 lambda0=-5.67478 i_gs=2
+t_dyson_laplace=0 t_nca=0.0335571 t_oca=0
+37) Difference between OCA steps=0.000380581
+38) nf=1 <<Sz>>=0.0201268 Pr(:)=[0.033058,0.456879,0.477005,0.033058]  Q=1.78827 lambda0=-5.67481 i_gs=2
+t_dyson_laplace=0 t_nca=0.034261 t_oca=0
+38) Difference between OCA steps=0.00030826
+39) nf=1 <<Sz>>=0.0201274 Pr(:)=[0.0330563,0.45688,0.477007,0.0330563]  Q=1.78825 lambda0=-5.67483 i_gs=2
+t_dyson_laplace=0 t_nca=0.0344972 t_oca=0
+39) Difference between OCA steps=0.000249356
+40) nf=1 <<Sz>>=0.020128 Pr(:)=[0.0330548,0.456881,0.477009,0.0330548]  Q=1.78824 lambda0=-5.67485 i_gs=2
+t_dyson_laplace=0 t_nca=0.0354092 t_oca=0
+40) Difference between OCA steps=0.000201345
+41) nf=1 <<Sz>>=0.0201284 Pr(:)=[0.0330537,0.456882,0.477011,0.0330537]  Q=1.78824 lambda0=-5.67487 i_gs=2
+t_dyson_laplace=0 t_nca=0.0409214 t_oca=0
+41) Difference between OCA steps=0.000162244
+42) nf=1 <<Sz>>=0.0201288 Pr(:)=[0.0330527,0.456883,0.477012,0.0330527]  Q=1.78823 lambda0=-5.67488 i_gs=2
+t_dyson_laplace=0 t_nca=0.0418881 t_oca=0
+42) Difference between OCA steps=0.000130446
+43) nf=1 <<Sz>>=0.0201291 Pr(:)=[0.0330519,0.456884,0.477013,0.0330519]  Q=1.78823 lambda0=-5.67488 i_gs=2
+t_dyson_laplace=0 t_nca=0.0422085 t_oca=0
+43) Difference between OCA steps=0.000104637
+44) nf=1 <<Sz>>=0.0201293 Pr(:)=[0.0330512,0.456884,0.477013,0.0330512]  Q=1.78823 lambda0=-5.67489 i_gs=2
+t_dyson_laplace=0 t_nca=0.0481068 t_oca=0
+44) Difference between OCA steps=8.37323e-05

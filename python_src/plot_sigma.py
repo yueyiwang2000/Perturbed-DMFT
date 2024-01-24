@@ -12,7 +12,18 @@ This file contains useful functions to examine various output files.
 # plt.rc('axes', labelsize=sizefont) 
 # plt.rc('xtick', labelsize=sizefont) 
 # plt.rc('ytick', labelsize=sizefont) 
-
+def plot_Tn():
+    Ulist=np.array([3,4,5,6,7,8,9,10,11,12,13,14,15])#
+    Tlist=np.array([0.105,0.18,0.25,0.34,0.4,0.45,0.475,0.49,0.48,0.45,0.43,0.395,0.375])
+    Tpertlist=np.array([0.105,0.18,0.25,0.32,0.36,0.38,0.4,0.39,0.37,0.35,0.33,0.32,0.31])
+    plt.plot(Ulist,Tlist,'o-',label='Neel Temperature')
+    plt.plot(Ulist,Tpertlist,':',color='red',label='Expected Corrected Neel Temperature')
+    plt.xlabel('U')
+    plt.ylabel('T')
+    plt.legend()
+    plt.show()
+    return 0
+    
 
 def plot_sigma(filename,index):
     sigma=np.loadtxt(filename)
@@ -25,7 +36,6 @@ def plot_sigma(filename,index):
     plt.legend()
     # plt.xlim((0,omega[-1]/10))
     # plt.ylim((-0.2,0.2))
-
 
 def single_sigma(filename):
     sigma=np.loadtxt(filename)
@@ -40,21 +50,6 @@ def single_sigma(filename):
     plt.show()
     # plt.xlim((0,omega[-1]/10))
     # plt.ylim((-0.2,0.2))
-
-def plot_delta23():
-    filename='Delta2.inp'
-    delta=np.loadtxt(filename)
-    omega=delta[:,0]
-    plt.plot(omega[:10],delta[:10,1],label='Delta2 real')
-    plt.plot(omega[:10],delta[:10,2],label='Delta2 imag')
-    filename='Delta3.inp'
-    delta=np.loadtxt(filename)
-    plt.plot(omega[:10],delta[:10,1],label='Delta3 real')
-    plt.plot(omega[:10],delta[:10,2],label='Delta3 imag')
-    plt.title('Hybridization')
-    plt.legend()
-    plt.show()
-    return 0
 
 #single mode
 def single_mode(num):
@@ -91,37 +86,22 @@ def stable_test(num):
     plt.legend()
     plt.show()
 
-def compare_sig(ind):
+def compare_G(ind):
     freq_num=500
-    if mode ==1:
-        filename='../files_pert_ctqmc/{}_{}/Sig.out.{}'.format(U,T,ind)
-    elif mode==0:
-        # filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
-        filename='../files_pert_boldc/{}_{}/Sig.out.{}'.format(U,T,ind+1)
-    # sigma=np.loadtxt(filename)
-    # omega=sigma[:freq_num,0]
-    # plt.plot(omega,sigma[:freq_num,1],label='1st column after perturbed DMFT')
-    # plt.plot(omega,sigma[:freq_num,2],label='2nd column after perturbed DMFT')
-    # plt.plot(omega,sigma[:freq_num,3],label='3rd column after perturbed DMFT')
-    # plt.plot(omega,sigma[:freq_num,4],label='4th column after perturbed DMFT')
-    if mode ==1:
-        filename='../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,ind)
-    elif mode==0:
-        # filename='./files_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind+1)
-        filename='../files_boldc/{}_{}/Sig.out.{}'.format(U,T,ind+1)
-    sigma=np.loadtxt(filename)
-    omega=sigma[:freq_num,0]
-    plt.plot(omega,sigma[:freq_num,1],label='1st column after DMFT')
-    plt.plot(omega,sigma[:freq_num,2],label='2nd column after DMFT')
-    plt.plot(omega,sigma[:freq_num,3],label='3rd column after DMFT')
-    plt.plot(omega,sigma[:freq_num,4],label='4th column after DMFT')
-    # if ind>=1:
-    #     # filename='./files_pert_ctqmc/{}_{}/pert_Sig.out.{}'.format(U,T,ind-1)
-    #     filename='./files_pert_boldc/{}_{}/Sig.OCA.{}'.format(U,T,ind)
-    #     sigma=np.loadtxt(filename)
-    #     omega=sigma[:freq_num,0]
-    #     plt.plot(omega,sigma[:freq_num,1],label='1th column in sigma we start with')
-    #     plt.plot(omega,sigma[:freq_num,3],label='3rd column in sigma we start with')
+    filenameloc='../files_variational/{}_{}_{}/Gfloc.OCA.{}'.format(B,U,T,ind)
+    filenameimp='../files_variational/{}_{}_{}/Gf.OCA.{}'.format(B,U,T,ind)
+    Gloc=np.loadtxt(filenameloc)
+    Gimp=np.loadtxt(filenameimp)
+    omega=Gloc[:freq_num,0]
+    G_loc=Gloc[:freq_num,3]+Gloc[:freq_num,4]*1j
+    G_imp=Gimp[:freq_num,3]+Gimp[:freq_num,4]*1j
+    # plt.plot(omega,Gloc[:freq_num,1],label='Gloc real')
+    # plt.plot(omega,Gloc[:freq_num,2],label='Gloc imag')
+    # plt.plot(omega,Gimp[:freq_num,1],label='Gimp real')
+    # plt.plot(omega,Gimp[:freq_num,2],label='Gimp imag')
+    plt.plot(omega,(1/G_loc-1/G_imp).real,label='1/G_loc-1/G_imp real')
+    plt.plot(omega,(1/G_loc-1/G_imp).imag,label='1/G_loc-1/G_imp imag')
+    plt.title(' # of iteration: {}'.format(ind))
     plt.legend()
     plt.show()
 
@@ -200,60 +180,119 @@ def burst_scatter_sig(num,checkpoint,interval=1):
     plt.show()
     return 0
 
-
 def burst_variational(num,checkpoint,interval=1):
     ilist=np.arange(num)
     # checkpoint=0
     for i in ilist:
         if i%interval==0:
-            filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,int(i+1))
-        
+            # filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,int(i+1))
+            filename='../files_variational/{}_{}_{}/Sig.out.{}'.format(B,U,T,int(i+1))
             if os.path.isfile(filename):
                 sigma=np.loadtxt(filename)
                 # omega=sigma[:,0]
                 plt.scatter(i,sigma[checkpoint,1],c='red')
-                plt.scatter(i,sigma[checkpoint,3],c='red')
+                plt.scatter(i,sigma[checkpoint,3],c='blue')
             else:
                 print('cannot find {}'.format(filename))
-    plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
-    plt.xlabel('DMFT iterations Red:DMFT Blue:DMFT+pert2 Green:DMFT+pert3')
+    plt.title('Sigma_imp(om->0).real B={},U={},T={}'.format(B,U,T))
+    # plt.xlabel('DMFT iterations Red:DMFT Blue:DMFT+pert2 Green:DMFT+pert3')
     plt.show()
     return 0
 
-def mag_vs_B(U,T):
-    for B in np.arange(40)/100:
-        filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,100)
-        if os.path.isfile(filename):
-            sigma=np.loadtxt(filename)
-            # omega=sigma[:,0]
-            plt.scatter(B,(sigma[-1,1]-sigma[-1,3])/U,c='red')
-        else:
-            print('cannot find {}'.format(filename))
-    # plt.title('Sigma_imp(om->0).real U={},T={}'.format(U,T))
-    plt.xlabel('B field')
-    plt.ylabel('n_up-n_dn')
-    plt.show()
-
-def plot_Tn():
-    Ulist=np.array([3,4,5,6,7,8,9,10,11,12,13,14,15])#
-    Tlist=np.array([0.105,0.18,0.25,0.34,0.4,0.45,0.475,0.49,0.48,0.45,0.43,0.395,0.375])
-    Tpertlist=np.array([0.105,0.18,0.25,0.32,0.36,0.38,0.4,0.39,0.37,0.35,0.33,0.32,0.31])
-    plt.plot(Ulist,Tlist,'o-',label='Neel Temperature')
-    plt.plot(Ulist,Tpertlist,':',color='red',label='Expected Corrected Neel Temperature')
-    plt.xlabel('U')
-    plt.ylabel('T')
+def mag_vs_B(U,T,b_arr):
+    # bsize=20
+    # b_arr=(np.arange(bsize))/500
+    m_arr=np.zeros((4,b_arr.size))
+    mb0_arr=np.zeros((4,b_arr.size))
+    for i in np.arange(b_arr.size):
+        B=b_arr[i]
+        # #DMFT data
+        # filename0='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,50)
+        # if os.path.isfile(filename0):
+        #     sigma=np.loadtxt(filename0).T
+        #     om=sigma[0,:]
+        #     m_arr[0,i]=(sigma[1,-1]-sigma[3,-1])/U
+        #     # plt.scatter(B,(sigma[-1,1]-sigma[-1,3])/U,c='red')
+        # else:
+        #     print('cannot find {}'.format(filename0))
+        #perturbation data. order=0 accounts for just DMFT
+        for order in (np.arange(4)):# from 0th(DMFT) to n-1th
+            
+            filename='../dressed_hartree/data/{}_{}_{}_{}_countB0.dat'.format(B,U,T,order)#
+            
+            if os.path.isfile(filename):
+                data=np.loadtxt(filename).T
+                m_arr[order,i]=data[0,-1]
+            else:
+                print('cannot find {}'.format(filename))
+            # if order>1:
+            #     filename='../dressed_hartree/dataB0/{}_{}_{}_{}.dat'.format(B,U,T,order)
+            #     if os.path.isfile(filename):
+            #         data=np.loadtxt(filename).T
+            #         mb0_arr[order,i]=data[0,-1]
+            #     else:
+            #         print('cannot find {}'.format(filename))
+    plt.plot(b_arr,m_arr[0],label='DMFT')
+    plt.plot(b_arr,m_arr[1],label='1st order')
+    plt.plot(b_arr,m_arr[2],label='2nd order')
+    # plt.plot(b_arr,mb0_arr[2],label='2nd b0 order')
+    plt.plot(b_arr,m_arr[3],label='3rd order')
+    # plt.plot(b_arr,mb0_arr[3],label='3rd b0 order')
     plt.legend()
+    plt.xlabel('B field')
+    plt.ylabel('Magnetization')
+    plt.title('magntization vs B: U={},T={}'.format(U,T))
+    plt.show()
+
+
+def susceptibility(U):
+    b_arr=(np.arange(2))/500
+    m_arr=np.zeros((4,b_arr.size))
+    Tlist1=np.array([0.2,0.25])
+    Tlist=np.concatenate((Tlist1, (np.arange(30)+30)/100), axis=0)
+    xi_arr=np.zeros((4,Tlist.size))
+    for iT,T in enumerate(Tlist):
+        m_arr=np.zeros((4,b_arr.size))
+        for i in np.arange(b_arr.size):
+            B=b_arr[i]
+            for order in (np.arange(4)):# from 0th(DMFT) to n-1th
+                filename='../dressed_hartree/data/{}_{}_{}_{}_countB0.dat'.format(B,U,T,order)#
+                if os.path.isfile(filename):
+                    data=np.loadtxt(filename).T
+                    m_arr[order,i]=data[0,-1]
+                else:
+                    print('cannot find {}'.format(filename))
+        for order in (np.arange(4)):
+            xi_arr[order,iT]=-(-m_arr[order,0]+m_arr[order,1])/500 # estimation of 1rd order
+            # xi_arr[order,iT]=-(-11*m_arr[order,0]+18*m_arr[order,1]-9*m_arr[order,2]+2*m_arr[order,3])/6/500 # estimation up to 3rd order
+    plt.plot(Tlist,xi_arr[0],label='DMFT')
+    plt.plot(Tlist,xi_arr[1],label='1st')
+    plt.plot(Tlist,xi_arr[2],label='2nd')
+    plt.plot(Tlist,xi_arr[3],label='3rd')
+    plt.legend()
+    plt.xlabel('T')
+    plt.ylabel('Xi')
+    plt.title('Staggered Suseptibility vs T: U={}'.format(U))
     plt.show()
     return 0
-    
+
 
 if __name__ == "__main__":
     mode=0
     #boldc=0, ctqmc=1
-    U=10.0
-    T=0.43
-    B=0.19
-    # burst_variational(100,0,1)
-    mag_vs_B(U,T)
+    U=7.0
+    T=0.4
+    B=0.0
+    b_arr=(np.arange(10))/500
+    Blist_35=(np.arange(8)+27)/1000
+    Blist_40=(np.arange(15)+10)/2000
+    b_arr25=(np.arange(20))/500
+    b_arr30=(np.arange(40))/500
+    b_arr35=np.concatenate(((np.arange(13))/500, Blist_35), axis=0)
+    b_arr40=np.concatenate(((np.arange(2))/500, Blist_40), axis=0)
+    # burst_variational(50,20,1)# Here I chose Sigma(inf) because I want to check if the particle number is reasonable.
+    # mag_vs_B(U,T,b_arr)
+    susceptibility(U)
     # single_mode(10)
-    # plot_Tn()
+    # for i in np.arange(50):
+    #     compare_G(i+1)

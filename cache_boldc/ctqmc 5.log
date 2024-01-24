@@ -1,0 +1,153 @@
+Parallel start of bold_ctqmc on process 0 of 8
+{
+    "Delta": "../boldc_cache/Delta.inp",
+    "Ms": 5000000.0,
+    "NVrecompute": 5000000,
+    "N_min_order": 2,
+    "N_rescale_histogram": 1000000,
+    "Nbath": 2,
+    "Nbin": 512,
+    "Ncout": 1000000,
+    "Nd": 1,
+    "Nitt": 100,
+    "Norder": 4,
+    "Nrecompute_fake": 50000,
+    "Nt": 300,
+    "Ntau": 512,
+    "PPG": "PPG.",
+    "PPSig": "PPSigma.",
+    "P_v_P_percent": 0.05,
+    "U": 7.0,
+    "V0norm": 0.001,
+    "beta": 2.564102564102564,
+    "cmpPhysG": false,
+    "converge_OCA": true,
+    "d_fraction": 3,
+    "diff_stop": 0.01,
+    "dos": "../python_src/DOS_3D.dat",
+    "exe": "mpirun -np 8 ../boldc_cache/boldc",
+    "fGf": "Gf.out",
+    "fSig": "Sig.out",
+    "fastFilesystem": true,
+    "iseed": 0,
+    "mix": 0.2,
+    "mu": 3.5,
+    "multiples_last_step": 5,
+    "multiples_no_histogram": 3,
+    "rescale": 0.4,
+    "startGuessVolDiagrams": false,
+    "svd_L": 10.0,
+    "svd_Nw": 500,
+    "svd_lmax": 13,
+    "svd_x0": 0.01,
+    "tNbin": 200,
+    "tsample": 5,
+    "warmup": 1
+}
+iseed=1697320252 in rank 0
+Dlt[0,1,1,0]= 1
+Dlt[0,1,3,2]= 1
+Dlt[0,2,2,0]= 3
+Dlt[0,2,3,1]= -3
+Dlt[1,0,0,1]= 2
+Dlt[1,0,2,3]= 2
+Dlt[1,3,2,0]= -3
+Dlt[1,3,3,1]= 3
+Dlt[2,0,0,2]= 4
+Dlt[2,0,1,3]= -4
+Dlt[2,3,1,0]= 1
+Dlt[2,3,3,2]= 1
+Dlt[3,1,0,2]= -4
+Dlt[3,1,1,3]= 4
+Dlt[3,2,0,1]= 2
+Dlt[3,2,2,3]= 2
+# Read ../boldc_cache/Delta.inp with 500 entries
+# Read PPSigma.0 with 512 entries
+setup time=0.004264
+svd time=0.087294
+last and first singular value=2.3128e-06 0.169584
+Final overlap is smaller than 4.03516e-14
+log(Zatom)=9.66763 F_atom=-3.77038
+WARNING: Iteration 1 to find ground state old:i_gs=1 and new i_gs=2 old_P=0.349306 new_P=0.453284
+0) nf=0.999948 <<Sz>>=0.0975066 Pr(:)=[0.109431,0.341842,0.439349,0.109379]  Q=1.03008 lambda0=-5.01032 i_gs=2
+Phi(order=1)=1.11381
+t_dyson_laplace=0.0162825 t_nca=0.0247565 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000624,0.000390] 
+Read histogram.2.dat and set V0norm[2]=0.004 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=0.00062449979984 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+Read histogram.4.dat and set V0norm[4]=4.875e-05 Vol_dig0[4]=27 Vol_diag1[4]=36
+From file diags.2 read 16 diagrams.
+From file diags.3 read 64 diagrams.
+From file diags.4 read 352 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=217
+Read diagram is of too high/low order not(2<4<2) hence ignoring file status.0
+Note: proper status file status.0 not read. Starting from random configuration.
+[(0,1),(2,3)] is Reducible=1
+[(1,3),(0,2)] should be skeleton
+Starting with cdiag=[(3,1),(0,2)] and p=[0,1,3,2]  cDlt=[2,-4]  csgn_dlt=41008747 iseed_distance=1697320260
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(3,1),(0,2)] p=[0,1,3,2]  times=[0,0.182416163883,0.636665856607,0.892978968223,2.5641025641]  and dlt=[2,-4] 
+P_tree[2..3]=[0.000529765217396,0.000529765217396] P_fake=[0.264882608698,0.264882608698]
+   1M <Phi>=[0.1245,0.02443,0.001108]  <s>=[1,0.5921,0.04515]  P_v_P=[0.7783,0.6143,0.5877]  Ndiags=[2,2,2.932,]  Ph_acc=[8.242e+04,9.211e+04,1.246e+05]  Pnrm=[5298,1.256e+04,1.973e+05] 
+   2M <Phi>=[0.1246,0.02444,0.001131]  <s>=[1,0.5929,0.04625]  P_v_P=[0.7782,0.6145,0.5878]  Ndiags=[2,2,2.92,]  Ph_acc=[8.763e+04,9.943e+04,1.364e+05]  Pnrm=[5624,1.355e+04,2.115e+05] 
+   3M <Phi>=[0.1246,0.02449,0.001148]  <s>=[1,0.5932,0.04702]  P_v_P=[0.7782,0.6154,0.5882]  Ndiags=[2,2,2.906,]  Ph_acc=[9.185e+04,1.074e+05,1.476e+05]  Pnrm=[5895,1.461e+04,2.256e+05] 
+   4M <Phi>=[0.1248,0.02444,0.00109]  <s>=[1,0.5919,0.04419]  P_v_P=[0.7793,0.6157,0.5881]  Ndiags=[2,2,2.905,]  Ph_acc=[9.585e+04,1.146e+05,1.49e+05]  Pnrm=[6144,1.562e+04,2.399e+05] 
+At the beginning of recalculate: Vol_diagrams0_read=[2,5.33333333333,27]  Vol_diagrams1_read=[2,5.33333333333,36] 
+After combining diagrams from all nodes, we obtain the following volumes: Vol_diagrams0=[2,5.33333333333,27]  Vol_diagrams1=[2,5.33333333333,36] 
+#stored diags:
+#norder ndiag <weight>
+ 2       5 177.123693262
+ 3      24 182.278018098
+ 4     188 159.646067467
+ diagVol1=[2,5.333333333,36]  diagVol0=[2,5.333333333,27] 
+t acceptance_rate=0.779857 d acceptance=1 d/t=0.00863533
+Quantities averaged over all cores:
+ factor=[1.18151e-06,2.06739e-07,6.89861e-09] 
+ factor2=[4.26837e-06,7.40296e-07,2.46676e-08] 
+ V0norm=[0.004,0.0006245,4.875e-05] 
+ Pnorm=[6771.02,16110.5,254399] 
+ N_measure=[224770,435319,6.48276e+06] 
+ <s>=[1,0.589052,0.0452905]  overlap=[0.96371,0.904311,-1.89206] 
+ Phi_tot=[0.124405,0.0242885,0.00111116] 
+t_changet=2.21214 t_diag_change=0.674632 t_measure=0.385155 t_Vrecmp=0 t_Fake_recmp=0.0513183
+t_diag_change:skel=0.0898935 t_diag_change:topol=0.515258 t_diag_change:choose=0.0412425 t_diag_change:numericv=0.0282372 t_diag_change:diff=0.153753 t_snext=0.115734
+Phi=[1.03008,1.11381,0.124405,0.0242885,0.00111116]  log(Z)=2.29369 Fimp=-5.02188 -beta*Fimp=12.8766 lmbda0=-5.01032 U<nn>0.765651
+0) nf=0.999948 <<S>>=0.0975066 Prb(:)=[0.109431,0.341842,0.439349,0.109379]  lambda0=-5.01032
+0) Difference between previous and this step=0.00159205
+This should be the last iteration
+1) nf=0.999957 <<Sz>>=0.0976726 Pr(:)=[0.109439,0.341747,0.439419,0.109395]  Q=1.03006 lambda0=-5.01036 i_gs=2
+Phi(order=1)=1.11382
+t_dyson_laplace=0.0269774 t_nca=0.0251866 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000624,0.000390] 
+Read histogram.2.dat and set V0norm[2]=0.004 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=0.00062449979984 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+Read histogram.4.dat and set V0norm[4]=4.875e-05 Vol_dig0[4]=27 Vol_diag1[4]=36
+From file diags.2 read 16 diagrams.
+From file diags.3 read 64 diagrams.
+From file diags.4 read 352 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=217
+Read diagram is of too high/low order not(2<4<2) hence ignoring file status.0
+Note: proper status file status.0 not read. Starting from random configuration.
+[(0,1),(2,3)] is Reducible=1
+[(0,2),(1,3)] should be skeleton
+Starting with cdiag=[(0,2),(3,1)] and p=[0,2,3,1]  cDlt=[2,-4]  csgn_dlt=41008747 iseed_distance=1712933884
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(0,2),(3,1)] p=[0,2,3,1]  times=[0,0.275521529965,0.426683035023,1.87494661757,2.5641025641]  and dlt=[2,-4] 
+P_tree[2..3]=[0.000350145559142,0.000350145559142] P_fake=[0.175072779571,0.175072779571]
+   1M <Phi>=[0.1245,0.02422,0.001156]  <s>=[1,0.5872,0.04748]  P_v_P=[0.7782,0.6149,0.5883]  Ndiags=[2,2,2.811,]  Ph_acc=[4.72e+04,5.452e+04,7.624e+04]  Pnrm=[3034,7498,1.157e+05] 
+   2M <Phi>=[0.1247,0.02406,0.001114]  <s>=[1,0.5844,0.04547]  P_v_P=[0.7795,0.6139,0.5881]  Ndiags=[2,2,2.856,]  Ph_acc=[5.279e+04,6.029e+04,8.26e+04]  Pnrm=[3387,8347,1.301e+05] 
+   3M <Phi>=[0.125,0.02396,0.001118]  <s>=[1,0.5824,0.04563]  P_v_P=[0.7786,0.6143,0.5882]  Ndiags=[2,2,2.858,]  Ph_acc=[5.821e+04,6.692e+04,9.189e+04]  Pnrm=[3727,9303,1.443e+05] 
+   4M <Phi>=[0.1248,0.02421,0.001154]  <s>=[1,0.5875,0.04743]  P_v_P=[0.7783,0.615,0.588]  Ndiags=[2,2,2.865,]  Ph_acc=[6.329e+04,7.361e+04,1.044e+05]  Pnrm=[4057,1.013e+04,1.588e+05] 
+   5M <Phi>=[0.1247,0.02425,0.001049]  <s>=[1,0.5883,0.0424]  P_v_P=[0.7784,0.6153,0.5879]  Ndiags=[2,2,2.88,]  Ph_acc=[6.922e+04,8.043e+04,1.035e+05]  Pnrm=[4440,1.104e+04,1.732e+05] 
+   6M <Phi>=[0.1248,0.02396,0.001072]  <s>=[1,0.5832,0.04339]  P_v_P=[0.779,0.6138,0.5882]  Ndiags=[2,2,2.877,]  Ph_acc=[7.487e+04,8.645e+04,1.143e+05]  Pnrm=[4799,1.202e+04,1.872e+05] 
+   7M <Phi>=[0.1247,0.024,0.00111]  <s>=[1,0.5832,0.04526]  P_v_P=[0.7783,0.6143,0.5883]  Ndiags=[2,2,2.872,]  Ph_acc=[8.017e+04,9.377e+04,1.273e+05]  Pnrm=[5145,1.301e+04,2.013e+05] 
+   8M <Phi>=[0.1244,0.02393,0.001108]  <s>=[1,0.5813,0.04519]  P_v_P=[0.7772,0.6145,0.5876]  Ndiags=[2,2,2.875,]  Ph_acc=[8.57e+04,1.005e+05,1.361e+05]  Pnrm=[5510,1.398e+04,2.156e+05] 
+   9M <Phi>=[0.1246,0.02399,0.001097]  <s>=[1,0.5829,0.04461]  P_v_P=[0.7782,0.6141,0.5877]  Ndiags=[2,2,2.874,]  Ph_acc=[9.118e+04,1.08e+05,1.436e+05]  Pnrm=[5856,1.499e+04,2.298e+05] 
+  10M <Phi>=[0.1248,0.02415,0.001166]  <s>=[1,0.5858,0.04795]  P_v_P=[0.7797,0.6152,0.5883]  Ndiags=[2,2,2.871,]  Ph_acc=[9.935e+04,1.159e+05,1.618e+05]  Pnrm=[6368,1.599e+04,2.435e+05] 
+  11M <Phi>=[0.1248,0.02422,0.00119]  <s>=[1,0.5879,0.04907]  P_v_P=[0.7796,0.6148,0.5886]  Ndiags=[2,2,2.869,]  Ph_acc=[1.049e+05,1.23e+05,1.747e+05]  Pnrm=[6723,1.692e+04,2.576e+05] 
+  12M <Phi>=[0.1248,0.02426,0.001147]  <s>=[1,0.5886,0.04707]  P_v_P=[0.7797,0.615,0.5876]  Ndiags=[2,2,2.879,]  Ph_acc=[1.105e+05,1.306e+05,1.779e+05]  Pnrm=[7085,1.794e+04,2.722e+05] 
+  13M <Phi>=[0.1248,0.02412,0.00117]  <s>=[1,0.5863,0.04818]  P_v_P=[0.7797,0.614,0.588]  Ndiags=[2,2,2.869,]  Ph_acc=[1.153e+05,1.362e+05,1.91e+05]  Pnrm=[7392,1.88e+04,2.864e+05] 
+  14M <Phi>=[0.1249,0.02417,0.001154]  <s>=[1,0.587,0.04738]  P_v_P=[0.7805,0.6143,0.5882]  Ndiags=[2,2,2.87,]  Ph_acc=[1.218e+05,1.421e+05,1.976e+05]  Pnrm=[7797,1.958e+04,3.006e+05] 
+  15M <Phi>=[0.125,0.02409,0.001124]  <s>=[1,0.5849,0.04595]  P_v_P=[0.7807,0.6144,0.588]  Ndiags=[2,2,2.875,]  Ph_acc=[1.252e+05,1.473e+05,2.019e+05]  Pnrm=[8015,2.037e+04,3.153e+05] 
+  16M <Phi>=[0.125,0.02425,0.001154]  <s>=[1,0.5888,0.04741]  P_v_P=[0.7807,0.6144,0.588]  Ndiags=[2,2,2.877,]  Ph_acc=[1.321e+05,1.543e+05,2.167e+05]  Pnrm=[8457,2.119e+04,3.295e+05] 
+  17M <Phi>=[0.1249,0.02439,0.001171]  <s>=[1,0.5918,0.04823]  P_v_P=[0.7805,0.6148,0.5884]  Ndiags=[2,2,2.874,]  Ph_acc=[1.412e+05,1.625e+05,2.29e+05]  Pnrm=[9039,2.218e+04,3.432e+05] 

@@ -1,0 +1,86 @@
+Parallel start of bold_ctqmc on process 0 of 8
+{
+    "Delta": "../boldc_cache/Delta.inp",
+    "Ms": 2000000.0,
+    "NVrecompute": 5000000,
+    "N_min_order": 2,
+    "N_rescale_histogram": 1000000,
+    "Nbath": 2,
+    "Nbin": 512,
+    "Ncout": 1000000,
+    "Nd": 1,
+    "Nitt": 100,
+    "Norder": 4,
+    "Nrecompute_fake": 50000,
+    "Nt": 300,
+    "Ntau": 512,
+    "PPG": "PPG.",
+    "PPSig": "PPSigma.",
+    "P_v_P_percent": 0.05,
+    "U": 6.0,
+    "V0norm": 0.001,
+    "beta": 2.6315789473684212,
+    "cmpPhysG": false,
+    "converge_OCA": true,
+    "d_fraction": 3,
+    "diff_stop": 0.01,
+    "dos": "../python_src/DOS_3D.dat",
+    "exe": "mpirun -np 8 ../boldc_cache/boldc",
+    "fGf": "Gf.out",
+    "fSig": "Sig.out",
+    "fastFilesystem": true,
+    "iseed": 0,
+    "mix": 0.2,
+    "mu": 3.0,
+    "multiples_last_step": 5,
+    "multiples_no_histogram": 3,
+    "rescale": 0.4,
+    "startGuessVolDiagrams": false,
+    "svd_L": 10.0,
+    "svd_Nw": 500,
+    "svd_lmax": 13,
+    "svd_x0": 0.01,
+    "tNbin": 200,
+    "tsample": 5,
+    "warmup": 1
+}
+iseed=1696994227 in rank 0
+Dlt[0,1,1,0]= 1
+Dlt[0,1,3,2]= 1
+Dlt[0,2,2,0]= 3
+Dlt[0,2,3,1]= -3
+Dlt[1,0,0,1]= 2
+Dlt[1,0,2,3]= 2
+Dlt[1,3,2,0]= -3
+Dlt[1,3,3,1]= 3
+Dlt[2,0,0,2]= 4
+Dlt[2,0,1,3]= -4
+Dlt[2,3,1,0]= 1
+Dlt[2,3,3,2]= 1
+Dlt[3,1,0,2]= -4
+Dlt[3,1,1,3]= 4
+Dlt[3,2,0,1]= 2
+Dlt[3,2,2,3]= 2
+# Read ../boldc_cache/Delta.inp with 500 entries
+# Read PPSigma.0 with 512 entries
+setup time=0.004262
+svd time=0.07985
+last and first singular value=2.68772e-06 0.169635
+Final overlap is smaller than 4.76061e-14
+log(Zatom)=8.58826 F_atom=-3.26354
+WARNING: Iteration 1 to find ground state old:i_gs=1 and new i_gs=2 old_P=0.364901 new_P=0.374608
+0) nf=0.999952 <<Sz>>=0.00961864 Pr(:)=[0.13145,0.363764,0.373383,0.131402]  Q=1.00378 lambda0=-4.7145 i_gs=2
+Phi(order=1)=1.17741
+t_dyson_laplace=0.0165424 t_nca=0.0289278 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000616,0.000380] 
+Read histogram.2.dat and set V0norm[2]=0.004 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=0.000616441400297 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+Read histogram.4.dat and set V0norm[4]=9.5e-05 Vol_dig0[4]=27 Vol_diag1[4]=36
+From file diags.2 read 4 diagrams.
+From file diags.3 read 16 diagrams.
+From file diags.4 read 88 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=87
+Note: status file status.0 succesfully read. Starting from configuration read.
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(3,1),(0,2)] p=[0,1,3,2]  times=[0,0.337177534097,0.799725501257,1.17575258304,2.63157894737]  and dlt=[2,-4] 
+P_tree[2..3]=[0.000202730320849,0.000202730320849] P_fake=[0.101365160424,0.101365160424]

@@ -95,7 +95,7 @@ def SCC_AFM(W, om, beta, mu, U, Sg_A, Sg_B, Real, delta=0.01):
     # legend(loc='best')
     # grid()
     # show()
-    return (yr_A, yr_B)
+    return (yr_A, yr_B,g_A,g_B)
 
     
 if __name__ == '__main__':

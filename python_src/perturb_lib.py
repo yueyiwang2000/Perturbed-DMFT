@@ -1,8 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from memory_profiler import profile
+# import matplotlib.pyplot as plt
+# from memory_profiler import profile
 """
-This file contains simple python functions might be use in other perturbatio files.
+This file contains simple python functions might be use in other perturbation files.
 """
 def fermi(eps,beta):
     return 1/(np.exp(beta*eps)+1)
@@ -47,7 +47,6 @@ def ext_sig(sig):
     # print(lenom)
     allsig=np.zeros(2*n,dtype=complex)
     allsig[1*n:2*n]=sig
-    # allsig[3*lenom:4*lenom]=sig[lenom-1].real+1j*sig[lenom-1].imag*all_om[lenom-1]/all_om[lenom:2*lenom]
     allsig[:1*n]=allsig[2*n:n-1:-1].conjugate()
     return allsig
 
@@ -55,7 +54,6 @@ def ext_sig(sig):
 def z4D(beta,mu,sig,knum,n,extramu=0):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
     om=(2*np.arange(2*n)+1-2*n)*np.pi/beta
-    # allsig=ext_sig4D(sig,knum,n)
     z=om[:,None,None,None]*1j-sig+mu
     return z
 
@@ -194,7 +192,7 @@ def G_12(knum,z_A,z_B,a=1):
     G_offdiag = dis / (zazb[:, None, None, None].real - dis**2)
     return G_offdiag
 
-@profile
+
 def G_11_iterative(knum,z_A,z_B,sigma12):# and, G_22=-G_diag_11.conj
     n=z_A.size
     k1,k2,k3=gen_full_kgrids(knum)

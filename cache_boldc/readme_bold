@@ -1,0 +1,23 @@
+before running:
+    "Norder"    : 3,                # the maximum perturbation order
+  "N_min_order" : 2,                # the minimal order at which we run MC (the rest analytic)
+
+  usually N_min_order is 2. and if Norder is more than 2, there are some Monte carlo.
+  The tricky point is if this is purely analytic, files are called .OCA, like Gf.OCA Sig.OCA
+  and if there are MC, they are called as .out, like Gf.out and Sig.out
+
+  seems there are some bugs if we want to go to high orders...?
+  2,3 is okay,
+  2,4 breaks down
+  3,4 works.
+  4,4 is also okay, and at (U=5,T=.3 it already shows PM, which is good.)
+  4.5 is probably okay in principle but it requires more than 100 PPSigmas and the code will quit automatically, which is not okay.
+  3,5 seems also works. a little slow but nice.
+  2,5 is bad. same reason as 4,5.
+  2,4 works again? maybe I did not clean some of the files before.
+
+  Kristjan said N_min_order is at most 2. Let's say we use 2,4 or 2,3.
+  2,3 does not tend to give PM at U=5,T=.3. It looks not good enough.  Let's stick to 2,4.
+
+  I do not understand why sometimes it works but sometimes not....why?
+  maybe it's because files in previous run is not completely deleted. 

@@ -28,9 +28,6 @@ def boson_ifft(Pk,beta):
     Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)*beta
     return Pkiom
 
-                         
-
-
 def pertimp():
     T=0.01
     U=2.0
@@ -140,18 +137,14 @@ def pertimp_func(G_A,delta_inf,beta,U,knum,order=2):
     GA_tau_ana=np.sum(-1/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
                         (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
     GA_tau=GA_tau_ana+GA_tau_diff
-    GA_bf=fermion_fft(G_A,beta)
-    # PA_tau=-GA_tau[::-1]*GA_bf/beta
+    # GA_bf=fermion_fft(G_A,beta)
     PA_tau=-GA_tau[::-1]*GA_tau
-    # PA_tau=(PA_tau+PA_tau[::-1])/2
-    # PB_tau=-GB_tau[::-1]*GB_tau/beta
     
     #calculate sig. sig is calculate on fermion matsubara freq points!
     Sigp_A=np.zeros(n*2,dtype=complex)
     Sigp_B=np.zeros(n*2,dtype=complex)
-    # sigA_tau=PA_tau*GA_tau*(-1)*U**2/beta
     if order==2:
-        SigA_tau=PA_tau*GA_bf*(-1)*U**2
+        SigA_tau=PA_tau*GA_tau*(-1)*U**2
     if order ==3:# only 111 part shoule be cancelled:
         QA_tau=GA_tau*GA_tau
         PA_iom=boson_ifft(PA_tau,beta)
@@ -160,40 +153,10 @@ def pertimp_func(G_A,delta_inf,beta,U,knum,order=2):
         AA_iom=QA_iom*QA_iom
         BA_tau=boson_fft(BA_iom,beta)
         AA_tau=boson_fft(AA_iom,beta)
-        SigA_tau=-AA_tau*GA_bf[::-1]*U**3+BA_tau*GA_bf*U**3#
+        SigA_tau=-AA_tau*GA_tau[::-1]*U**3+BA_tau*GA_tau*U**3#
     Sigp_A=fermion_ifft(SigA_tau,beta)
     Sigp_B=-Sigp_A.conjugate()
     return Sigp_A,Sigp_B
-
-
-def pertimp_func3(G_A,G_B,delta_inf,beta,U,knum):
-    T=1/beta
-    n=int(G_A.size/2)
-    N=2*n
-    iom= 1j*(2*np.arange(2*n)+1-2*n)*np.pi/beta
-    iOm= 1j*(2*np.arange(2*n+1)-2*n)*np.pi/beta
-    # delta_inf=0
-    epsk=calc_disp(knum)
-    eps2=epsk**2
-    G_A0=np.sum((iom+delta_inf)[:,None,None,None]/(iom[:,None,None,None]**2-delta_inf**2-eps2[None,:,:,:]),axis=(1,2,3))/knum**3
-    tlist=(np.arange(N)+0.5)/N*beta
-    alpha=np.sqrt(eps2+delta_inf**2)[None,:,:,:]
-    GA_tau_diff=fermion_fft(G_A-G_A0)
-    GA_tau_ana=np.sum(-beta/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
-                        (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
-    GA_tau=GA_tau_ana+GA_tau_diff
-    GA_bf=fermion_fft(G_A)
-    PA_tau=-GA_tau[::-1]*GA_bf/beta
-    PA_iom=boson_ifft(PA_tau)
-    CA_iom=PA_iom*PA_iom
-    CA_tau=boson_fft(CA_iom)
-    SigA_tau=CA_tau*GA_bf*U**3/beta**2
-    SigA_iom=2*fermion_ifft(SigA_tau)#2 comes from 2 different 3rd order diagrams. But essentially they are the same.
-    SigB_iom=-SigA_iom.conjugate()
-    sig2Alocal,sig2Blocal=pertimp_func(G_A,G_B,delta_inf,beta,U,knum)
-    SigA_tdapole3=U/beta*np.sum(G_A*sig2Alocal*G_A)
-    SigB_tdapole3=U/beta*np.sum(G_B*sig2Blocal*G_B)
-    return SigA_iom,SigB_iom
 
 
 

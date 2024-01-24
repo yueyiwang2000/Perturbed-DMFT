@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from numba import jit, complex128
 import perturb_lib
 from numba.types import float64, complex128
+
+# shift in k space
 def G12_shift(G12,q,knum,opt):
     """
     opt==1 means shift with sign!
@@ -123,15 +125,42 @@ def fast_ift_boson(Pk,beta):# same way back. in fft, we fft then shift; in ifft,
 
 
 
-#-----------convolution-----------
-# This is only for G12, which means, for Green's functions that have well-defined fourier transformations.
-def precalcP_fft(q, knum, n, Gk,beta,opt):# this function deal with Gk*Gkq. they should be well sliced and shifted.
-    Gk_tau=fast_ft_fermion(Gk,beta)
-    Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
-    Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3
+#-----------convolution method to calculate bubbles----------- used in calculation
+
+def fermion_fft_diagG(knum, Gk,beta,fullsig,mu):
+    '''
+    Diagonal elements of G has an issue when doing FFT since it scales like 1/omega. If the FFT is done in brute force, the quality of 
+    G_tau will be extremely bad. The correct way is to figure out its 1/omega analytical part and do it analytically; and the rest part
+    dies faster than 1/omega, which is safe to use brute-force FFT.
+    '''
+
+    n = int(np.shape(Gk)[0] / 2)
+    N=2*n
+
+    k1,k2,k3=gen_full_kgrids(knum)
+    #generate alpha, f(alpha) for freq sum
+    delta_inf=np.abs(-mu+fullsig[-1].real)
+    # alphak=dispersion(kx,ky,kz)# another alpha for test.
+    alpk=np.sqrt(dispersion(k1,k2,k3)**2+delta_inf**2)
+    #generate unperturbed Green's function
+    tlist=(np.arange(N)+0.5)/N*beta
+    fermion_om = (2*np.arange(N)+1-N)*np.pi/beta
+    Gk0=1/2*((1+delta_inf/alpk)/(1j*fermion_om[:,None,None,None]-alpk)+
+             (1-delta_inf/alpk)/(1j*fermion_om[:,None,None,None]+alpk))
+    Gk_tau_diff=fast_ft_fermion(Gk-Gk0,beta)
+    Gk_tau_ana=-1/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
+                        (1-delta_inf/alpk)*np.exp(alpk*tlist[:,None,None,None])/(1+np.exp(alpk*beta)))
+    Gk_tau=Gk_tau_ana+Gk_tau_diff   
+    return Gk_tau
+
+
+def precalcP_fft(q, knum, G1k_tau,G2k_tau,opt):# this function deal with Gk*Gkq. they should be well sliced and shifted.
+    n = int(np.shape(G1k_tau)[0] / 2)
+    G2kq_tau=G12_shift(G2k_tau,q,knum,opt)
+    Pq_tau=np.sum(-G1k_tau[::-1,:,:,:]*G2kq_tau,axis=(1,2,3))/knum**3
     return Pq_tau.real
 
-def precalcQ_fft(q, knum, Gk,beta,opt):
+def precalcQ_fft(q, knum, G1k_tau,G2k_tau,opt):
     '''
     Q is another quantity which looks like P. In PM, P=-P' but in AFM they're different in principle.
     Q(q,tau)=sum_k'(G(k,tau)*(G(k+q,tau)))
@@ -139,62 +168,27 @@ def precalcQ_fft(q, knum, Gk,beta,opt):
     P(q,tau)=sum_k'(G(k,-tau)*(G(k+q,tau)))
     opt==1 means shift with sign!
     '''
-    Gk_tau=fast_ft_fermion(Gk,beta)
-    Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
-    Pq_tau=np.sum(Gk_tau*Gkq_tau,axis=(1,2,3))/knum**3
+    n = int(np.shape(G1k_tau)[0] / 2)
+    G2kq_tau=G12_shift(G2k_tau,q,knum,opt)
+    Pq_tau=np.sum(G1k_tau*G2kq_tau,axis=(1,2,3))/knum**3
     return Pq_tau
 
-# this is for those function which has ill-defined Green's functions. like 1/iom scaling.
-def precalcP_fft_diag(q, knum, n, Gk,beta,delta_inf,alpha_k):
-    N=2*n
-    alpk=alpha_k[None,:,:,:]
-    tlist=(np.arange(N)+0.5)/N*beta
-    fermion_om = (2*np.arange(N)+1-N)*np.pi/beta
-    # boson_om = ((2*np.arange(n+1)-n)*np.pi/beta)
-    # calculating Gk+q(tau)
-    Gk0=1/2*((1+delta_inf/alpk)/(1j*fermion_om[:,None,None,None]-alpk)+
-             (1-delta_inf/alpk)/(1j*fermion_om[:,None,None,None]+alpk))
-    Gk_tau_diff=fast_ft_fermion(Gk-Gk0,beta)
-    Gk_tau_ana=-1/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
-                        (1-delta_inf/alpk)*np.exp(alpk*tlist[:,None,None,None])/(1+np.exp(alpk*beta)))
-    Gk_tau=Gk_tau_ana+Gk_tau_diff
-    Gkq_tau=G12_shift(Gk_tau,q,knum,0)
-    Pq_tau=np.sum(-Gk_tau[::-1,:,:,:]*Gkq_tau,axis=(1,2,3))/knum**3# note: G(-\tau)=-G(beta-tau)
-    return Pq_tau.real
 
-def precalcsig_fft(q, knum, Gk,Pq_tau,beta,U,opt):#for off-diagonal
+def precalcsig_fft(q, knum, Gk_tau,Pq_tau,beta,U,opt):#for off-diagonal
     N=np.shape(Pq_tau)[0]
-    Gk_tau=fast_ft_fermion(Gk,beta)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
     sig_tau=np.sum(Pq_tau*Gkq_tau,axis=(1,2,3))*(-1)*U**2/knum**3
     sig_iom=fermion_ifft(sig_tau,beta)
     # sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)*beta
     return sig_iom
 
-def precalcsigp_fft(q, knum, Gk,Pq_tau,beta,U,opt):#for off-diagonal
+def precalcsigp_fft(q, knum, Gk_tau,Pq_tau,beta,U,opt):#for off-diagonal
     N=np.shape(Pq_tau)[0]
-    Gk_tau=fast_ft_fermion(Gk,beta)
+    # Gk_tau=fast_ft_fermion(Gk,beta)
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
     sig_tau=np.sum(-Pq_tau*Gkq_tau[::-1,:,:,:],axis=(1,2,3))*(-1)*U**2/knum**3
     sig_iom=fermion_ifft(sig_tau,beta)
     # sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
-    return sig_iom
-
-def precalcsig_fft_diag(q, knum, Gk,Pq_tau,beta,U,delta_inf,alpha_k):
-    N=np.shape(Pq_tau)[0]
-    alpk=alpha_k[None,:,:,:]
-    fermion_om = (2*np.arange(N)+1-N)*np.pi/beta
-    tlist=np.arange(N)/N*beta
-    Gk0=1/2*((1+delta_inf/alpk)/(1j*fermion_om[:,None,None,None]-alpk)+
-             (1-delta_inf/alpk)/(1j*fermion_om[:,None,None,None]+alpk))
-    Gk_tau_ana=-1/2*((1+delta_inf/alpk)*np.exp(-alpk*tlist[:,None,None,None])/(1+np.exp(-alpk*beta))+
-                        (1-delta_inf/alpk)*np.exp(alpk*tlist[:,None,None,None])/(1+np.exp(alpk*beta)))
-    Gk_tau_diff=fast_ft_fermion(Gk-Gk0,beta)
-    Gkq_tau_diff=G12_shift(Gk_tau_diff,q,knum,0)
-    Gkq_tau_ana=G12_shift(Gk_tau_ana,q,knum,0)
-    Gkq_tau=Gkq_tau_diff+Gkq_tau_ana
-    sig_tau=np.sum(Pq_tau*Gkq_tau,axis=(1,2,3))*(-1)*U**2/knum**3/beta
-    sig_iom=np.fft.ifft(sig_tau*np.exp(-1j*(N-1)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N+1)*np.pi*0.5/N)
     return sig_iom
 
 def precalc_C(P1iom,P2iom,beta):
@@ -206,7 +200,7 @@ def precalc_C(P1iom,P2iom,beta):
 
 
 
-# other methods. just for test,
+# other methods. just for test, not actually used any more.
 def precalcP_bf(q, knum, n, G12,beta,opt=1):
     P_partial = np.zeros((n+1),dtype=np.complex128)
     if opt==1:

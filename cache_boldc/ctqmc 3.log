@@ -1,0 +1,175 @@
+Parallel start of bold_ctqmc on process 0 of 8
+{
+    "Delta": "../boldc_cache/Delta.inp",
+    "Ms": 2000000.0,
+    "NVrecompute": 5000000,
+    "N_min_order": 2,
+    "N_rescale_histogram": 1000000,
+    "Nbath": 2,
+    "Nbin": 512,
+    "Ncout": 1000000,
+    "Nd": 1,
+    "Nitt": 100,
+    "Norder": 4,
+    "Nrecompute_fake": 50000,
+    "Nt": 300,
+    "Ntau": 512,
+    "PPG": "PPG.",
+    "PPSig": "PPSigma.",
+    "P_v_P_percent": 0.05,
+    "U": 7.0,
+    "V0norm": 0.001,
+    "beta": 2.857142857142857,
+    "cmpPhysG": false,
+    "converge_OCA": true,
+    "d_fraction": 3,
+    "diff_stop": 0.01,
+    "dos": "../python_src/DOS_3D.dat",
+    "exe": "mpirun -np 8 ../boldc_cache/boldc",
+    "fGf": "Gf.out",
+    "fSig": "Sig.out",
+    "fastFilesystem": true,
+    "iseed": 0,
+    "mix": 0.2,
+    "mu": 3.5,
+    "multiples_last_step": 5,
+    "multiples_no_histogram": 3,
+    "rescale": 0.4,
+    "startGuessVolDiagrams": false,
+    "svd_L": 10.0,
+    "svd_Nw": 500,
+    "svd_lmax": 13,
+    "svd_x0": 0.01,
+    "tNbin": 200,
+    "tsample": 5,
+    "warmup": 1
+}
+iseed=1697003413 in rank 0
+Dlt[0,1,1,0]= 1
+Dlt[0,1,3,2]= 1
+Dlt[0,2,2,0]= 3
+Dlt[0,2,3,1]= -3
+Dlt[1,0,0,1]= 2
+Dlt[1,0,2,3]= 2
+Dlt[1,3,2,0]= -3
+Dlt[1,3,3,1]= 3
+Dlt[2,0,0,2]= 4
+Dlt[2,0,1,3]= -4
+Dlt[2,3,1,0]= 1
+Dlt[2,3,3,2]= 1
+Dlt[3,1,0,2]= -4
+Dlt[3,1,1,3]= 4
+Dlt[3,2,0,1]= 2
+Dlt[3,2,2,3]= 2
+# Read ../boldc_cache/Delta.inp with 500 entries
+# Read PPSigma.0 with 512 entries
+setup time=0.005314
+svd time=0.104634
+last and first singular value=4.24342e-06 0.169797
+Final overlap is smaller than 3.75357e-14
+log(Zatom)=10.6932 F_atom=-3.74262
+WARNING: Iteration 1 to find ground state old:i_gs=1 and new i_gs=2 old_P=0.345641 new_P=0.420873
+0) nf=1.00015 <<Sz>>=0.0703355 Pr(:)=[0.124711,0.340044,0.410379,0.124866]  Q=0.911245 lambda0=-5.23374 i_gs=2
+Phi(order=1)=0.967479
+t_dyson_laplace=0.0256517 t_nca=0.000455375 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000592,0.000350] 
+Read histogram.2.dat and set V0norm[2]=0.002 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=0.00059160797831 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+Read histogram.4.dat and set V0norm[4]=8.75e-05 Vol_dig0[4]=27 Vol_diag1[4]=36
+From file diags.2 read 4 diagrams.
+From file diags.3 read 16 diagrams.
+From file diags.4 read 88 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=92
+Read diagram is of too high/low order not(2<4<2) hence ignoring file status.0
+Note: proper status file status.0 not read. Starting from random configuration.
+[(0,1),(2,3)] is Reducible=1
+[(0,2),(1,3)] should be skeleton
+Starting with cdiag=[(0,2),(3,1)] and p=[0,2,3,1]  cDlt=[2,-4]  csgn_dlt=7700075 iseed_distance=1697003425
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(0,2),(3,1)] p=[0,2,3,1]  times=[0,0.00433261134045,1.62600216312,2.78189137841,2.85714285714]  and dlt=[2,-4] 
+P_tree[2..3]=[0.000570812208398,0.000570812208398] P_fake=[0.570812208398,0.570812208398]
+   1M <Phi>=[0.1284,0.02909,0.001322]  <s>=[1,0.5899,0.03529]  P_v_P=[1.605,0.7759,0.4679]  Ndiags=[2,2,2.939,]  Ph_acc=[2.98e+04,3.324e+04,3.507e+04]  Pnrm=[928.1,3605,8.356e+04] 
+At the beginning of recalculate: Vol_diagrams0_read=[2,5.33333333333,27]  Vol_diagrams1_read=[2,5.33333333333,36] 
+After combining diagrams from all nodes, we obtain the following volumes: Vol_diagrams0=[2,5.33333333333,27]  Vol_diagrams1=[2,5.33333333333,36] 
+#stored diags:
+#norder ndiag <weight>
+ 2       2 231.835517203
+ 3      12 146.205436889
+ 4      78 154.369642447
+ diagVol1=[2,5.333333333,36]  diagVol0=[2,5.333333333,27] 
+t acceptance_rate=0.786364 d acceptance=1 d/t=0.00863085
+Quantities averaged over all cores:
+ factor=[3.59679e-06,6.98108e-07,2.84667e-08] 
+ factor2=[8.15559e-06,1.6049e-06,5.84656e-08] 
+ V0norm=[0.002,0.000591608,8.75e-05] 
+ Pnorm=[1112.1,4519.71,110655] 
+ N_measure=[71599.8,144232,2.06353e+06] 
+ <s>=[1,0.584063,0.0391774]  overlap=[0.983135,0.91935,-1.88364] 
+ Phi_tot=[0.124382,0.0272001,0.00132563] 
+t_changet=1.06801 t_diag_change=0.323967 t_measure=0.155564 t_Vrecmp=0 t_Fake_recmp=0.0226037
+t_diag_change:skel=0.0434091 t_diag_change:topol=0.24301 t_diag_change:choose=0.022954 t_diag_change:numericv=0.0145957 t_diag_change:diff=0.116355 t_snext=0.0537982
+Phi=[0.911245,0.967479,0.124382,0.0272001,0.00132563]  log(Z)=2.03163 Fimp=-5.20121 -beta*Fimp=14.8606 lmbda0=-5.23374 U<nn>0.87406
+0) nf=1.00015 <<S>>=0.0703355 Prb(:)=[0.124711,0.340044,0.410379,0.124866]  lambda0=-5.23374
+0) Difference between previous and this step=0.366466
+1) nf=1.00016 <<Sz>>=0.0715614 Pr(:)=[0.120724,0.343415,0.414976,0.120885]  Q=0.91481 lambda0=-5.19531 i_gs=2
+Phi(order=1)=0.971567
+t_dyson_laplace=0.0338003 t_nca=0.000926083 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000592,0.000350] 
+Read histogram.2.dat and set V0norm[2]=0.002 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=0.00059160797831 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+Read histogram.4.dat and set V0norm[4]=8.75e-05 Vol_dig0[4]=27 Vol_diag1[4]=36
+From file diags.2 read 4 diagrams.
+From file diags.3 read 16 diagrams.
+From file diags.4 read 88 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=92
+Read diagram is of too high/low order not(2<4<2) hence ignoring file status.0
+Note: proper status file status.0 not read. Starting from random configuration.
+[(0,1),(2,3)] is Reducible=1
+[(1,3),(0,2)] should be skeleton
+Starting with cdiag=[(3,1),(0,2)] and p=[0,2,3,1]  cDlt=[-4,2]  csgn_dlt=7700075 iseed_distance=1703245665
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(3,1),(0,2)] p=[0,2,3,1]  times=[0,0.671243731748,0.925924086271,1.94883809924,2.85714285714]  and dlt=[-4,2] 
+P_tree[2..3]=[3.07636452218e-05,3.07636452218e-05] P_fake=[0.0307636452218,0.0307636452218]
+   1M <Phi>=[0.1181,0.02575,0.001243]  <s>=[1,0.5979,0.04033]  P_v_P=[1.476,0.6775,0.3825]  Ndiags=[2,2,2.9,]  Ph_acc=[1.974e+04,2.189e+04,2.785e+04]  Pnrm=[668.4,2682,7.059e+04] 
+At the beginning of recalculate: Vol_diagrams0_read=[2,5.33333333333,27]  Vol_diagrams1_read=[2,5.33333333333,36] 
+After combining diagrams from all nodes, we obtain the following volumes: Vol_diagrams0=[2,5.33333333333,27]  Vol_diagrams1=[2,5.33333333333,36] 
+#stored diags:
+#norder ndiag <weight>
+ 2       2 165.926717469
+ 3      12 128.079326876
+ 4      78 158.591341437
+ diagVol1=[2,5.333333333,36]  diagVol0=[2,5.333333333,27] 
+t acceptance_rate=0.785243 d acceptance=1 d/t=0.00863798
+Quantities averaged over all cores:
+ factor=[4.28478e-06,8.44286e-07,3.27386e-08] 
+ factor2=[8.18506e-06,1.63544e-06,6.06301e-08] 
+ V0norm=[0.002,0.000591608,8.75e-05] 
+ Pnorm=[933.536,3737.17,96216.6] 
+ N_measure=[55529.3,105514,1.5507e+06] 
+ <s>=[1,0.588863,0.0367611]  overlap=[0.981335,0.912719,-1.891] 
+ Phi_tot=[0.114641,0.0240851,0.00111863] 
+t_changet=0.946276 t_diag_change=0.279448 t_measure=0.137992 t_Vrecmp=0 t_Fake_recmp=0.0197599
+t_diag_change:skel=0.0367663 t_diag_change:topol=0.212657 t_diag_change:choose=0.0179344 t_diag_change:numericv=0.0120913 t_diag_change:diff=0.103172 t_snext=0.0480174
+Phi=[0.91481,0.971567,0.114641,0.0240851,0.00111863]  log(Z)=2.02622 Fimp=-5.16415 -beta*Fimp=14.7547 lmbda0=-5.19531 U<nn>0.846198
+1) nf=1.00016 <<S>>=0.0715614 Prb(:)=[0.120724,0.343415,0.414976,0.120885]  lambda0=-5.19531
+1) Difference between previous and this step=0.326457
+2) nf=1.00014 <<Sz>>=0.072982 Pr(:)=[0.117097,0.346342,0.419324,0.117237]  Q=0.92147 lambda0=-5.15779 i_gs=2
+Phi(order=1)=0.980598
+t_dyson_laplace=0.048192 t_nca=0.00111192 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000592,0.000350] 
+Read histogram.2.dat and set V0norm[2]=0.002 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=0.00059160797831 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+Read histogram.4.dat and set V0norm[4]=8.75e-05 Vol_dig0[4]=27 Vol_diag1[4]=36
+From file diags.2 read 4 diagrams.
+From file diags.3 read 16 diagrams.
+From file diags.4 read 88 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=92
+Read diagram is of too high/low order not(2<4<2) hence ignoring file status.0
+Note: proper status file status.0 not read. Starting from random configuration.
+[(0,1),(2,3)] is Reducible=1
+[(1,3),(0,2)] should be skeleton
+Starting with cdiag=[(3,1),(0,2)] and p=[0,2,3,1]  cDlt=[-4,2]  csgn_dlt=7700075 iseed_distance=1709489485
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(3,1),(0,2)] p=[0,2,3,1]  times=[0,0.572915489223,0.633210731093,1.07022714868,2.85714285714]  and dlt=[-4,2] 
+P_tree[2..3]=[0.000181366737191,0.000181366737191] P_fake=[0.181366737191,0.181366737191]
+   1M <Phi>=[0.1128,0.02274,0.001246]  <s>=[1,0.5749,0.04428]  P_v_P=[1.41,0.6213,0.3435]  Ndiags=[2,2,2.868,]  Ph_acc=[1.58e+04,1.727e+04,2.517e+04]  Pnrm=[560.3,2396,6.365e+04] 

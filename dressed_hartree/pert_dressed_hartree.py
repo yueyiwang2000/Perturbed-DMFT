@@ -88,7 +88,6 @@ def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=100):
 
     # order 3 code. should be used after careful review.
     if order==3:
-        # do check those 3rd order diagrams.
         # We do not need Q12. Remember P12=Q12! But we still need Q11, since it is usually not symmetrical for AFM case
         Q11_tau=mpilib.precalcQ_mpi(beta,knum,G11_iom,SigDMFT1,mu,0)  
         # Q12_tau=P12_tau
@@ -138,6 +137,8 @@ def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=100):
             nloc22=np.sum(Gdress22_iom).real/knum**3/beta+1/2
             m_arr[it]=nloc22-nloc11
             # update: Sigma_new=Sigma(DMFT)+Sigma(pert,first nth order)-Sigma(imp, first nth order)
+            
+            
             new_Sigma11=ori_Sigma11[:,None,None,None]+Sig2_11-sigimp_2_11[:,None,None,None]+(nloc22-n0loc22)*U
             new_Sigma22=ori_Sigma22[:,None,None,None]+Sig2_22-sigimp_2_22[:,None,None,None]+(nloc11-n0loc11)*U
             new_Sigma12=Sig2_12
@@ -146,9 +147,11 @@ def iterative_perturbation(SigDMFT1,SigDMFT2,U,T,nfreq,order,maxit=100):
                 new_Sigma11+=Sig3_11-sigimp_3_11[:,None,None,None]
                 new_Sigma22+=Sig3_22-sigimp_3_22[:,None,None,None]
                 new_Sigma12+=Sig3_12
-            timei=time.time()
+
+
             diff=diff_sigma(Sigma11,new_Sigma11,Sigma12,new_Sigma12)
             diff_arr[it]=diff
+            # if it % 100==0:
             print(f'\tit={it},\tdiff={diff:.7f},\tn11={nloc11:.9f},\tn22={nloc22:.9f}')
             #second order test
             # plt.plot(Sigma12[nfreq:nfreq+freqdisplayed,0,0,0].real,label='Sigma12 {} real'.format(it))
@@ -199,19 +202,20 @@ if __name__ == "__main__":
     sig_plot=0  #1=plot 0= do not plot
     pltkpts=1    # max:47 for knum=10
     freqdisplayed=150 # only show first # Matsubara freqs
-    ordernum=2# order of perturbation
+    ordernum=3# order of perturbation
     if (len(sys.argv)==1):# this is for test
         # standard test
         if rank==0:
             print('This is test mode')
         sig_plot=1# in the test mode, plot the sigma. in the import/calling mode, do not plot.
         U=10.0  
-        T=0.43
+        T=0.44
         knum=10
         nfreq=500
-        index=249
+        index=50
+        sigma=np.loadtxt('../files_variational/{}_{}_{}/Sig.OCA.{}'.format(0.0,U,T,index))[:nfreq,:]
         # sigma=np.loadtxt('../files_boldc/{}_{}_{}/Sig.out.{}'.format(0,U,T,index))[:nfreq,:]
-        sigma=np.loadtxt('../files_boldc/0_{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
+        # sigma=np.loadtxt('../files_boldc/0_{}_{}/Sig.OCA.{}'.format(U,T,index))[:nfreq,:]
         # sigma=np.loadtxt('../files_ctqmc/{}_{}/ori_Sig.out.{}'.format(U,T,index))[:nfreq,:]
         sigA=sigma[:,1]+1j*sigma[:,2]#sig+delta
         sigB=U-sigma[:,1]+1j*sigma[:,2]#sig+delta
