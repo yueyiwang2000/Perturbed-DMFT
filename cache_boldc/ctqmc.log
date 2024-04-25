@@ -1,6 +1,6 @@
 Parallel start of bold_ctqmc on process 0 of 8
 {
-    "Delta": "../boldc_cache/Delta.inp",
+    "Delta": "../cache_boldc/Delta.inp",
     "Ms": 8000000.0,
     "NVrecompute": 5000000,
     "N_min_order": 2,
@@ -10,7 +10,7 @@ Parallel start of bold_ctqmc on process 0 of 8
     "Ncout": 1000000,
     "Nd": 1,
     "Nitt": 100,
-    "Norder": 2,
+    "Norder": 3,
     "Nrecompute_fake": 50000,
     "Nt": 300,
     "Ntau": 512,
@@ -19,13 +19,13 @@ Parallel start of bold_ctqmc on process 0 of 8
     "P_v_P_percent": 0.05,
     "U": 10.0,
     "V0norm": 0.001,
-    "beta": 2.0,
+    "beta": 10.0,
     "cmpPhysG": false,
     "converge_OCA": true,
     "d_fraction": 3,
     "diff_stop": 0.01,
     "dos": "../python_src/DOS_3D.dat",
-    "exe": "mpirun -np 8 ../boldc_cache/boldc",
+    "exe": "mpirun -np 8 ../cache_boldc/boldc",
     "fGf": "Gf.out",
     "fSig": "Sig.out",
     "fastFilesystem": true,
@@ -44,7 +44,7 @@ Parallel start of bold_ctqmc on process 0 of 8
     "tsample": 5,
     "warmup": 1
 }
-iseed=1701902356 in rank 0
+iseed=1707853931 in rank 0
 Dlt[0,1,1,0]= 1
 Dlt[0,1,3,2]= 1
 Dlt[0,2,2,0]= 3
@@ -61,144 +61,126 @@ Dlt[3,1,0,2]= -4
 Dlt[3,1,1,3]= 4
 Dlt[3,2,0,1]= 2
 Dlt[3,2,2,3]= 2
-# Read ../boldc_cache/Delta.inp with 500 entries
-setup time=0.004264
-svd time=0.083676
-last and first singular value=4.74344e-07 0.169105
-Final overlap is smaller than 4.31313e-14
-log(Zatom)=10.6932 F_atom=-5.3466
-0) nf=1 <<Sz>>=0 Pr(:)=[2.26989e-05,0.499977,0.499977,2.26989e-05]  Q=2.00009 lambda0=-5 i_gs=1
-t_dyson_laplace=0 t_nca=0.0160672 t_oca=0
-0) Difference between OCA steps=1.7393
-1) nf=1 <<Sz>>=7.1289e-10 Pr(:)=[0.00688238,0.493118,0.493118,0.00688238]  Q=2.00078 lambda0=-5.1229 i_gs=1
-t_dyson_laplace=0 t_nca=0.0264718 t_oca=0
-1) Difference between OCA steps=1.38179
-2) nf=1 <<Sz>>=1.25526e-09 Pr(:)=[0.012441,0.487559,0.487559,0.012441]  Q=1.99356 lambda0=-5.22375 i_gs=1
-t_dyson_laplace=0 t_nca=0.0365555 t_oca=0
-2) Difference between OCA steps=1.09472
-3) nf=1 <<Sz>>=1.67065e-09 Pr(:)=[0.0169363,0.483064,0.483064,0.0169363]  Q=1.98162 lambda0=-5.30644 i_gs=1
-t_dyson_laplace=0 t_nca=0.0474736 t_oca=0
-3) Difference between OCA steps=0.86482
-4) nf=1 <<Sz>>=1.99061e-09 Pr(:)=[0.0205564,0.479444,0.479444,0.0205564]  Q=1.9672 lambda0=-5.37419 i_gs=1
-t_dyson_laplace=0 t_nca=0.0573592 t_oca=0
-4) Difference between OCA steps=0.681219
-5) nf=1 <<Sz>>=2.23826e-09 Pr(:)=[0.0234554,0.476545,0.476545,0.0234554]  Q=1.95187 lambda0=-5.42961 i_gs=1
-t_dyson_laplace=0 t_nca=0.0580812 t_oca=0
-5) Difference between OCA steps=0.535
-6) nf=1 <<Sz>>=2.43076e-09 Pr(:)=[0.0257622,0.474238,0.474238,0.0257622]  Q=1.93664 lambda0=-5.47489 i_gs=1
-t_dyson_laplace=0 t_nca=0.058334 t_oca=0
-6) Difference between OCA steps=0.418883
-7) nf=1 <<Sz>>=2.58095e-09 Pr(:)=[0.027585,0.472415,0.472415,0.027585]  Q=1.92216 lambda0=-5.51182 i_gs=1
-t_dyson_laplace=0 t_nca=0.0587867 t_oca=0
-7) Difference between OCA steps=0.326935
-8) nf=1 <<Sz>>=2.6985e-09 Pr(:)=[0.0290148,0.470985,0.470985,0.0290148]  Q=1.90881 lambda0=-5.5419 i_gs=1
-t_dyson_laplace=0 t_nca=0.059286 t_oca=0
-8) Difference between OCA steps=0.254336
-9) nf=1 <<Sz>>=2.79079e-09 Pr(:)=[0.0301275,0.469872,0.469872,0.0301275]  Q=1.89675 lambda0=-5.56635 i_gs=1
-t_dyson_laplace=0 t_nca=0.0597859 t_oca=0
-9) Difference between OCA steps=0.197185
-10) nf=1 <<Sz>>=2.8634e-09 Pr(:)=[0.0309864,0.469014,0.469014,0.0309864]  Q=1.88607 lambda0=-5.58619 i_gs=1
-t_dyson_laplace=0 t_nca=0.0603946 t_oca=0
-10) Difference between OCA steps=0.15233
-11) nf=1 <<Sz>>=2.92067e-09 Pr(:)=[0.0316436,0.468356,0.468356,0.0316436]  Q=1.87672 lambda0=-5.60227 i_gs=1
-t_dyson_laplace=0 t_nca=0.0605795 t_oca=0
-11) Difference between OCA steps=0.117235
-12) nf=1 <<Sz>>=2.96592e-09 Pr(:)=[0.0321417,0.467858,0.467858,0.0321417]  Q=1.86863 lambda0=-5.61527 i_gs=1
-t_dyson_laplace=0 t_nca=0.060832 t_oca=0
-12) Difference between OCA steps=0.0898641
-13) nf=1 <<Sz>>=3.00174e-09 Pr(:)=[0.0325152,0.467485,0.467485,0.0325152]  Q=1.8617 lambda0=-5.62577 i_gs=1
-t_dyson_laplace=0 t_nca=0.0608803 t_oca=0
-13) Difference between OCA steps=0.0685887
-14) nf=1 <<Sz>>=3.03012e-09 Pr(:)=[0.0327921,0.467208,0.467208,0.0327921]  Q=1.85582 lambda0=-5.63423 i_gs=1
-t_dyson_laplace=0 t_nca=0.0610285 t_oca=0
-14) Difference between OCA steps=0.052109
-15) nf=1 <<Sz>>=3.05265e-09 Pr(:)=[0.0329945,0.467006,0.467006,0.0329945]  Q=1.85087 lambda0=-5.64104 i_gs=1
-t_dyson_laplace=0 t_nca=0.0615227 t_oca=0
-15) Difference between OCA steps=0.0393908
-16) nf=1 <<Sz>>=3.07054e-09 Pr(:)=[0.03314,0.46686,0.46686,0.03314]  Q=1.84672 lambda0=-5.64651 i_gs=1
-t_dyson_laplace=0 t_nca=0.061628 t_oca=0
-16) Difference between OCA steps=0.0296137
-17) nf=1 <<Sz>>=3.08477e-09 Pr(:)=[0.0332426,0.466757,0.466757,0.0332426]  Q=1.84326 lambda0=-5.6509 i_gs=1
-t_dyson_laplace=0 t_nca=0.0618587 t_oca=0
-17) Difference between OCA steps=0.0221287
-18) nf=1 <<Sz>>=3.0961e-09 Pr(:)=[0.0333131,0.466687,0.466687,0.0333131]  Q=1.84041 lambda0=-5.65442 i_gs=1
-t_dyson_laplace=0 t_nca=0.0620864 t_oca=0
-18) Difference between OCA steps=0.0164775
-19) nf=1 <<Sz>>=3.10512e-09 Pr(:)=[0.0333597,0.46664,0.46664,0.0333597]  Q=1.83805 lambda0=-5.65723 i_gs=1
-t_dyson_laplace=0 t_nca=0.0621468 t_oca=0
-19) Difference between OCA steps=0.0132053
-20) nf=1 <<Sz>>=3.11231e-09 Pr(:)=[0.033389,0.466611,0.466611,0.033389]  Q=1.83613 lambda0=-5.65947 i_gs=1
-t_dyson_laplace=0 t_nca=0.0623777 t_oca=0
-20) Difference between OCA steps=0.010826
-21) nf=1 <<Sz>>=3.11804e-09 Pr(:)=[0.0334059,0.466594,0.466594,0.0334059]  Q=1.83456 lambda0=-5.66126 i_gs=1
-t_dyson_laplace=0 t_nca=0.0625909 t_oca=0
-21) Difference between OCA steps=0.00893692
-22) nf=1 <<Sz>>=3.12262e-09 Pr(:)=[0.033414,0.466586,0.466586,0.033414]  Q=1.83329 lambda0=-5.66268 i_gs=1
-t_dyson_laplace=0 t_nca=0.0627671 t_oca=0
-22) Difference between OCA steps=0.00739683
-23) nf=1 <<Sz>>=3.12628e-09 Pr(:)=[0.0334161,0.466584,0.466584,0.0334161]  Q=1.83227 lambda0=-5.66381 i_gs=1
-t_dyson_laplace=0 t_nca=0.0628777 t_oca=0
-23) Difference between OCA steps=0.00612697
-24) nf=1 <<Sz>>=3.1292e-09 Pr(:)=[0.0334143,0.466586,0.466586,0.0334143]  Q=1.83145 lambda0=-5.66471 i_gs=1
-t_dyson_laplace=0 t_nca=0.0630942 t_oca=0
-24) Difference between OCA steps=0.00507426
-25) nf=1 <<Sz>>=3.13153e-09 Pr(:)=[0.03341,0.46659,0.46659,0.03341]  Q=1.83079 lambda0=-5.66542 i_gs=1
-t_dyson_laplace=0 t_nca=0.06359 t_oca=0
-25) Difference between OCA steps=0.00419929
-26) nf=1 <<Sz>>=3.1334e-09 Pr(:)=[0.0334043,0.466596,0.466596,0.0334043]  Q=1.83026 lambda0=-5.66598 i_gs=1
-t_dyson_laplace=0 t_nca=0.0637466 t_oca=0
-26) Difference between OCA steps=0.00347128
-27) nf=1 <<Sz>>=3.13489e-09 Pr(:)=[0.0333979,0.466602,0.466602,0.0333979]  Q=1.82985 lambda0=-5.66642 i_gs=1
-t_dyson_laplace=0 t_nca=0.0641185 t_oca=0
-27) Difference between OCA steps=0.00286546
-28) nf=1 <<Sz>>=3.13609e-09 Pr(:)=[0.0333914,0.466609,0.466609,0.0333914]  Q=1.82952 lambda0=-5.66677 i_gs=1
-t_dyson_laplace=0 t_nca=0.064284 t_oca=0
-28) Difference between OCA steps=0.00236155
-29) nf=1 <<Sz>>=3.13704e-09 Pr(:)=[0.033385,0.466615,0.466615,0.033385]  Q=1.82927 lambda0=-5.66704 i_gs=1
-t_dyson_laplace=0 t_nca=0.0643825 t_oca=0
-29) Difference between OCA steps=0.0019428
-30) nf=1 <<Sz>>=3.13781e-09 Pr(:)=[0.033379,0.466621,0.466621,0.033379]  Q=1.82907 lambda0=-5.66726 i_gs=1
-t_dyson_laplace=0 t_nca=0.0645113 t_oca=0
-30) Difference between OCA steps=0.00159526
-31) nf=1 <<Sz>>=3.13842e-09 Pr(:)=[0.0333736,0.466626,0.466626,0.0333736]  Q=1.82891 lambda0=-5.66743 i_gs=1
-t_dyson_laplace=0 t_nca=0.0647324 t_oca=0
-31) Difference between OCA steps=0.00130724
-32) nf=1 <<Sz>>=3.13891e-09 Pr(:)=[0.0333687,0.466631,0.466631,0.0333687]  Q=1.82879 lambda0=-5.66756 i_gs=1
-t_dyson_laplace=0 t_nca=0.0647954 t_oca=0
-32) Difference between OCA steps=0.00106896
-33) nf=1 <<Sz>>=3.13931e-09 Pr(:)=[0.0333643,0.466636,0.466636,0.0333643]  Q=1.8287 lambda0=-5.66766 i_gs=1
-t_dyson_laplace=0 t_nca=0.0649752 t_oca=0
-33) Difference between OCA steps=0.000872208
-34) nf=1 <<Sz>>=3.13962e-09 Pr(:)=[0.0333605,0.466639,0.466639,0.0333605]  Q=1.82863 lambda0=-5.66775 i_gs=1
-t_dyson_laplace=0 t_nca=0.065414 t_oca=0
-34) Difference between OCA steps=0.000710072
-35) nf=1 <<Sz>>=3.13988e-09 Pr(:)=[0.0333572,0.466643,0.466643,0.0333572]  Q=1.82858 lambda0=-5.66781 i_gs=1
-t_dyson_laplace=0 t_nca=0.0655911 t_oca=0
-35) Difference between OCA steps=0.000576746
-36) nf=1 <<Sz>>=3.14008e-09 Pr(:)=[0.0333544,0.466646,0.466646,0.0333544]  Q=1.82854 lambda0=-5.66786 i_gs=1
-t_dyson_laplace=0 t_nca=0.0659199 t_oca=0
-36) Difference between OCA steps=0.000467354
-37) nf=1 <<Sz>>=3.14024e-09 Pr(:)=[0.0333521,0.466648,0.466648,0.0333521]  Q=1.82851 lambda0=-5.6679 i_gs=1
-t_dyson_laplace=0 t_nca=0.0661567 t_oca=0
-37) Difference between OCA steps=0.000377874
-38) nf=1 <<Sz>>=3.14037e-09 Pr(:)=[0.03335,0.46665,0.46665,0.03335]  Q=1.82849 lambda0=-5.66793 i_gs=1
-t_dyson_laplace=0 t_nca=0.0663736 t_oca=0
-38) Difference between OCA steps=0.000305807
-39) nf=1 <<Sz>>=3.14048e-09 Pr(:)=[0.0333484,0.466652,0.466652,0.0333484]  Q=1.82847 lambda0=-5.66795 i_gs=1
-t_dyson_laplace=0 t_nca=0.0664935 t_oca=0
-39) Difference between OCA steps=0.000247502
-40) nf=1 <<Sz>>=3.14056e-09 Pr(:)=[0.033347,0.466653,0.466653,0.033347]  Q=1.82846 lambda0=-5.66797 i_gs=1
-t_dyson_laplace=0 t_nca=0.0667451 t_oca=0
-40) Difference between OCA steps=0.000200084
-41) nf=1 <<Sz>>=3.14063e-09 Pr(:)=[0.0333458,0.466654,0.466654,0.0333458]  Q=1.82846 lambda0=-5.66798 i_gs=1
-t_dyson_laplace=0 t_nca=0.066843 t_oca=0
-41) Difference between OCA steps=0.000161475
-42) nf=1 <<Sz>>=3.14068e-09 Pr(:)=[0.0333448,0.466655,0.466655,0.0333448]  Q=1.82845 lambda0=-5.66799 i_gs=1
-t_dyson_laplace=0 t_nca=0.0672021 t_oca=0
-42) Difference between OCA steps=0.000130057
-43) nf=1 <<Sz>>=3.14073e-09 Pr(:)=[0.0333441,0.466656,0.466656,0.0333441]  Q=1.82845 lambda0=-5.668 i_gs=1
-t_dyson_laplace=0 t_nca=0.0674978 t_oca=0
-43) Difference between OCA steps=0.000104525
-44) nf=1 <<Sz>>=3.14076e-09 Pr(:)=[0.0333434,0.466657,0.466657,0.0333434]  Q=1.82845 lambda0=-5.668 i_gs=1
-t_dyson_laplace=0 t_nca=0.0675637 t_oca=0
-44) Difference between OCA steps=8.38132e-05
+# Read ../cache_boldc/Delta.inp with 500 entries
+# Read PPSigma.0 with 512 entries
+setup time=0.00415
+svd time=0.076788
+last and first singular value=0.000288225 0.172087
+Final overlap is smaller than 4.63135e-14
+log(Zatom)=50.6931 F_atom=-5.06931
+WARNING: Iteration 1 to find ground state old:i_gs=1 and new i_gs=2 old_P=0.000119472 new_P=0.999836
+0) nf=1 <<Sz>>=0.872158 Pr(:)=[0.0521355,0.0117859,0.883944,0.052135]  Q=0.949128 lambda0=-6.11684 i_gs=2
+Phi(order=1)=0.950127
+t_dyson_laplace=0.016715 t_nca=0.00559283 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000316] 
+Read histogram.2.dat and set V0norm[2]=0.002 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=3.95284707521e-05 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+From file diags.2 read 12 diagrams.
+From file diags.3 read 48 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=30
+Note: status file status.0 succesfully read. Starting from configuration read.
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(0,2),(3,1)] p=[0,1,3,2]  times=[0,0.0484850442069,0.100800642026,0.131417830474,10]  and dlt=[-4,2] 
+P_tree[2..3]=[0.0599631776909,0.0599631776909] P_fake=[59.9631776909,59.9631776909]
+   1M <Phi>=[0.04369,0.002414]  <s>=[1,0.8681]  P_v_P=[0.5458,0.6449]  Ndiags=[2,2,]  Ph_acc=[3.65e+06,5.121e+05]  Pnrm=[3.342e+05,4.473e+04] 
+   2M <Phi>=[0.04367,0.002426]  <s>=[1,0.8688]  P_v_P=[0.5458,0.6454]  Ndiags=[2,2,]  Ph_acc=[3.804e+06,5.397e+05]  Pnrm=[3.484e+05,4.689e+04] 
+   3M <Phi>=[0.04363,0.002447]  <s>=[1,0.8702]  P_v_P=[0.5455,0.65]  Ndiags=[2,2,]  Ph_acc=[3.953e+06,5.713e+05]  Pnrm=[3.624e+05,4.922e+04] 
+   4M <Phi>=[0.04356,0.002431]  <s>=[1,0.8696]  P_v_P=[0.5445,0.6459]  Ndiags=[2,2,]  Ph_acc=[4.121e+06,5.834e+05]  Pnrm=[3.785e+05,5.06e+04] 
+   5M <Phi>=[0.04362,0.002416]  <s>=[1,0.869]  P_v_P=[0.5454,0.6421]  Ndiags=[2,2,]  Ph_acc=[4.291e+06,5.961e+05]  Pnrm=[3.934e+05,5.202e+04] 
+   6M <Phi>=[0.04361,0.002429]  <s>=[1,0.8694]  P_v_P=[0.5452,0.6454]  Ndiags=[2,2,]  Ph_acc=[4.453e+06,6.156e+05]  Pnrm=[4.084e+05,5.343e+04] 
+   7M <Phi>=[0.0435,0.002414]  <s>=[1,0.8688]  P_v_P=[0.5438,0.6416]  Ndiags=[2,2,]  Ph_acc=[4.605e+06,6.418e+05]  Pnrm=[4.235e+05,5.604e+04] 
+At the beginning of recalculate: Vol_diagrams0_read=[2,5.33333333333]  Vol_diagrams1_read=[2,5.33333333333] 
+After combining diagrams from all nodes, we obtain the following volumes: Vol_diagrams0=[2,5.33333333333]  Vol_diagrams1=[2,5.33333333333] 
+#stored diags:
+#norder ndiag <weight>
+ 2       6 4857.60440027
+ 3      24 174.69266459
+ diagVol1=[2,5.333333333]  diagVol0=[2,5.333333333] 
+t acceptance_rate=0.522636 d acceptance=1 d/t=0.00827606
+Quantities averaged over all cores:
+ factor=[9.1595e-09,3.66968e-09] 
+ factor2=[3.43148e-08,1.3615e-08] 
+ V0norm=[0.002,3.95285e-05] 
+ Pnorm=[436705,57448.7] 
+ N_measure=[1.03884e+07,1.61036e+06] 
+ <s>=[0.999999,0.869692]  overlap=[0.42818,0.280046] 
+ Phi_tot=[0.0436318,0.00244609] 
+t_changet=2.60895 t_diag_change=0.540885 t_measure=0.412219 t_Vrecmp=0 t_Fake_recmp=0.0431947
+t_diag_change:skel=0.135983 t_diag_change:topol=0.329047 t_diag_change:choose=0.0492857 t_diag_change:numericv=0.0265517 t_diag_change:diff=0.130165 t_snext=0.171317
+Phi=[0.949128,0.950127,0.0436318,0.00244609]  log(Z)=1.94533 Fimp=-6.11162 -beta*Fimp=61.1162 lmbda0=-6.11684 U<nn>0.52135
+0) nf=1 <<S>>=0.872158 Prb(:)=[0.0521355,0.0117859,0.883944,0.052135]  lambda0=-6.11684
+0) Difference between previous and this step=0.00140839
+This should be the last iteration
+1) nf=0.999999 <<Sz>>=0.872174 Pr(:)=[0.0521295,0.0117839,0.883958,0.0521289]  Q=0.94914 lambda0=-6.11681 i_gs=2
+Phi(order=1)=0.950142
+t_dyson_laplace=0.024861 t_nca=0.00568013 t_oca=0 t_ocap=0
+Starting with V0=[0.001000,0.000316] 
+Read histogram.2.dat and set V0norm[2]=0.002 Vol_dig0[2]=2 Vol_diag1[2]=2
+Read histogram.3.dat and set V0norm[3]=3.95284707521e-05 Vol_dig0[3]=5.33333333333 Vol_diag1[3]=5.33333333333
+From file diags.2 read 12 diagrams.
+From file diags.3 read 48 diagrams.
+on rank=0 update_diags_first_time=0 diag_size=30
+Note: status file status.0 succesfully read. Starting from configuration read.
+Note: sampled_data file contains dSml and it was read
+Starting with diag=[(0,2),(3,1)] p=[0,1,3,2]  times=[0,0.1688222333,0.236376009724,0.255171212158,10]  and dlt=[-4,2] 
+P_tree[2..3]=[0.0215612097612,0.0215612097612] P_fake=[21.5612097612,21.5612097612]
+   1M <Phi>=[0.04352,0.002425]  <s>=[1,0.8686]  P_v_P=[0.5445,0.6433]  Ndiags=[2,2,]  Ph_acc=[2.066e+06,2.859e+05]  Pnrm=[1.899e+05,2.485e+04] 
+   2M <Phi>=[0.04339,0.002478]  <s>=[1,0.8728]  P_v_P=[0.5428,0.6519]  Ndiags=[2,2,]  Ph_acc=[2.219e+06,3.149e+05]  Pnrm=[2.045e+05,2.679e+04] 
+   3M <Phi>=[0.04344,0.002509]  <s>=[1,0.8737]  P_v_P=[0.5431,0.6519]  Ndiags=[2,2,]  Ph_acc=[2.38e+06,3.355e+05]  Pnrm=[2.192e+05,2.819e+04] 
+   4M <Phi>=[0.04341,0.002494]  <s>=[1,0.8732]  P_v_P=[0.5428,0.6492]  Ndiags=[2,2,]  Ph_acc=[2.543e+06,3.535e+05]  Pnrm=[2.344e+05,2.988e+04] 
+   5M <Phi>=[0.04343,0.002485]  <s>=[1,0.8696]  P_v_P=[0.5434,0.6427]  Ndiags=[2,2,]  Ph_acc=[2.693e+06,3.827e+05]  Pnrm=[2.48e+05,3.247e+04] 
+   6M <Phi>=[0.04336,0.002447]  <s>=[1,0.8685]  P_v_P=[0.5433,0.6401]  Ndiags=[2,2,]  Ph_acc=[2.846e+06,4.084e+05]  Pnrm=[2.626e+05,3.519e+04] 
+   7M <Phi>=[0.04336,0.002459]  <s>=[1,0.8708]  P_v_P=[0.5429,0.6435]  Ndiags=[2,2,]  Ph_acc=[3.007e+06,4.296e+05]  Pnrm=[2.774e+05,3.684e+04] 
+   8M <Phi>=[0.04337,0.002437]  <s>=[1,0.8695]  P_v_P=[0.5427,0.6388]  Ndiags=[2,2,]  Ph_acc=[3.174e+06,4.435e+05]  Pnrm=[2.928e+05,3.836e+04] 
+   9M <Phi>=[0.04337,0.002477]  <s>=[1,0.8707]  P_v_P=[0.5432,0.6437]  Ndiags=[2,2,]  Ph_acc=[3.303e+06,4.937e+05]  Pnrm=[3.047e+05,4.203e+04] 
+  10M <Phi>=[0.04333,0.002471]  <s>=[1,0.8711]  P_v_P=[0.5429,0.6379]  Ndiags=[2,2,]  Ph_acc=[3.459e+06,5.189e+05]  Pnrm=[3.193e+05,4.427e+04] 
+  11M <Phi>=[0.04337,0.002488]  <s>=[1,0.8714]  P_v_P=[0.5432,0.6406]  Ndiags=[2,2,]  Ph_acc=[3.618e+06,5.413e+05]  Pnrm=[3.337e+05,4.587e+04] 
+  12M <Phi>=[0.04337,0.002492]  <s>=[1,0.8717]  P_v_P=[0.543,0.6432]  Ndiags=[2,2,]  Ph_acc=[3.791e+06,5.508e+05]  Pnrm=[3.496e+05,4.66e+04] 
+  13M <Phi>=[0.04342,0.002506]  <s>=[1,0.8731]  P_v_P=[0.5436,0.6469]  Ndiags=[2,2,]  Ph_acc=[3.94e+06,5.829e+05]  Pnrm=[3.63e+05,4.903e+04] 
+  14M <Phi>=[0.04352,0.002502]  <s>=[1,0.8726]  P_v_P=[0.5449,0.6466]  Ndiags=[2,2,]  Ph_acc=[4.095e+06,6.092e+05]  Pnrm=[3.763e+05,5.132e+04] 
+  15M <Phi>=[0.04358,0.002527]  <s>=[1,0.8743]  P_v_P=[0.5456,0.6525]  Ndiags=[2,2,]  Ph_acc=[4.252e+06,6.343e+05]  Pnrm=[3.903e+05,5.293e+04] 
+  16M <Phi>=[0.04364,0.002549]  <s>=[1,0.8749]  P_v_P=[0.5463,0.6584]  Ndiags=[2,2,]  Ph_acc=[4.408e+06,6.606e+05]  Pnrm=[4.041e+05,5.464e+04] 
+  17M <Phi>=[0.04366,0.002547]  <s>=[1,0.8753]  P_v_P=[0.5466,0.658]  Ndiags=[2,2,]  Ph_acc=[4.568e+06,6.822e+05]  Pnrm=[4.185e+05,5.647e+04] 
+  18M <Phi>=[0.0437,0.002523]  <s>=[1,0.8748]  P_v_P=[0.547,0.6524]  Ndiags=[2,2,]  Ph_acc=[4.721e+06,7.097e+05]  Pnrm=[4.321e+05,5.929e+04] 
+  19M <Phi>=[0.04368,0.002527]  <s>=[1,0.8746]  P_v_P=[0.5467,0.654]  Ndiags=[2,2,]  Ph_acc=[4.882e+06,7.297e+05]  Pnrm=[4.471e+05,6.087e+04] 
+  20M <Phi>=[0.04372,0.002513]  <s>=[1,0.8739]  P_v_P=[0.5472,0.6511]  Ndiags=[2,2,]  Ph_acc=[5.042e+06,7.503e+05]  Pnrm=[4.613e+05,6.293e+04] 
+  21M <Phi>=[0.04379,0.002524]  <s>=[1,0.8742]  P_v_P=[0.548,0.6541]  Ndiags=[2,2,]  Ph_acc=[5.198e+06,7.762e+05]  Pnrm=[4.749e+05,6.484e+04] 
+  22M <Phi>=[0.04372,0.002526]  <s>=[1,0.8739]  P_v_P=[0.5471,0.6553]  Ndiags=[2,2,]  Ph_acc=[5.35e+06,8.038e+05]  Pnrm=[4.895e+05,6.708e+04] 
+  23M <Phi>=[0.04375,0.002522]  <s>=[1,0.8738]  P_v_P=[0.5475,0.6544]  Ndiags=[2,2,]  Ph_acc=[5.517e+06,8.194e+05]  Pnrm=[5.044e+05,6.85e+04] 
+  24M <Phi>=[0.0438,0.002543]  <s>=[1,0.8755]  P_v_P=[0.5481,0.6591]  Ndiags=[2,2,]  Ph_acc=[5.673e+06,8.464e+05]  Pnrm=[5.181e+05,7.017e+04] 
+  25M <Phi>=[0.04379,0.002542]  <s>=[1,0.8743]  P_v_P=[0.548,0.66]  Ndiags=[2,2,]  Ph_acc=[5.831e+06,8.687e+05]  Pnrm=[5.326e+05,7.205e+04] 
+  26M <Phi>=[0.04376,0.002532]  <s>=[1,0.8748]  P_v_P=[0.5476,0.6573]  Ndiags=[2,2,]  Ph_acc=[5.985e+06,8.949e+05]  Pnrm=[5.471e+05,7.452e+04] 
+  27M <Phi>=[0.0438,0.002517]  <s>=[1,0.8744]  P_v_P=[0.5481,0.6538]  Ndiags=[2,2,]  Ph_acc=[6.156e+06,9.064e+05]  Pnrm=[5.621e+05,7.591e+04] 
+  28M <Phi>=[0.04382,0.002512]  <s>=[1,0.8736]  P_v_P=[0.5483,0.653]  Ndiags=[2,2,]  Ph_acc=[6.317e+06,9.26e+05]  Pnrm=[5.766e+05,7.773e+04] 
+  29M <Phi>=[0.04384,0.002509]  <s>=[1,0.8736]  P_v_P=[0.5486,0.6526]  Ndiags=[2,2,]  Ph_acc=[6.463e+06,9.596e+05]  Pnrm=[5.897e+05,8.063e+04] 
+  30M <Phi>=[0.04383,0.002512]  <s>=[1,0.8743]  P_v_P=[0.5484,0.6531]  Ndiags=[2,2,]  Ph_acc=[6.618e+06,9.86e+05]  Pnrm=[6.04e+05,8.275e+04] 
+  31M <Phi>=[0.04378,0.002523]  <s>=[1,0.8744]  P_v_P=[0.5477,0.6562]  Ndiags=[2,2,]  Ph_acc=[6.771e+06,1.014e+06]  Pnrm=[6.187e+05,8.473e+04] 
+  32M <Phi>=[0.04373,0.002531]  <s>=[1,0.8749]  P_v_P=[0.5471,0.6584]  Ndiags=[2,2,]  Ph_acc=[6.931e+06,1.035e+06]  Pnrm=[6.34e+05,8.618e+04] 
+  33M <Phi>=[0.04376,0.002531]  <s>=[1,0.8749]  P_v_P=[0.5474,0.6583]  Ndiags=[2,2,]  Ph_acc=[7.1e+06,1.048e+06]  Pnrm=[6.491e+05,8.731e+04] 
+  34M <Phi>=[0.04376,0.002518]  <s>=[1,0.8738]  P_v_P=[0.5475,0.6558]  Ndiags=[2,2,]  Ph_acc=[7.264e+06,1.065e+06]  Pnrm=[6.639e+05,8.914e+04] 
+  35M <Phi>=[0.04381,0.002518]  <s>=[1,0.8734]  P_v_P=[0.5481,0.6563]  Ndiags=[2,2,]  Ph_acc=[7.43e+06,1.08e+06]  Pnrm=[6.784e+05,9.045e+04] 
+  36M <Phi>=[0.04385,0.002526]  <s>=[1,0.8736]  P_v_P=[0.5486,0.6584]  Ndiags=[2,2,]  Ph_acc=[7.593e+06,1.1e+06]  Pnrm=[6.926e+05,9.18e+04] 
+  37M <Phi>=[0.04385,0.002514]  <s>=[1,0.8735]  P_v_P=[0.5485,0.6552]  Ndiags=[2,2,]  Ph_acc=[7.743e+06,1.13e+06]  Pnrm=[7.064e+05,9.48e+04] 
+  38M <Phi>=[0.04386,0.002512]  <s>=[1,0.8734]  P_v_P=[0.5487,0.6549]  Ndiags=[2,2,]  Ph_acc=[7.901e+06,1.153e+06]  Pnrm=[7.206e+05,9.677e+04] 
+  39M <Phi>=[0.04379,0.002519]  <s>=[1,0.8742]  P_v_P=[0.5478,0.6564]  Ndiags=[2,2,]  Ph_acc=[8.043e+06,1.191e+06]  Pnrm=[7.346e+05,9.971e+04] 
+At the beginning of recalculate: Vol_diagrams0_read=[2,5.33333333333]  Vol_diagrams1_read=[2,5.33333333333] 
+After combining diagrams from all nodes, we obtain the following volumes: Vol_diagrams0=[2,5.33333333333]  Vol_diagrams1=[2,5.33333333333] 
+#stored diags:
+#norder ndiag <weight>
+ 2       6 23959.848949
+ 3      24 928.498359999
+ diagVol1=[2,5.333333333]  diagVol0=[2,5.333333333] 
+t acceptance_rate=0.524706 d acceptance=1 d/t=0.00830246
+Quantities averaged over all cores:
+ factor=[5.29279e-09,2.10793e-09] 
+ factor2=[6.88394e-09,2.73675e-09] 
+ V0norm=[0.002,3.95285e-05] 
+ Pnorm=[755745,100012] 
+ N_measure=[1.79833e+07,2.81622e+06] 
+ <s>=[1,0.872717]  overlap=[0.428296,0.279705] 
+ Phi_tot=[0.0436462,0.0024603] 
+t_changet=8.72602 t_diag_change=2.63694 t_measure=6.77135 t_Vrecmp=0 t_Fake_recmp=0.220743
+t_diag_change:skel=0.66232 t_diag_change:topol=1.61002 t_diag_change:choose=0.23644 t_diag_change:numericv=0.128711 t_diag_change:diff=0.657041 t_snext=0.841852
+Phi=[0.94914,0.950142,0.0436462,0.0024603]  log(Z)=1.94539 Fimp=-6.11159 -beta*Fimp=61.1159 lmbda0=-6.11681 U<nn>0.521289
+1) nf=0.999999 <<S>>=0.872174 Prb(:)=[0.0521295,0.0117839,0.883958,0.0521289]  lambda0=-6.11681
+1) Difference between previous and this step=0.00126336

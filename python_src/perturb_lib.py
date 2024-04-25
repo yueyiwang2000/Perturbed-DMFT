@@ -10,6 +10,15 @@ def fermi(eps,beta):
 def boson(eps,beta):
     return 1/(np.exp(beta*eps)-1)
 
+def gen_full_kgrids(knum,a=1):
+    kall=np.linspace(0,1,num=knum+1)
+    # kroll=np.roll(kall,1)
+    # kave=(kall+kroll)/2
+    klist=kall[:knum] 
+    # print('klist=',klist)
+    k1, k2, k3 = np.meshgrid(klist, klist, klist, indexing='ij')
+    return k1,k2,k3
+
 def dispersion(k1,k2,k3,a=1,t=1):
     kx=(-k1+k2+k3)*np.pi/a
     ky=(k1-k2+k3)*np.pi/a
@@ -50,6 +59,14 @@ def ext_sig(sig):
     allsig[:1*n]=allsig[2*n:n-1:-1].conjugate()
     return allsig
 
+def ext_g(g):
+    n=g.size
+    # print(lenom)
+    allg=np.zeros(2*n,dtype=complex)
+    allg[1*n:2*n]=g
+    allg[:1*n]=allg[2*n:n-1:-1].conjugate()
+    return allg
+
 # @profile
 def z4D(beta,mu,sig,knum,n,extramu=0):
     # sometimes we want values of G beyond the range of n matsubara points. try to do a simple estimation for even higher freqs:
@@ -63,17 +80,7 @@ def ext_sig4D(sig,knum,n):
     allsig[:1*n,:,:,:]=allsig[2*n:n-1:-1,:,:,:].conjugate()
     return allsig
 
-def gen_full_kgrids(knum,a=1):
-    kall=np.linspace(0,1,num=knum+1)
-    # kroll=np.roll(kall,1)
-    # kave=(kall+kroll)/2
-    klist=kall[:knum] 
-    # print('klist=',klist)
-    k1, k2, k3 = np.meshgrid(klist, klist, klist, indexing='ij')
-    # kx=0.5*(-k1+k2+k3)
-    # ky=0.5*(k1-k2+k3)
-    # kz=0.5*(k1+k2-k3)
-    return k1,k2,k3
+
 
 def calc_sym_point(in_k123,mat,knum):
     S=np.array([[-1,1,1],
@@ -250,3 +257,20 @@ def Delta_DMFT(sig1,sig2,U,T,knum=10,a=1):
     Delta_11=iom+mu-sigA-Gimp_inv_11[n:]
     Delta_22=iom+mu-sigB-Gimp_inv_22[n:]
     return Delta_11,Delta_22
+
+def particlenumber1D(G_iom,beta):
+    n=np.shape(G_iom)[0]
+    om=(2*np.arange(n)+1-n)*np.pi/beta
+    constinf=(1j*om[-1]-1/G_iom[-1]).real
+    Gana=1/(1j*om-constinf)
+    particlenumber=(fermi(constinf,beta)+np.sum(G_iom-Gana)/beta).real
+    return particlenumber
+
+def particlenumber4D(G_iom,beta):
+    n=np.shape(G_iom)[0]
+    knum=np.shape(G_iom)[1]
+    om=(2*np.arange(n)+1-n)*np.pi/beta
+    constinf=(1j*om[-1,None,None,None]-1/G_iom[-1]).real
+    Gana=1/(1j*om[:,None,None,None]-constinf)
+    particlenumber=((np.sum(fermi(constinf,beta))+np.sum(G_iom-Gana)/beta)/knum**3).real
+    return particlenumber

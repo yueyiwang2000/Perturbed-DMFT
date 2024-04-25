@@ -20,7 +20,7 @@ def bubble_mpi(operation,knum,nfreq,sym,*args):
     operation: serial function called to do the actual calculation. They are all in fft_convolution.py
     knum: # of kpoints in each dimension. by default knum=10.
     nfreq: # of positive matsubara freqs.
-    sym: symmetry of quantities on k-space. sym=11: A_k=A_-k    sym=12:A_k=-A_-k. A is the result wanted from this function.
+    sym: symmetry of the output quantity (bubble) on k-space. sym=11: A_k=A_-k    sym=12:A_k=-A_-k. A is the result wanted from this function.
     *args: U, beta, Pk, Gk, fullsig.... typical inputs for the operation function. They are only used in operation function and packed as *args.
 
     Note:

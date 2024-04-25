@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt 
 import numpy as np
+from scipy.interpolate import interp1d
 import os,sys,subprocess
 import time
 import hilbert
@@ -27,6 +28,19 @@ def boson_ifft(Pk,beta):
     N=np.shape(Pk)[0]
     Pkiom=np.fft.ifft(Pk*np.exp(-1j*(N)*np.pi*np.arange(N)/N))*np.exp(+1j*(2*np.arange(N)-N)*np.pi*0.5/N)*beta
     return Pkiom
+
+def interp_tau(P,delta_tau):
+    '''
+    This function is used for interpolation of functions in tau space. since sometimes we need even points and sometimes odd points to perform the correct FFT.
+    delta_tau is usually chosen as +1 or -1, which means add or subtract 1 tau point.
+    '''
+    nf=np.shape(P)[0]
+    # old and new tau grid, in unit of beta
+    old_tau=(np.arange(nf)+1/2)/nf
+    new_tau=(np.arange(nf+delta_tau)+1/2)/(nf+delta_tau)
+    f=interp1d(old_tau,P,fill_value="extrapolate")
+    Pnew=f(new_tau)
+    return Pnew
 
 def pertimp():
     T=0.01
@@ -137,23 +151,77 @@ def pertimp_func(G_A,delta_inf,beta,U,knum,order=2):
     GA_tau_ana=np.sum(-1/2*((1+delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
                         (1-delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
     GA_tau=GA_tau_ana+GA_tau_diff
+
+    G_B=-G_A.conjugate()
+    G_B0=np.sum((iom-delta_inf)[:,None,None,None]/(iom[:,None,None,None]**2-delta_inf**2-eps2[None,:,:,:]),axis=(1,2,3))/knum**3
+    GB_tau_diff=fermion_fft(G_B-G_B0,beta)
+    GB_tau_ana=np.sum(-1/2*((1-delta_inf/alpha)*np.exp(-alpha*tlist[:,None,None,None])/(1+np.exp(-alpha*beta))+
+                        (1+delta_inf/alpha)*np.exp(alpha*tlist[:,None,None,None])/(1+np.exp(alpha*beta))),axis=(1,2,3))/knum**3
+    GB_tau=GB_tau_ana+GB_tau_diff# This is wrong? the analytic estimation
+    GB_tau=GA_tau[::-1]#GB_tau_ana+GB_tau_diff
+    # make sure GB is correct! also, check GBtau=GAtau[::-1] between 0 and beta.
+
     # GA_bf=fermion_fft(G_A,beta)
     PA_tau=-GA_tau[::-1]*GA_tau
-    
+    PB_tau=-GB_tau[::-1]*GB_tau
     #calculate sig. sig is calculate on fermion matsubara freq points!
     Sigp_A=np.zeros(n*2,dtype=complex)
     Sigp_B=np.zeros(n*2,dtype=complex)
+    if order ==1:
+        Sigp_A=(-1)*(-1)*U*(np.sum(G_B).real/beta+1/2)# only works for half filling.
+        Sigp_B=(-1)*(-1)*U*(np.sum(G_A).real/beta+1/2)
+        return Sigp_A,Sigp_B
     if order==2:
-        SigA_tau=PA_tau*GA_tau*(-1)*U**2
-    if order ==3:# only 111 part shoule be cancelled:
-        QA_tau=GA_tau*GA_tau
-        PA_iom=boson_ifft(PA_tau,beta)
+        SigA_tau=PB_tau*GA_tau*(-1)*U**2
+    if order ==3:# only 111 part should be cancelled:
+        QA_tau=GA_tau*GB_tau
+        RA_tau=-GA_tau*GA_tau#B_tau[::-1]
+        n=QA_tau.size
+
+        RA_iom=boson_ifft(RA_tau,beta)
         QA_iom=boson_ifft(QA_tau,beta)
-        BA_iom=PA_iom*PA_iom
+        BA_iom=RA_iom*RA_iom
         AA_iom=QA_iom*QA_iom
         BA_tau=boson_fft(BA_iom,beta)
         AA_tau=boson_fft(AA_iom,beta)
-        SigA_tau=-AA_tau*GA_tau[::-1]*U**3+BA_tau*GA_tau*U**3#
+        SigA_tau=+BA_tau*GB_tau*U**3-AA_tau*GB_tau[::-1]*U**3
+
+        # those commented codes are tests for other tricks. 
+        # plt.plot((np.arange(n)+1/2)/n,BA_tau.real,label='BA_tau old real')
+        # plt.plot((np.arange(n)+1/2)/n,BA_tau.imag,label='BA_tau old imag')        
+
+        # # The brute-force way to calculate A...
+        # BA_BF=np.zeros_like(AA_tau)
+        
+        # for i in np.arange(n):
+        #     for j in np.arange(n):
+        #         BA_BF[i]+=RA_tau[j]*RA_tau[i-j]*beta/n
+        # plt.plot((np.arange(n)+1)/n,BA_BF.real,label='BA_tau BF real')
+        # plt.plot((np.arange(n)+1)/n,BA_BF.imag,label='BA_tau BF imag')  
+
+
+
+        # # #AN ALTERNATIVE WAY...?
+        # # # careful! before doing ifft, we have to interpolate it to 2n+1 tau points. fermionic quantities has 2n freqs, while bosonic has 2n+1. NOTE: this interpolation seems to be wrong.
+        # RA_tau_interp=interp_tau(RA_tau,+1)
+        # QA_tau_interp=interp_tau(QA_tau,+1)
+        # RA_iom=boson_ifft(RA_tau_interp,beta)
+        # QA_iom=boson_ifft(QA_tau_interp,beta)
+        # BA_iom=RA_iom*RA_iom
+        # AA_iom=QA_iom*QA_iom
+        # BA_tau=boson_fft(BA_iom,beta)
+        # AA_tau=boson_fft(AA_iom,beta)
+        # # Now, AA and BA should be Bosonic quantities with 2n+1 points. to calculate sigma, we should interpolate it back to fermionic 2n points:
+        # BA_tau_interp=interp_tau(BA_tau,-1)
+        # AA_tau_interp=interp_tau(AA_tau,-1)
+        # plt.plot((np.arange(n)+1/2)/n,BA_tau_interp.real,label='BA_tau interp real')
+        # plt.plot((np.arange(n)+1/2)/n,BA_tau_interp.imag,label='BA_tau interp imag')
+        # # SigA_tau=+BA_tau_interp*GB_tau*U**3-AA_tau_interp*GB_tau[::-1]*U**3#
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
+
+
     Sigp_A=fermion_ifft(SigA_tau,beta)
     Sigp_B=-Sigp_A.conjugate()
     return Sigp_A,Sigp_B
