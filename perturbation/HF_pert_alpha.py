@@ -173,7 +173,7 @@ def perturbation(U,T,order,ifit=0,alpha=1.,knum=10,nfreq=500):
         Sig2_22=-Sig2_11.conjugate()
     if order>=3:
         P22_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G22_tau,G22_tau,0)
-        P12_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G12_tau,G12_tau,1)
+        P12_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,12,G12_tau,G12_tau,1)
         Sig3_11,Sig3_12=diagrams.sig3(G11_iom,G12_iom,G11_tau,G12_tau,G22_tau,knum,nfreq,U,beta)
         Sig3_22=-Sig3_11.conjugate()
 

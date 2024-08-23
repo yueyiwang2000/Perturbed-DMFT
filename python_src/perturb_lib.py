@@ -96,12 +96,17 @@ def calc_sym_point(in_k123,mat,knum):
     return output.astype(int)
 
 def sym_mapping(k1ind,k2ind,k3ind,knum=10):
-    # generally, both G, P, sigma has the same k space symmetry.
-    # But hence we have a BCC instead of simple cubic, we have to use linear algebra to figure out the symmetry.
-    # define symmetry matrices in x,y,z basis:
-    # x_inverse=np.diag([-1,1,1])#x->-x
-    # y_inverse=np.diag([1,-1,1])#y->-y
-    # z_inverse=np.diag([1,1,-1])#z->-z
+    '''
+    generally, both G, P, sigma has the same k space symmetry.
+    But hence we have a BCC instead of simple cubic, we have to use linear algebra to figure out the symmetry.
+    define symmetry matrices in x,y,z basis:
+    x_inverse=np.diag([-1,1,1])#x->-x
+    y_inverse=np.diag([1,-1,1])#y->-y
+    z_inverse=np.diag([1,1,-1])#z->-z    
+    Specifically, this takes care of the off diagonal symmetry P12_k=P12_-k,
+    and also some kind of reciprocal symmetry like P12_{G-k}=-P12_{k}, where G is some reciprocal vector, which is the origin of last component of sym_points.
+    '''
+
     xy_swap=np.array([[0,1,0],
                       [1,0,0],
                       [0,0,1]],dtype=int)# (kx,ky,kz)=(ky,kx,kz), and so on.

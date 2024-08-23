@@ -2,12 +2,8 @@ import os,sys,subprocess
 sys.path.append('../python_src/')
 import math
 import numpy as np
-from mpi4py import MPI
 from perturb_lib import *
 import time
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-nprocs = comm.Get_size()
 
 
 def bubble_mpi(operation,knum,nfreq,sym,*args):
@@ -30,13 +26,16 @@ def bubble_mpi(operation,knum,nfreq,sym,*args):
     2. Generically this function can be used in many cases, and in each case the symmetry may vary.
     Examples are P11_k=P11_-k, P12_k=P12_-k; Sig11_k=Sig11_-k Sig12_k=-Sig12_-k,....
     3. This function does not works very fast.... only use it when the function itself take a long time.
+
+    This is the serial version of mpi_module.
     
 
     '''
     N=2*nfreq
-    time_beg=time.time()
+    # time_beg=time.time()
     max_sym_index,essential_kpoints, sym_array=calc_sym_array(knum)
-    
+    nprocs=1
+    rank=0
     # print('beginning of bubble_mpi',nprocs)
     if sym==12:
         power=1
@@ -50,7 +49,7 @@ def bubble_mpi(operation,knum,nfreq,sym,*args):
         return 0
     
     # max_sym_index,essential_kpoints, sym_array=calc_sym_array(knum)
-    time1=time.time()
+    # time1=time.time()
     if rank ==0:
         # devide max_sym_index for nproc processors
         ave, res = divmod(max_sym_index, nprocs)
@@ -61,40 +60,36 @@ def bubble_mpi(operation,knum,nfreq,sym,*args):
         # print(qpoints)
     else:
         qpoints=None
-    qpoints=comm.scatter(qpoints, root=0)
+    # qpoints=comm.scatter(qpoints, root=0)
     # print(qpoints)
 
     # assign q points for different procs. and calculate
     pointsperproc=math.ceil(max_sym_index/nprocs)
     partsig = np.zeros((pointsperproc,N),dtype=np.complex128)
-    time2=time.time()
-    for qind in np.arange(qpoints[1]-qpoints[0]):
-        if qind+pointsperproc*rank<max_sym_index:
-            q=essential_kpoints[qind+pointsperproc*rank]
-            # partsig[qind,:]=fft_convolution.precalcsigp_fft(q,knum,Gk,Pk,beta,U,0)
-            time_begfun=time.time()
-            partsig[qind,:]=operation(q,knum,*args)
-            time_endfun=time.time()
-    time3=time.time()
-    gathered_sig=np.zeros((nprocs,pointsperproc,N),dtype=np.complex128)
-    comm.Gather(partsig,gathered_sig,root=0)
+    # time2=time.time()
+    for qind in np.arange(max_sym_index):
+        q=essential_kpoints[qind]
+        # partsig[qind,:]=fft_convolution.precalcsigp_fft(q,knum,Gk,Pk,beta,U,0)
+        # time_begfun=time.time()
+        partsig[qind,:]=operation(q,knum,*args)
+        # time_endfun=time.time()
+    # time3=time.time()
+    # gathered_sig=np.zeros((nprocs,pointsperproc,N),dtype=np.complex128)
+    # comm.Gather(partsig,gathered_sig,root=0)
     full_sig=np.zeros((N, knum, knum, knum),dtype=np.complex128)
-    if rank==0:
         # P is compacted for fast connection between procs. now unpack it:
-        for proc in np.arange(nprocs):
-            for ind in np.arange(pointsperproc):
-                qind=proc*pointsperproc+ind
-                if qind < max_sym_index:
-                    q=essential_kpoints[qind]
-                    full_sig[:,q[0],q[1],q[2]]=gathered_sig[proc,ind,:]
+    for proc in np.arange(nprocs):
+        for ind in np.arange(pointsperproc):
+            qind=proc*pointsperproc+ind
+            if qind < max_sym_index:
+                q=essential_kpoints[qind]
+                full_sig[:,q[0],q[1],q[2]]=partsig[ind,:]#gathered_sig[proc,ind,:]
         # restore k-space domain sym
-                    all_sym_kpoints=sym_mapping(q[0],q[1],q[2],knum)
-                    for kpoint in all_sym_kpoints:
+                all_sym_kpoints=sym_mapping(q[0],q[1],q[2],knum)
+                for kpoint in all_sym_kpoints:
                         full_sig[:,kpoint[0],kpoint[1],kpoint[2]]=full_sig[:,q[0],q[1],q[2]]*(kpoint[3]**power)
-    time4=time.time()
-    comm.Bcast(full_sig, root=0)
-    time_end=time.time()
-    # if rank==0:
-    #     # print('total mpi={}s, operation={}s'.format(time_end-time_beg,time_endfun-time_begfun))
-    #     print('total mpi={}s, operations={} {} {} {} {}'.format(time_end-time_beg,time1-time_beg,time2-time1,time3-time2,time_end-time3,time_end-time4))
+    # time4=time.time()
+    # time_end=time.time()
+        # print('total mpi={}s, operation={}s'.format(time_end-time_beg,time_endfun-time_begfun))
+    # print('total mpi={}s, operations={} {} {} {} {}'.format(time_end-time_beg,time1-time_beg,time2-time1,time3-time2,time_end-time3,time_end-time4))
     return full_sig

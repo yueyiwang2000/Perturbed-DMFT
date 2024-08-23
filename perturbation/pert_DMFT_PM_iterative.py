@@ -16,6 +16,8 @@ nprocs = comm.Get_size()
 """
 # Yueyi Wang. Dec 2023
 # This file is a perturbation based on the converged result of DMFT.
+This only take the imaginary part of self-energy and manually add a freq-independent splitting to real part as the starting point of perturbation.
+The code is experimental. not working currently.
 """
 
 
@@ -30,15 +32,18 @@ def readDMFT(dir): # read DMFT Sigma and G.
     else:
         for i in indexlist[::-1]:
             filename=dir+'.{}'.format(i)
+            # print(filename)
             if (os.path.exists(filename)):
                 filefound=1
+                # print('file found:',filename)
                 break
             if i<10:
-                print('warning: only {} DMFT iterations. result might not be accurate!'.format(i))
+                # print('warning: only {} DMFT iterations. result might not be accurate!'.format(i))
                 break
+        
 
-    if filefound==0:
-        print('{} cannot be found!'.format(filename))  
+    # if filefound==0:
+        # print('{} cannot be found!'.format(filename))  
     # else:
     #     print('reading DMFT data from {}'.format(filename))
     # sigma=np.loadtxt(filename)[:nfreq,:]
@@ -50,7 +55,7 @@ def diff_sigma(sigma11,newsigma11,sigma22,newsigma22):
     res=np.sum(np.abs(sigma11-newsigma11)+np.abs(sigma22-newsigma22))/knum**3
     return res
 
-def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrative=1):
+def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrative=0):
     '''
     the main function doing iterative pertubation. 
     Input:
@@ -107,10 +112,14 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
         G22imp_iom=np.sum(G22_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
 
         #-------------Generating G0=(iom+mu-epsk-Sig_PM-alpha*Sig_AFM)^-1---------
-        Sig_PM=(Sigma11+Sigma22)/2
-        Sig_AFM=(Sigma11-Sigma22)/2
-        Sigmod11=Sig_PM+alpha*Sig_AFM
-        Sigmod22=Sig_PM-alpha*Sig_AFM
+        # here a natural scale of the splitting should be U/2, but that is an upper bound of the splitting.
+        # the alpha might be much lower than this value.
+
+        # Sig_PM=(Sigma11+Sigma22)/2
+        # Sig_AFM=(Sigma11-Sigma22)/2
+        Sig_PM=1j*Sigma11.imag+mu
+        Sigmod11=Sig_PM+alpha*U/2
+        Sigmod22=Sig_PM-alpha*U/2
         Sigmod12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
         zmod_1=z4D(beta,mu,Sigmod11,knum,nfreq)#z-delta
         zmod_2=z4D(beta,mu,Sigmod22,knum,nfreq)#z+delta
@@ -122,6 +131,10 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
         G0_12_tau = np.ascontiguousarray(G0_12_tau)
         G0_22_tau=G0_11_tau[::-1] 
         G0_22_tau = np.ascontiguousarray(G0_22_tau)
+        # plt.plot(G0_22_tau[:,0,0,0].real,label='real')
+        # plt.plot(G0_22_tau[:,0,0,0].imag,label='imag')
+        # plt.legend()
+        # plt.show()
         # n0loc11=np.sum(G0_11_iom).real/beta/knum**3+1/2
         # n0loc22=np.sum(G0_22_iom).real/beta/knum**3+1/2
         n0loc11=particlenumber4D(G0_11_iom,beta)
@@ -137,21 +150,21 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
         sigimp_1_11=(particlenumber1D(G22imp_iom,beta))*U
         sigimp_1_22=(particlenumber1D(G11imp_iom,beta))*U        
         sigimpPM_1=(sigimp_1_11+sigimp_1_22)/2
-        sigimpAFM_1=(sigimp_1_11-sigimp_1_22)/2        
-        sigimpmod_1_11=sigimpPM_1+alpha*sigimpAFM_1
-        sigimpmod_1_22=sigimpPM_1-alpha*sigimpAFM_1    
+        # sigimpAFM_1=(sigimp_1_11-sigimp_1_22)/2        
+        sigimpmod_1_11=sigimpPM_1+alpha*U/2
+        sigimpmod_1_22=sigimpPM_1-alpha*U/2 
         #2nd
         sigimp_2_11,sigimp_2_22=imp.pertimp_func(G11imp_iom,delta_inf,beta,U,knum,2)# 2nd order diagram in Sigma_DMFT
         sigimpPM_2=(sigimp_2_11+sigimp_2_22)/2
-        sigimpAFM_2=(sigimp_2_11-sigimp_2_22)/2
-        sigimpmod_2_11=sigimpPM_2+alpha*sigimpAFM_2
-        sigimpmod_2_22=sigimpPM_2-alpha*sigimpAFM_2
+        # sigimpAFM_2=(sigimp_2_11-sigimp_2_22)/2
+        sigimpmod_2_11=sigimpPM_2#+alpha*sigimpAFM_2
+        sigimpmod_2_22=sigimpPM_2#-alpha*sigimpAFM_2
         #3rd
         sigimp_3_11,sigimp_3_22=imp.pertimp_func(G11imp_iom,delta_inf,beta,U,knum,3)# 3rd order diagram in Sigma_DMFT    
         sigimpPM_3=(sigimp_3_11+sigimp_3_22)/2
-        sigimpAFM_3=(sigimp_3_11-sigimp_3_22)/2
-        sigimpmod_3_11=sigimpPM_3+alpha*sigimpAFM_3
-        sigimpmod_3_22=sigimpPM_3-alpha*sigimpAFM_3    
+        # sigimpAFM_3=(sigimp_3_11-sigimp_3_22)/2
+        sigimpmod_3_11=sigimpPM_3#+alpha*sigimpAFM_3
+        sigimpmod_3_22=sigimpPM_3#-alpha*sigimpAFM_3    
 
     comm.Bcast(G0_11_iom, root=0)
     comm.Bcast(G0_12_iom, root=0)
@@ -169,7 +182,7 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
 
     # for notations, refer to '240126 third order diagram' and also the qualifier paper
     if order>=3:
-        Sig3_11,Sig3_12=diagrams.sig3(G0_11_iom,G0_12_iom,G0_11_tau,G0_12_tau,G0_22_tau,knum,nfreq,U,0,beta)
+        Sig3_11,Sig3_12=diagrams.sig3(G0_11_iom,G0_12_iom,G0_11_tau,G0_12_tau,G0_22_tau,knum,nfreq,U,beta)
         Sig3_22=-Sig3_11.conjugate()
         P22_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G0_22_tau,G0_22_tau,0)
         P12_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G0_12_tau,G0_12_tau,1)
@@ -192,6 +205,9 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
             m_arr=(n0loc22-n0loc11)*np.ones(maxit)
     if order>0:
         for it in np.arange(maxit):# if no iteration, just go once, if have iteration, 20 iterations.
+            # sig_corr_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+            # sig_corr_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+            # sig_corr_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
             if rank ==0:
                 # This G_dressed is for the iterated perturbation. But in the 1st iteration is should be G_0.
                 z_1=z4D(beta,mu,Sigmod11+sig_corr_11,knum,nfreq)
@@ -203,66 +219,75 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
                 nloc11=particlenumber4D(Gdress11_iom,beta)
                 nloc22=particlenumber4D(Gdress22_iom,beta)
                 m_arr[it]=nloc22-nloc11
-
+                # print('n2-n1=',nloc22-nloc11)
                 if order >=1:# first order correction to self energy
                     sig_corr1_11=(nloc22*U-sigimpmod_1_11)*np.ones((2*nfreq,knum,knum,knum),dtype=complex)
                     sig_corr1_22=(nloc11*U-sigimpmod_1_22)*np.ones((2*nfreq,knum,knum,knum),dtype=complex)
                     sig_corr_11=sig_corr1_11
-                    sig_corr_22=sig_corr1_22
+                    sig_corr_22=sig_corr1_22  
+                    # print('sig_corr1_11:',nloc22*U-sigimpmod_1_11)
                     sig_corr_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
                 if order >=2:# second order correction to self energy
-                    sig_corr2_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-                    sig_corr2_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-                    sig_corr2_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+                    # sig_corr2_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+                    # sig_corr2_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+                    # sig_corr2_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
                     # non-skeleton diagrams(if not doing iterative perturbation) Since we use sig_corr in the first order we have to do non-skeletons first
                     # for second order, it is everything from 1st order inserted in a hartree(which is the only diagram at 1st order)
                     if ifit==0:# if alpha not equals to 1 we will need tadpole insertion on tadpole
                         sigext2_11=diagrams.sig2_nonskeleton(G0_22_iom,G0_12_iom,sig_corr_11,sig_corr_22,knum,nfreq,U,beta)
                         sigext2_22=-sigext2_11
+                        
+                        # print('diagrams order1: {:4f} {:4f}'.format(nloc22*U-sigimpmod_1_11,nloc11*U-sigimpmod_1_22))
+                        # print('CT diagrams order2: a={:4f}'.format(sigext2_11.real))
                         sig_corr2_11+=sigext2_11
                         sig_corr2_22+=sigext2_22
                     #skeleton corrections
-                    sig_corr2_11+=(Sig2_11-sigimpmod_2_11[:,None,None,None])
-                    sig_corr2_22+=(Sig2_22-sigimpmod_2_22[:,None,None,None])
-                    sig_corr2_12+=Sig2_12
+                    sig_corr2_11=(Sig2_11-sigimpmod_2_11[:,None,None,None])
+                    sig_corr2_22=(Sig2_22-sigimpmod_2_22[:,None,None,None])
+                    sig_corr2_12=Sig2_12
                     sig_corr_11+=sig_corr2_11
                     sig_corr_22+=sig_corr2_22
                     sig_corr_12+=sig_corr2_12
                 if order>=3: # 3rd order correction
-                    sig_corr3_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-                    sig_corr3_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-                    sig_corr3_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+                    # sig_corr3_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+                    # sig_corr3_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+                    # sig_corr3_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
                     if ifit==0:
                         # non-skeleton diagrams first(if not doing iterative perturbation)
                         #IMPORTANT: iterative perturbation will only cover all insertions in a hartree. It does not cover some other diagrams. e,g, 1st order insertion in a skeleton 2nd order diagram.
                         sigext3a_11=diagrams.sig3_nonskeleton_A(G0_22_iom,G0_12_iom,Sig2_11-sigimpmod_2_11[:,None,None,None],Sig2_22-sigimpmod_2_22[:,None,None,None],Sig2_12,knum,nfreq,U,beta)#second order insertion on a hartree
-                        sigext3a_22=-sigext3a_11
-                        sigext3b_11=diagrams.sig3_nonskeleton_B(G0_22_iom,G0_12_iom,G0_11_iom,sig_corr1_11,sig_corr1_22,knum,nfreq,U,beta)
+                        sigext3a_22=-sigext3a_11#
+                        # important note: I had a bug for the diagramB and I was using sig_corr1_11. and got ridiculous bugs. BE CAREFUL HERE!
+                        #DO NOT USE sig_corr1_11!!!! BUT WHY?
+                        sigext3b_11=diagrams.sig3_nonskeleton_B(G0_22_iom,G0_12_iom,G0_11_iom,nloc22*U-sigimpmod_1_11,nloc11*U-sigimpmod_1_22,knum,nfreq,U,beta)
                         sigext3b_22=-sigext3b_11
                         sigext3c_11=diagrams.sig2_nonskeleton(G0_22_iom,G0_12_iom,sigext2_11,sigext2_22,knum,nfreq,U,beta)
                         sigext3c_22=-sigext3c_11
-                        sig_corr3_11+=(sigext3a_11+sigext3b_11+sigext3c_11)
-                        sig_corr3_22+=(sigext3a_22+sigext3b_22+sigext3c_22)
+                        # print('CT diagrams order3: a={:.4f} b={:.4f} c={:.4f} a+b+c={:.4f}'.format(sigext3a_11.real,sigext3b_11.real,sigext3c_11.real,sigext3a_11.real+sigext3b_11.real+sigext3c_11.real))
+                        sig_corr3_11+=(sigext3a_11+sigext3b_11+sigext3c_11)#
+                        sig_corr3_22+=(sigext3a_22+sigext3b_22+sigext3c_22)#
                     if it==0:# only calculate once in the 0th iteration, when G=G0, we always need them for ifit =0 or 1.
-                        sigext3def_11,sigext3def_12=diagrams.sig3_nonskeleton_DEF(G0_11_iom,G0_12_iom,G0_11_tau,G0_12_tau,P22_tau,P12_tau,sig_corr1_11,sig_corr1_22,beta,knum,nfreq,U)
+                        sigext3def_11,sigext3def_12=diagrams.sig3_nonskeleton_DEF(G0_11_iom,G0_12_iom,G0_11_tau,G0_12_tau,P22_tau,P12_tau,nloc22*U-sigimpmod_1_11,nloc11*U-sigimpmod_1_22,beta,knum,nfreq,U)
                         sigext3def_22=-sigext3def_11.conjugate()
                     #skeleton corrections
-                    sig_corr3_11+=(Sig3_11+sigext3def_11-sigimpmod_3_11[:,None,None,None])#
-                    sig_corr3_22+=(Sig3_22+sigext3def_22-sigimpmod_3_22[:,None,None,None])#
-                    sig_corr3_12+=(Sig3_12+sigext3def_12)
+                    sig_corr3_11=(Sig3_11+sigext3def_11-sigimpmod_3_11[:,None,None,None])#
+                    sig_corr3_22=(Sig3_22+sigext3def_22-sigimpmod_3_22[:,None,None,None])#
+                    sig_corr3_12=(Sig3_12+sigext3def_12)
                     sig_corr_11+=sig_corr3_11
                     sig_corr_22+=sig_corr3_22
                     sig_corr_12+=sig_corr3_12
 
-            #need a scheme to justify when to converge
-            # diff=diff_sigma(Sigma11,new_Sigma11,Sigma12,new_Sigma12)
-            # diff_arr[it]=diff
-            # if it % period==0:
-                # print(f'\tit={it},\tdiff={diff:.7f},\tn11={nloc11:.9f},\tn22={nloc22:.9f}')
+                #need a scheme to justify when to converge
+                if it==0:
+                    diff=999
+                else:
+                    diff=np.abs(m_arr[it]-m_arr[it-1])
 
-            # diff=comm.bcast(diff, root=0)
-            # if diff<epsilon:
-            #     break
+                print('iteration #{}: m={:.4f} diff={:.4f}'.format(it,nloc22-nloc11,diff))
+            diff=comm.bcast(diff, root=0)
+            if diff<epsilon:
+                # print('{}<{}, break!'.format(m_arr[it]-m_arr[it-1],epsilon))
+                break
                     
         # finally, according to the sigma, get the best GF.
         znew_1=z4D(beta,mu,Sigmod11+sig_corr_11,knum,nfreq)
@@ -284,7 +309,7 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha=1,ifitrati
     if rank==0:
         # filename='./data_{}/{}_{}_{}_{}.dat'.format(dataname,U,T,alpha,order)
         # f = open(filename, 'w')
-        print('alpha={}'.format(alpha),'order {} '.format(order),'n0loc11={}'.format(nnewloc11),'n0loc22={}'.format(nnewloc22), 'm={}'.format(nnewloc22-nnewloc11))
+        print('alpha={}'.format(alpha),'order {} '.format(order),'n0loc11={:.4f}'.format(nnewloc11),'n0loc22={:.4f}'.format(nnewloc22), 'm={:.4f}'.format(nnewloc22-nnewloc11))
         # f.close()   
 
         # F, TrlogG, TrSigmaG, Phi, F_alter, TrlogG_alter=energy.PertFreeEnergy(order,om,Sigma11,Sigma22,Sigma12,U,T,dataname,alpha,1)
@@ -301,19 +326,21 @@ def run_perturbation(U,T,nfreq,ordernum,alpha,ifit):
     name1='../files_DMFT/{}_{}/Sig.out'.format(U,T)
     filename1=readDMFT(name1)
     name2='../files_DMFT/{}_{}/Sig.OCA'.format(U,T)
-
+    filename2=readDMFT(name2)
+    # print(filename1)
+    # print(filename2)
     if (os.path.exists(filename1)):
         filename=filename1
     elif (os.path.exists(filename2)):
-        filename2=readDMFT(name2)
         filename=filename2
-        print('reading DMFT data from {}'.format(filename))
+        # print('reading DMFT data from {}'.format(filename))
     else:
-        print('{} cannot be found!'.format(filename))  
+        # print('{} cannot be found!'.format(filename))  
         return 0  
     sigma=np.loadtxt(filename)[:nfreq,:]
     check=sigma[-1,1]
     om=sigma[:,0]
+    # anyways real part of sigA will be greater.
     if check>U/2:
         sigA=sigma[:,1]+1j*sigma[:,2]
         sigB=U-sigma[:,1]+1j*sigma[:,2]
@@ -333,20 +360,26 @@ if __name__ == "__main__":
     knum=10
     nfreq=500
     index=50
-
-    U=8.0  
-    T=0.25
-    ifit=0# 0: no iteration
+    order_arr = np.arange(4)
+    U=3.0  
+    T=0.13
+    if len(sys.argv)>=3:
+        U=float(sys.argv[1])
+        T=float(sys.argv[2])
+    ifit=1# 0: no iteration
     typelist=['basic','iterative']
-    alpha_arr=np.arange(11)/10
+
+    # alpha_arr=np.arange(11)/20
     # alpha_arr=np.arange(11)/100
+    alpha_arr=np.array(([0.0,0.05,0.1,0.15,0.2,0.3,0.4,0.6,0.8,1.0]))
     magarr=np.zeros((4,alpha_arr.size),dtype=float)
-    
-    for i,alpha in enumerate(alpha_arr):
-        magarr[0,i]=run_perturbation(U,T,nfreq,0,alpha,ifit)
-        magarr[1,i]=run_perturbation(U,T,nfreq,1,alpha,ifit)
-        magarr[2,i]=run_perturbation(U,T,nfreq,2,alpha,ifit)
-        magarr[3,i]=run_perturbation(U,T,nfreq,3,alpha,ifit)
+    print('U={},T={}'.format(U,T))
+
+
+
+    for order in order_arr:
+        for i,alpha in enumerate(alpha_arr):
+            magarr[order,i]=run_perturbation(U,T,nfreq,order,alpha,ifit)
     plt.plot(alpha_arr, magarr[0], marker='o', linestyle='-',label='DMFT {} 0th'.format(typelist[ifit]))
     plt.plot(alpha_arr, magarr[1], marker='^', linestyle='-',label='DMFT {} 1st'.format(typelist[ifit]))
     plt.plot(alpha_arr, magarr[2], marker='s', linestyle='-',label='DMFT {} 2nd'.format(typelist[ifit]))
@@ -354,12 +387,27 @@ if __name__ == "__main__":
     plt.legend()
     plt.title('Magnetization vs Order: U={} T={}'.format(U, T))
     plt.show()
-    plt.plot(alpha_arr, magarr[1]-magarr[0], marker='^', linestyle='-',label='DMFT {} 1st-0th'.format(typelist[ifit]))
-    plt.plot(alpha_arr, magarr[2]-magarr[0], marker='s', linestyle='-',label='DMFT {} 2nd-0th'.format(typelist[ifit]))
-    plt.plot(alpha_arr, magarr[3]-magarr[0], marker='p', linestyle='-',label='DMFT {} 3rd-0th'.format(typelist[ifit]))
-    plt.title('Magnetization vs Order: U={} T={}'.format(U, T))
-    # plt.xticks(np.arange(4))
+
+    plt.plot(alpha_arr, np.abs(magarr[0]), marker='o', linestyle='-',label='DMFT {} 0th'.format(typelist[ifit]))
+    plt.plot(alpha_arr, np.abs(magarr[1]), marker='^', linestyle='-',label='DMFT {} 1st'.format(typelist[ifit]))
+    plt.plot(alpha_arr, np.abs(magarr[2]), marker='s', linestyle='-',label='DMFT {} 2nd'.format(typelist[ifit]))
+    plt.plot(alpha_arr, np.abs(magarr[3]), marker='p', linestyle='-',label='DMFT {} 3rd'.format(typelist[ifit]))
     plt.legend()
+    plt.title('Magnetization vs Order: U={} T={}'.format(U, T))
     plt.show()
-    # print("U=",U,'T=',T,'order=',ordernum,'ifitration=',ifit)
-    
+
+    # plt.plot(alpha_arr, magarr[1]-magarr[0], marker='^', linestyle='-',label='DMFT {} 1st-0th'.format(typelist[ifit]))
+    # plt.plot(alpha_arr, magarr[2]-magarr[0], marker='s', linestyle='-',label='DMFT {} 2nd-0th'.format(typelist[ifit]))
+    # plt.plot(alpha_arr, magarr[3]-magarr[0], marker='p', linestyle='-',label='DMFT {} 3rd-0th'.format(typelist[ifit]))
+    # plt.title('Magnetization vs Order: U={} T={}'.format(U, T))
+    # plt.legend()
+    # plt.show()
+
+    # write the magnetization in the files in perturbation/data
+    if rank==0:
+        filename='./data_iterative/{}_{}.dat'.format(U,T)
+        f = open(filename, 'w')
+        for ialp, alp in enumerate(alpha_arr):
+            print('{:.2f} {:.5f} {:.5f} {:.5f} {:.5f}'.format(alp,magarr[0,ialp],magarr[1,ialp],magarr[2,ialp],magarr[3,ialp]), file=f)
+        # alpha and magnetization after 0th, 1st 2nd and 3rd order.
+        f.close()   

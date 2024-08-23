@@ -97,7 +97,7 @@ def plot_sigma(filename,index):
     # for i in np.arange(np.size(sigma[1,:])-1)+1:
     #     plt.plot(omega,sigma[:,i],label='{}th column in {}th file'.format(i,index))
     plt.plot(omega,sigma[:,1],label='real1 in {}th file'.format(index))
-    # plt.plot(omega,sigma[:,3],label='real2 in {}th file'.format(index))
+    plt.plot(omega,sigma[:,3],label='real2 in {}th file'.format(index))
     # plt.plot(omega,np.zeros_like(omega),label='ZERO')
     plt.legend()
     # plt.xlim((0,omega[-1]/10))
@@ -162,12 +162,14 @@ def burst_variational(num,checkpoint,interval=1):
             # filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,int(i+1))
             # filename='../files_variational/{}_{}_{}/Sig.out.{}'.format(B,U,T,int(i+1))
             # filename='../files_mixing/{}_{}_{}/Sig.out.{}'.format(U,T,B,int(i+1))
-            filename='../files_DMFT/{}_{}/Sig.out.{}'.format(U,T,int(i+1))
+            # filename='../files_ctqmc/{}_{}/Sig.out.{}'.format(U,T,int(i))
+            filename='../files_boldc/{}_{}/Sig.out.{}'.format(U,T,int(i+1))
             if os.path.isfile(filename):
                 sigma=np.loadtxt(filename)
                 # omega=sigma[:,0]
                 plt.scatter(i,sigma[checkpoint,1],c='red')
                 plt.scatter(i,sigma[checkpoint,3],c='blue')
+                print('find file {}'.format(filename))
             else:
                 print('cannot find {}'.format(filename))
     plt.title('Sigma_imp(om->{}).real U={},T={}'.format(checkpoint,U,T))
@@ -175,169 +177,29 @@ def burst_variational(num,checkpoint,interval=1):
     plt.show()
     return 0
 
-def burst_variational_delta0(num,checkpoint=0,interval=1):
-    ilist=np.arange(num)
-    # checkpoint=0
-    for i in ilist:
-        if i%interval==0:
-            # filename='../files_variational/{}_{}_{}/Sig.OCA.{}'.format(B,U,T,int(i+1))
-            # filename='../files_variational/{}_{}_{}/Sig.out.{}'.format(B,U,T,int(i+1))
-            filename='../files_mixing/{}_{}_{}/Delta.inp.{}'.format(U,T,B,int(i+1))
-            if os.path.isfile(filename):
-                sigma=np.loadtxt(filename)
-                # omega=sigma[:,0]
-                plt.scatter(i,sigma[checkpoint,1],c='red')
-                plt.scatter(i,sigma[checkpoint,3],c='blue')
-            else:
-                print('cannot find {}'.format(filename))
-    plt.title('Delta(0).real B={},U={},T={}'.format(B,U,T))
-    plt.xlabel('DMFT iteration #')
-    plt.show()
-    return 0
-
-def mag_vs_B_new(U,T,b_arr,perttype):
-    mag_arr=np.zeros((4,b_arr.size))
-    # logGarr=np.zeros((5,b_arr.size))
-    # TrSigmaGarr=np.zeros((5,b_arr.size))
-    # Phiarr=np.zeros((5,b_arr.size))
-    for i in np.arange(b_arr.size):
-        B=b_arr[i]
-        for order in (np.arange(4)):# from 0th(DMFT) to n-1th
-            filename1='../dressed_hartree/data_{}/{}_{}_{}_{}.dat'.format(perttype,U,T,B,order)
-            if os.path.isfile(filename1):
-                mag_arr[order,i]=find_last_value(filename1,'m=')
-            else:
-                print('cannot find files! {}'.format(filename1))
-    plt.plot(b_arr,mag_arr[0],label='DMFT')
-    plt.plot(b_arr,mag_arr[1],label='1st order')
-    plt.plot(b_arr,mag_arr[2],label='2nd order')
-    plt.plot(b_arr,mag_arr[3],label='3rd order')
+def display_file(filename,index):
+    sigma=np.loadtxt(filename)
+    omega=sigma[:,0]
+    plt.plot(omega,sigma[:,1],label='real1 in {}th file'.format(index))
+    plt.plot(omega,sigma[:,2],label='imag1 in {}th file'.format(index))
+    plt.plot(omega,sigma[:,3],label='real2 in {}th file'.format(index))
+    plt.plot(omega,sigma[:,4],label='imag2 in {}th file'.format(index))
     plt.legend()
-    plt.xlabel('B field')
-    plt.ylabel('magnetization')
-    plt.title('magnetization vs B: U={},T={} type={}'.format(U,T,perttype))
-    plt.show()
-    # for iB,B in enumerate(b_arr):
-    #     plt.plot(mag_arr[:,iB],label='B={}'.format(B))
-    # plt.legend()
-    # plt.xlabel('order')
-    # plt.ylabel('magnetization')
-    # plt.title('magnetization vs orders: U={},T={} type={}'.format(U,T,perttype))
-    # plt.show()
-    return 0
-
-def mag_strategies(U,T,order,b_arr):
-    '''
-    This function compares the result of different strategies of doing perturbation.
-    '''
-    mag_arr=np.zeros((5,b_arr.size))
-    for i in np.arange(b_arr.size):
-        B=b_arr[i]
-        filename0='../dressed_hartree/data_basic/{}_{}_{}_0.dat'.format(U,T,B)
-        mag_arr[0,i]=find_last_value(filename0,'m=')
-        filename1='../dressed_hartree/data_basic/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[1,i]=find_last_value(filename1,'m=')
-        filename2='../dressed_hartree/data_dyson/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[2,i]=find_last_value(filename2,'m=')
-        filename3='../dressed_hartree/data_iterative/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[3,i]=find_last_value(filename3,'m=')
-        filename4='../dressed_hartree/data_iterativedyson/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[4,i]=find_last_value(filename4,'m=')
-    plt.plot(b_arr,mag_arr[0],label='DMFT')
-    plt.plot(b_arr,mag_arr[1],label='basic')
-    plt.plot(b_arr,mag_arr[2],label='dyson')
-    plt.plot(b_arr,mag_arr[3],label='iterative')
-    plt.plot(b_arr,mag_arr[4],label='iterativedyson')
-    plt.legend()
-    plt.xlabel('B field')
-    plt.ylabel('magnetization')
-    plt.title('magnetization vs B: U={},T={} order={}'.format(U,T,order))
-    plt.show()
-    return 0
-
-
-def F_vs_B(U,T,b_arr,check,perttype):
-    F_arr=np.zeros((5,5,b_arr.size))
-    # logGarr=np.zeros((5,b_arr.size))
-    # TrSigmaGarr=np.zeros((5,b_arr.size))
-    # Phiarr=np.zeros((5,b_arr.size))
-    for i in np.arange(b_arr.size):
-        B=b_arr[i]
-        for order in (np.arange(4)):# from 0th(DMFT) to n-1th
-            
-            # filename1='../dressed_hartree/data/{}_{}_{}_{}.dat'.format(U,T,B,order)#_countB0
-            filename2='../dressed_hartree/data_{}/{}_{}_{}_{}.dat'.format(perttype,U,T,B,order)
-            if os.path.isfile(filename2):
-                filename=filename2 # usually mixing is better. try that first.
-            # elif os.path.isfile(filename1):
-            #     filename=filename1
-            else:
-                print('cannot find {}'.format(filename))    
-            # if alter==1:
-            #     F_arr[0,order+1,i]=find_last_value(filename,'F_alter=')
-            #     F_arr[1,order+1,i]=find_last_value(filename,'TrlogG_alter=')
-            # else:
-            F_arr[0,order+1,i]=find_last_value(filename,'F=')
-            F_arr[1,order+1,i]=find_last_value(filename,'TrlogG=')
-            F_arr[2,order+1,i]=find_last_value(filename,'TrSigmaG=')
-            F_arr[3,order+1,i]=find_last_value(filename,'Phi=')
-            
-
-        filenameimp='../files_mixing/{}_{}_{}/pertenergy_{}_{}_{}_{}_order0.txt'.format(U,T,B,perttype,U,T,B)
-        # filenameimp2='../files_variational/{}_{}_{}/pertenergy_{}_{}_{}_order0.txt'.format(U,T,B,U,T,B)
-
-        if os.path.isfile(filenameimp):
-            F_arr[0,0,i]=find_last_value(filenameimp,'Fimp=')
-            F_arr[1,0,i]=find_last_value(filenameimp,'TrlogGimp=')
-            F_arr[2,0,i]=find_last_value(filenameimp,'TrSigmaGimp=')
-            F_arr[3,0,i]=find_last_value(filenameimp,'Phiimp=')
-        else:
-            print('cannot find {}'.format(filenameimp))
-
-    checklist=['F','logG','TrSigmaG','Phi']
-    #0: F, 1: logG, 2: TrSigmaG, 3: Phi 4. logG_diff
-    plt.plot(b_arr,F_arr[check,0],label='impurity')
-    plt.plot(b_arr,F_arr[check,1],label='DMFT')
-    plt.plot(b_arr,F_arr[check,2],label='1st order')
-    plt.plot(b_arr,F_arr[check,3],label='2nd order')
-    plt.plot(b_arr,F_arr[check,4],label='3rd order')
-    plt.legend()
-    plt.xlabel('B field')
-    plt.ylabel(checklist[check])
-    plt.title('{} vs B: U={},T={},type={}'.format(checklist[check],U,T,perttype))
+    plt.title(filename)
     plt.show()
 
+def check_files(U,T,num):
+    mode='ctqmc'
+    # filechecked='Sig.out'
+    # filechecked='delta.inp'
+    filechecked='Gf.out'
+    for i in np.arange(num):
+        filename='../files_{}/{}_{}/{}.{}'.format(mode,U,T,filechecked,int(i))
+        display_file(filename,i)
     return 0
 
+    
 
-def F_strategies(U,T,order,b_arr):
-    '''
-    This function compares the result of different strategies of doing perturbation.
-    '''
-    mag_arr=np.zeros((5,b_arr.size))
-    for i in np.arange(b_arr.size):
-        B=b_arr[i]
-        # filename0='../dressed_hartree/data_basic/{}_{}_{}_0.dat'.format(U,T,B)
-        # mag_arr[0,i]=find_last_value(filename0,'F=')
-        filename1='../dressed_hartree/data_basic/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[1,i]=find_last_value(filename1,'F=')
-        filename2='../dressed_hartree/data_dyson/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[2,i]=find_last_value(filename2,'F=')
-        filename3='../dressed_hartree/data_iterative/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[3,i]=find_last_value(filename3,'F=')
-        filename4='../dressed_hartree/data_iterativedyson/{}_{}_{}_{}.dat'.format(U,T,B,order)
-        mag_arr[4,i]=find_last_value(filename4,'F=')
-    # plt.plot(b_arr,mag_arr[0],label='DMFT')
-    plt.plot(b_arr,mag_arr[1],label='basic')
-    plt.plot(b_arr,mag_arr[2],label='dyson')
-    plt.plot(b_arr,mag_arr[3],label='iterative')
-    plt.plot(b_arr,mag_arr[4],label='iterativedyson')
-    plt.legend()
-    plt.xlabel('B field')
-    plt.ylabel('Free energy')
-    plt.title('Free energy vs B: U={},T={} order={}'.format(U,T,order))
-    plt.show()
-    return 0
 
 
 def checklocimp(U,T,Barr):
@@ -396,29 +258,15 @@ def checklogG(U,T,b_arr,myorder):
 
 
 if __name__ == "__main__":
-    mode=0
+    mode=1
     #boldc=0, ctqmc=1
 
 
-
-    Tlist_7=       np.array([0.2,0.25,0.3,0.32,0.35,0.37,0.39])
-    pointsnumlist7=np.array([80 ,60  ,40 ,40  ,30  ,25  ,16])
-    b_stop7=       np.array([0.158,0.11,0.066,0.06,0.048,0.04,0.03])*500
-    U=8.0
-    B=0.008
-    T=0.1
-    iT=np.where(Tlist_7==T)[0]
+    U=12.0
+    T=0.3
 
 
-    # b_arr=np.arange(pointsnumlist7[iT])/500
-    # b_arr=np.arange(b_stop7[iT])/500
     # checklocimp(U,T,b_arr)
-    burst_variational(75,-1,1)
-    check=0# different numbers means different quantities ti check:  0: F, 1: logG, 2: TrSigmaG, 3: Phi
-    perttype='iterativedyson'
-    # F_vs_B(U,T,b_arr,check,perttype)
-    # F_strategies(U,T,3,b_arr)
-    # mag_vs_B_new(U,T,b_arr,perttype)
-    # mag_strategies(U,T,1,b_arr)
-    # susceptibility(U)
+    burst_variational(100,-1,1)
+    # check_files(U,T,10)
     # checklogG(U,T,b_arr,2)

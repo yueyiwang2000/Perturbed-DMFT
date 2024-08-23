@@ -4,9 +4,10 @@ import time
 import matplotlib.pyplot as plt
 from numba import jit, complex128
 import perturb_lib
-from numba.types import float64, complex128
-
+# from numba.types import float64, complex128
+from numba import jit
 # shift in k space
+
 def G12_shift(G12,q,knum,opt):
     """
     opt==1 means shift with sign!
@@ -174,7 +175,7 @@ def fermion_fft_diagG(knum, Gk,beta,fullsig,mu):
     fermion_om = (2*np.arange(N)+1-N)*np.pi/beta
     if np.abs(delta_inf)<0.0001:# AVOID 0/0
         alpk=np.ones_like(alpk)
-        print('delta=',delta_inf,'take alpha=1')
+        # print('delta=',delta_inf,'take alpha=1')
     Gk0=1/2*((1+delta_inf/alpk)/(1j*fermion_om[:,None,None,None]-alpk)+
              (1-delta_inf/alpk)/(1j*fermion_om[:,None,None,None]+alpk))
     Gk_tau_diff=fast_ft_fermion(Gk-Gk0,beta)
@@ -189,7 +190,7 @@ def precalcP_fft(q, knum, G1k_tau,G2k_tau,opt):# this function deal with Gk*Gkq.
     n = int(np.shape(G1k_tau)[0] / 2)
     G2kq_tau=G12_shift(G2k_tau,q,knum,opt)
     Pq_tau=np.sum(-G1k_tau[::-1,:,:,:]*G2kq_tau,axis=(1,2,3))/knum**3
-    return Pq_tau.real
+    return Pq_tau.real 
 
 def precalcQ_fft(q, knum, G1k_tau,G2k_tau,opt):
     '''
@@ -204,7 +205,7 @@ def precalcQ_fft(q, knum, G1k_tau,G2k_tau,opt):
     Pq_tau=np.sum(G1k_tau*G2kq_tau,axis=(1,2,3))/knum**3
     return Pq_tau
 
-
+# @jit(nopython=True)
 def precalcsig_fft(q, knum, Gk_tau,Pq_tau,beta,U,opt):#for off-diagonal
     N=np.shape(Pq_tau)[0]
     Gkq_tau=G12_shift(Gk_tau,q,knum,opt)
@@ -236,7 +237,11 @@ def precalc_C(P1iom,P2iom,beta):
     Ctau=fast_ft_boson(Ciom,beta) 
     return Ctau
 
-
+def precalc_ladder3(P1iom,P2iom,P3iom,beta):
+    # here Ps are bosonic quantities so we have to put them back on Bosonic matsubara freqs.
+    Ciom=P1iom*P2iom*P3iom
+    Ctau=fast_ft_boson(Ciom,beta) 
+    return Ctau
 
 
 # other methods. just for test, not actually used any more.

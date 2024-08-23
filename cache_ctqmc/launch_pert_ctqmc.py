@@ -37,7 +37,7 @@ def CreateInputFile(params):
         print(p, params[p][0], '\t', params[p][1], file=f)
     f.close()
 
-def DMFT_SCC(fDelta):
+def DMFT_SCC(fDelta,splitting):
     """This subroutine creates Delta.inp from Gf.out for DMFT on bethe lattice: Delta=t^2*G
     If Gf.out does not exist, it creates Gf.out which corresponds to the non-interacting model
     In the latter case also creates the inpurity cix file, which contains information about
@@ -56,9 +56,9 @@ def DMFT_SCC(fDelta):
         for i in np.arange(500):
             omega=(2*i+1)*np.pi/params['beta'][0]
             sigma[i,0]=omega #omega
-            sigma[i,1]=params['mu'][0]+0.1# Gaa,up,real
+            sigma[i,1]=params['mu'][0]+splitting# Gaa,up,real
             sigma[i,2]=0# Gaa, up, imag
-            sigma[i,3]=params['mu'][0]-0.1# Gaa, dn, real
+            sigma[i,3]=params['mu'][0]-splitting# Gaa, dn, real
             sigma[i,4]=0# Gaa, dn, imag
         print('writing trial sigma file')
         f = open(filesig, 'w')
@@ -89,7 +89,8 @@ def DMFT_SCC(fDelta):
     freq_num=500
     om = sigma[:freq_num,0].real
     Sg_A = sigma[:freq_num,1]+sigma[:freq_num,2]*1j
-    Sg_B = sigma[:freq_num,3]+sigma[:freq_num,4]*1j
+    Sg_B = Uc-sigma[:freq_num,1]+sigma[:freq_num,2]*1j
+    # Sg_B = sigma[:freq_num,3]+sigma[:freq_num,4]*1j
     # print(type(Sg_A),type(om),type(params['mu'][0]))
 
     #also, prepare the original delta for comparison.
@@ -111,6 +112,7 @@ def DMFT_SCC(fDelta):
     # cmd = 'cp Delta.inp '+dir+'ori_Delta.inp.'+str(it)
     # subprocess.call(cmd, shell=True,stdout=sys.stdout,stderr=sys.stderr) 
     print('Delta file is done!')
+    return Dlt_A,Dlt_B
 
 
 def Diff(fg1, fg2):
@@ -123,16 +125,17 @@ def Diff(fg1, fg2):
 if __name__ == '__main__':
 
     filedos='../python_src/DOS_3D.dat'
-    Uc=8
-    beta=4
-
+    # Uc=8
+    # beta=4
+    splitting=0.2
+    mixing=1
     if (len(sys.argv)==3):
         Uc=float(sys.argv[1])
         T=float(sys.argv[2])
         print('T=',T)
         print('Uc=',Uc)
-        # dir='../files_ctqmc/{}_{}/'.format(Uc,T)
-        dir='../files_DMFT/{}_{}/'.format(Uc,T)
+        dir='../files_ctqmc/{}_{}/'.format(Uc,T)
+        # dir='../files_DMFT/{}_{}/'.format(Uc,T)
     else:
         print('seems input format is not correct...')
 
@@ -148,7 +151,7 @@ if __name__ == '__main__':
           "U":     [Uc,                 "# Coulomb repulsion (F0)"],
           "mu":    [Uc/2.,              "# Chemical potential"],
           "beta":  [1/T,                "# Inverse temperature"],
-          "M" :    [4e6,                "# Number of Monte Carlo steps"],
+          "M" :    [1e7,                "# Number of Monte Carlo steps"],
           "mode":  ["SH",               "# S stands for self-energy sampling, M stands for high frequency moment tail"],
           "cix":   ["one_band.imp",     "# Input file with atomic state"],
           "Delta": ["../cache_ctqmc/Delta.inp",        "# Input bath function hybridization"],
@@ -216,7 +219,21 @@ if __name__ == '__main__':
         # Constructing bath Delta.inp from Green's function
         # note: first run the non-pert version and get self-energy for reference.
         # Then,calculate pert-version. then the final sig.out left is the sig function after perturbation.
-        DMFT_SCC(params['Delta'][0])# DMFT without perturbation
+        deltaA,deltaB=DMFT_SCC(params['Delta'][0],splitting)# DMFT without perturbation
+        # if it==0:
+        #     prvdeltaA=deltaA
+        #     prvdeltaB=deltaB
+        # else:
+        #     deltaA=mixing*deltaA+(1-mixing)*prvdeltaA
+        #     deltaB=mixing*deltaB+(1-mixing)*prvdeltaB
+        #     prvdeltaA=deltaA
+        #     prvdeltaB=deltaB
+        # freq_num=500
+        # om=(2*np.arange(500)+1)*np.pi*T
+        # f = open(params['Delta'][0], 'w')
+        # for i,iom in enumerate(om):
+        #     print(iom, deltaA[i].real, deltaA[i].imag, deltaB[i].real, deltaB[i].imag, file=f) 
+        # f.close()
             # Running ctqmc
         print('Running ---- qmc itt.: ', it, '-----')
         subprocess.call(params['exe'][0], shell=True,stdout=sys.stdout,stderr=sys.stderr)
@@ -236,9 +253,11 @@ if __name__ == '__main__':
             diff = Diff('Gf.out', '{}Gf.out.'.format(dir)+str(it-1))
             print('Diff=', diff)
             diff_arr[it-1]=diff
-            if (diff<5e-6) and ifconv==0:
+            if (diff<4e-6) and ifconv==0:
                 ifconv=1
-                itstop=it+25
+                itstop=it+5
+                print('converged, waiting for 25 iterations. will stop after',itstop)
+                # break
             if it>=itstop:
                 break
     # finally, when the iteration is done, copy things again:

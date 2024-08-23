@@ -29,7 +29,6 @@ def bubble_mpi(operation,knum,nfreq,sym,*args):
     But this should be taken cared by the function called but not this function here.
     2. Generically this function can be used in many cases, and in each case the symmetry may vary.
     Examples are P11_k=P11_-k, P12_k=P12_-k; Sig11_k=Sig11_-k Sig12_k=-Sig12_-k,....
-    3. This function does not works very fast.... only use it when the function itself take a long time.
     
 
     '''
@@ -91,10 +90,9 @@ def bubble_mpi(operation,knum,nfreq,sym,*args):
                     all_sym_kpoints=sym_mapping(q[0],q[1],q[2],knum)
                     for kpoint in all_sym_kpoints:
                         full_sig[:,kpoint[0],kpoint[1],kpoint[2]]=full_sig[:,q[0],q[1],q[2]]*(kpoint[3]**power)
-    time4=time.time()
     comm.Bcast(full_sig, root=0)
     time_end=time.time()
-    # if rank==0:
-    #     # print('total mpi={}s, operation={}s'.format(time_end-time_beg,time_endfun-time_begfun))
-    #     print('total mpi={}s, operations={} {} {} {} {}'.format(time_end-time_beg,time1-time_beg,time2-time1,time3-time2,time_end-time3,time_end-time4))
+    if rank==0:
+        # print('total mpi={}s, operation={}s'.format(time_end-time_beg,time_endfun-time_begfun))
+        print('total mpi={}s, operations={} {} {} {}'.format(time_end-time_beg,time1-time_beg,time2-time1,time3-time2,time_end-time3))
     return full_sig

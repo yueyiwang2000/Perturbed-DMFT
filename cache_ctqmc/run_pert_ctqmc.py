@@ -30,7 +30,20 @@ list_6=((6.,0.15),(6.,0.2))#
 # run(list_8)
 # run(list_9)
 # run(list_3)
-run(list_6)
+# run(list_6)
 
 # subprocess.call(cmd, shell=True)
 # > ./files/{}_{}/{}_{}.txt
+T_bound=np.array(((3.0,0.07,0.14),(4.,0.5,0.7),(5.,0.2,0.35),(6.,0.27,0.37),(7.,0.27,0.3),(8.,0.45,0.6),(9.,0.3,0.5),(10.,0.45,0.5),(11.,0.3,0.5),(12.,0.3,0.5)))
+for list in T_bound:
+    U=list[0]
+    # print(U)
+    if U==4.0:
+        for T in np.arange(int(list[1]*100),int(list[2]*100))/100:
+            # print(U,T)
+            # dir='../files_DMFT/{}_{}/'.format(U,T)
+            # if os.path.exists(dir):
+            #     print('already have this directory: ', dir)
+            # else:
+            cmd='python launch_pert_ctqmc.py {} {}'.format(U,T)
+            subprocess.call(cmd, shell=True)

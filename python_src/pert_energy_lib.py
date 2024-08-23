@@ -39,8 +39,8 @@ def readDMFT(dir,nfreq): # read DMFT Sigma and G.
 
     if filefound==0:
         print('{} cannot be found!'.format(filename))  
-    else:
-        print('reading DMFT data from {}'.format(filename))
+    # else:
+    #     print('reading DMFT data from {}'.format(filename))
 
 
 
@@ -49,25 +49,22 @@ def readDMFT(dir,nfreq): # read DMFT Sigma and G.
     sigB=sigma[:,3]+1j*sigma[:,4]
     return sigA,sigB# this also works for G!
 
-def gen_energy_files(U,T,opt,B=0.0):
+def gen_energy_files(U,T,opt1=0):
     '''
     run the calculation of Eimp, Fimp and Phi. Here I store the in the same dir as the DMFT output, because if i have to redo DMFT the old file will be cleaned.
     '''
-    if opt=='ctqmc':
-        dir='../files_ctqmc/{}_{}/'.format(U,T)
-        cmd='python ../Tools/FreeEnergy/cmpEimp_ctqmc.py {} {} {} > {}energy_ctqmc_{}_{}.txt'.format(U,T,dir,dir,U,T)
-        subprocess.call(cmd, shell=True)
-    elif opt=='boldc':
-        dir='../files_boldc/{}_{}/'.format(U,T)
-        cmd='python ../Tools/FreeEnergy/cmpEimp_bold.py {} {} {} > {}energy_boldc_{}_{}.txt'.format(U,T,dir,dir,U,T)
-        subprocess.call(cmd, shell=True)
-    elif opt=='variational':
-        dir='../files_variational/{}_{}_{}/'.format(U,T,B)
-        cmd='python ../Tools/FreeEnergy/cmpEimp_bold.py {} {} {} {}> {}energy_variational_{}_{}_{}.txt'.format(U,T,B,dir,dir,U,T,B)
+    if U>=8.:
+        opt=0
+    else:
+        opt=1
+    # U <=5 ctqmc is used, otherwize boldc.
+    if opt==0:
+        dire='../files_boldc/{}_{}/'.format(U,T)
+        cmd='python ../Tools/FreeEnergy/cmpEimp_bold.py {} {} {} > ../perturbation/impenergydata/{}_{}.txt'.format(U,T,dire,U,T)
         subprocess.call(cmd, shell=True)
     else:
-        dir='../files_mixing/{}_{}_{}/'.format(U,T,B)
-        cmd='python ../Tools/FreeEnergy/cmpEimp_bold.py {} {} {} {}> {}energy_mixing_{}_{}_{}.txt'.format(U,T,B,dir,dir,U,T,B)
+        dire='../files_ctqmc/{}_{}/'.format(U,T)
+        cmd='python ../Tools/FreeEnergy/cmpEimp_ctqmc.py {} {} {} > ../perturbation/impenergydata/{}_{}.txt'.format(U,T,dire,U,T)
         subprocess.call(cmd, shell=True)
     return 0
 
@@ -269,7 +266,10 @@ def fTrSigmaG1(om, Gfc, Sigc, EimpS, beta,knum=10):
     return SDf
 
 def LogG(omega,Gfc,EimpS,beta):# modify this for 4D version. But the trace limits that only local part of G counts.
-    " Tr(log(-G_imp))"
+    """
+    Tr(log(-G_imp))
+    Note: the inputs of GF should only has positive freq data. negative freq data  will be automatically covered.
+    """
     # Here LogGimp is up to a i*pi factor with Log(-Gimp). Since G(iom)=G*(-iom) so TrLogG should be exactly real.
     def NonIntF0(beta,Ene):
         # if beta*Ene>200: return 0.0
@@ -290,8 +290,8 @@ def LogG(omega,Gfc,EimpS,beta):# modify this for 4D version. But the trace limit
             Gd = Gfc
             eimps = EimpS
 
-            CC = omega[:,None,None,None]*1j-eimps[None,:,:,:]-1/Gd # This looks like delta. but sometimes it is hard to get exact eimp.
-            A,C = GetHighFrequency(CC,omega)
+            # CC = omega[:,None,None,None]*1j-eimps[None,:,:,:]-1/Gd # This looks like delta. but sometimes it is hard to get exact eimp.
+            # A,C = GetHighFrequency(CC,omega)
 
             ff = np.log(-Gd)-np.log(-1./(omega[:,None,None,None]*1j-eimps[None,:,:,:]))# - 1./(omega[:,None,None,None]*1j-eimps[None,:,:,:])*A/(omega[:,None,None,None]*1j-C)
             lnGimp = np.sum(2*sum(ff.real)/beta+NonIntF0(beta,eimps))/knum**3#+ReturnHighFrequency(A,C,beta,eimps))
@@ -333,60 +333,99 @@ def LogGdiff(omega,Gimp,Gk,beta):
     logGdiff = 2*np.sum(ff.real)/beta/knum**3
     return logGdiff
 
-def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1):
+def LogG_EigVal(S11,S12,S22,beta,mu,knum=10,nfreq=500):
+
+    # also, we need the eigenvalues of the G matrix, for the TrlogG term of the lattice system:
+    # G+-=iom+mu-SigPM+-sqrt(SigAFM**2+(eps_k+Sig12))
+    om= (2*np.arange(nfreq)+1)*np.pi/beta
+    disper=lib.calc_disp(knum)
+    SigPM=0.5*(S11+S22)
+    SigAFM=0.5*(S11-S22)
+    Siglambda11=SigPM-np.sqrt(SigAFM**2+(S12+disper[None,:,:,:])**2)#
+    Siglambda22=SigPM+np.sqrt(SigAFM**2+(S12+disper[None,:,:,:])**2)#
+    Glambda1=1/(om[:,None,None,None]*1j+mu-Siglambda11[nfreq:])
+    Glambda2=1/(om[:,None,None,None]*1j+mu-Siglambda22[nfreq:])
+    EimpS1=Siglambda11[-1,:,:,:].real-mu
+    EimpS2=Siglambda22[-1,:,:,:].real-mu
+    LogGeigval=LogG(om,Glambda1,EimpS1,beta)+LogG(om,Glambda2,EimpS2,beta)
+    return LogGeigval.real
+
+def H0G(G12,T,U):
+    '''
+    This function is designed to calculate energy for a given GF or self energy:
+    E=Tr(H_0*G)+Tr(Sigma*G)/2
+    '''
+    knum=10
+    beta=1/T
+    mu=U/2
+    disp=lib.calc_disp(knum)
+    H_0G=-mu*1+np.sum(disp[None,:,:,:]*(G12*2)).real/knum**3/beta# here we should have a -n*mu but here at half-filling 
+    return H_0G
+
+def back_integration(Tlist,Elist,lastentropy):
+    Slist=np.zeros_like(Tlist)
+    Slist[-1]=lastentropy
+    for iT,T in enumerate(Tlist[:-1]):
+        Slist[iT]=lastentropy-Elist[-1]/Tlist[-1]+Elist[iT]/Tlist[iT]-np.sum(Elist[iT:-1]/Tlist[iT:-1]/Tlist[iT:-1]+Elist[iT+1:]/Tlist[iT+1:]/Tlist[iT+1:])*0.01/2# dT=0.01
+    return Slist
+
+def PertFreeEnergy(Sigma11,Sigma22,Sigma12,U,T,mode=0):
     '''
     order: does not matter. only comes in the filenames. at order 0 and 1, sigma is not k-dependent.
     Sigma: perturbation-corrected self-energy. usually in 4D array.
     U: Hubbard U
     T: temperature
-    opt: 'boldc' or 'ctqmc' or 'variational'
-    B: magnetic field
-    ifGbest: if the best GF is used. If set to 0, use G_DMFT(k), which might also be a decent choice. 
-    This could answer a question: using correct form of phi, or using correct GF, which one is more important?
+    alpha: AFM splitting
+    Here i am trying to split the calculation of total and free energies.
     '''
+    debug=1
     beta=1./T
     knum=np.shape(Sigma11)[1]
     nfreq=int(np.shape(Sigma11)[0]/2)
     mu=U/2
+    DMFTcheck=0# if this is 1 we use DMFT self energy to check, and also print the log file
 
-    # Get Phi[Gimp] and Eimp
-    if opt=='variational' or opt=='mixing':
-        dir='../files_'+opt+'/{}_{}_{}/'.format(U,T,B)
-        fileenergy=dir+'energy_'+opt+'_{}_{}_{}.txt'.format(U,T,B)
-    elif opt=='boldc' or opt=='ctqmc':
-        dir='../files_'+opt+'/{}_{}/'.format(U,T)
-        fileenergy=dir+'energy_'+opt+'_{}_{}.txt'.format(U,T)
-    else:
-        dir='../files_'+'mixing'+'/{}_{}_{}/'.format(U,T,B)
-        fileenergy=dir+'energy_'+'mixing'+'_{}_{}_{}.txt'.format(U,T,B)
-
-
-    if opt=='boldc' or opt=='ctqmc':
-        filepertenergy=dir+'pertenergy_{}_{}_order{}.txt'.format(U,T,order)
-    else:# we could have many types of opt. might be: variational mixing basic dyson iterative iterativedyson
-    # if opt=='variational' or opt=='mixing':# experimental feature. to be tested.
-        filepertenergy=dir+'pertenergy_{}_{}_{}_{}_order{}.txt'.format(opt,U,T,B,order)
+    # before we start, a few things to explain:
+    # to calculate the corrected energy we need energy for the impurity system.
+    # however the result may vary when we have different orders and alphas.
+    # currently, let's say, for any incoming self-energies, we try our best to calculate the lattice free energy, 
+    # i.e. in free energy we include as many orders of nonlocal corrections in phi as we can.
+    # Thus, the desired output should be like this:
+    # File name: U_T.dat      (the order is the order of perturbation of GF, but not order of free energy correction!)
+    # imp (Fimp) (Eimp)
+    # (alpha) (F at order 0) (E at order 0) (F at order 1) (E at order 1) (F at order 2) (E at order 2) (F at order 3) (E at order 3)
+    # ......
+    
+    # about the files:
+    # first, cmpEimp (ctqmc or bold) will generate energy files about impurity. this is stored with DMFT files, like Sig, Gf, delta, ...
+    # this first directory is called 'fileenergy'
+    # and we should also have another file which is about the perturbed energy, which is stored in perturbation/energydata.
+    # this second directory is called 'filepertenergy'
+    if mode==0:
+        dir='../files_boldc/{}_{}/'.format(U,T)# dir or DMFT related files. currently only boldc is supported.
+    elif mode==1:
+        dir='../files_ctqmc/{}_{}/'.format(U,T)
+    fileenergy='../perturbation/impenergydata/{}_{}.txt'.format(U,T)
+    filepertenergy='../perturbation/energydata/{}_{}.log'.format(U,T)# this is a log file which check if the code is correct.
 
 
     # if os.path.exists(fileenergy)==False:# energy file not generated yet 
-    gen_energy_files(U,T,opt,B)# maybe better to renew the energy file every time.
-    with open(filepertenergy, 'w') as f:# first one use write mode to clean the file. then use append mode.
-        print('Perturbed Free Energy Calculation: U=',U,'T=',T,'B=',B,'opt=',opt,'ifGbest=',ifGbest, file=f)
+    gen_energy_files(U,T,mode)# maybe better to renew the energy file every time.
+    # with open(filepertenergy, 'w') as f:# first one use write mode to clean the file. then use append mode.
+    # print('Perturbed Free Energy Calculation: U=',U,'T=',T)
     Phi_DMFT=find_last_value(fileenergy,'Phi_DMFT=')
     Fimp=find_last_value(fileenergy,'Fimp=')
     # for the 2 quantities below, i prefer not to read them but calculate them using my own functions. this will ensure they are calculated in the same way as in the main code to aviud systematic error.
     logGimp=find_last_value(fileenergy,'logGimp=')
     TrSigmaGimp=find_last_value(fileenergy,'TrSigmaG=')
-
+    Eimp=find_last_value(fileenergy,'Eimp=')
+    # return 0
     
     # Read DMFT G and Sigma from files. Things about DMFT and impurity solver.
     dirsig=dir+'Sig.out'
     dirg=dir+'Gf.out'
     SigimpA,SigimpB=readDMFT(dirsig,nfreq)
     SigimpB=U-SigimpA.real+1j*SigimpA.imag
-    # SigimpA-=B
-    # SigimpB+=B
-    # To check the impurity quantities, remember G0 still contains B since DMFT is performed for a system under B field.
     GimpAshort,GimpBshort=readDMFT(dirg,nfreq)
     GimpBshort=-GimpAshort.conjugate()
     GimpA=lib.ext_g(GimpAshort)
@@ -410,38 +449,38 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
     SigDMFT12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
     SigDMFT11+=lib.ext_sig(SigimpA)[:,None,None,None]
     SigDMFT22+=lib.ext_sig(SigimpB)[:,None,None,None]
-    zDMFT_1=lib.z4D(beta,mu,SigDMFT11,knum,nfreq)+B
-    zDMFT_2=lib.z4D(beta,mu,SigDMFT22,knum,nfreq)-B
+    zDMFT_1=lib.z4D(beta,mu,SigDMFT11,knum,nfreq)
+    zDMFT_2=lib.z4D(beta,mu,SigDMFT22,knum,nfreq)
     GDMFT11_iom,G12_iom=lib.G_iterative(knum,zDMFT_1,zDMFT_2,SigDMFT12)
     GDMFT22_iom=-GDMFT11_iom.conjugate()
     GDMFTloc11_iom=np.sum(GDMFT11_iom,axis=(1,2,3))/knum**3
     GDMFTloc22_iom=np.sum(GDMFT22_iom,axis=(1,2,3))/knum**3
 
+    
+
     # Phi(n)[Gimp] is much easier, we can call the function to get local version of self-energy diagrams.
-    simp11_oo=SigimpA[-1].real-mu-B # This should be something like delta, the half gap betn up and dn bands.
+    simp11_oo=SigimpA[-1].real-mu # This should be something like delta, the half gap betn up and dn bands.
     Sigimp1_11,Sigimp1_22=libimp.pertimp_func(GDMFTloc11_iom,simp11_oo,beta,U,knum,order=1)
     Sigimp2_11,Sigimp2_22=libimp.pertimp_func(GDMFTloc11_iom,simp11_oo,beta,U,knum,order=2)
     Sigimp3_11,Sigimp3_22=libimp.pertimp_func(GDMFTloc11_iom,simp11_oo,beta,U,knum,order=3)
     # print('Sigma diagrams of impurity calculated')
 
 
-    iforder0=0
-    if order==0:
-        iforder0=1
+
+    if DMFTcheck==1:
         #take DMFT sigma and G:
         Sig11=SigDMFT11
         Sig22=SigDMFT22
         Sig12=SigDMFT12
         # note: DMFT means order0, which is still for the system under B.
-        with open(filepertenergy, 'a') as f:
-            print('Using DMFT lattice GF and DMFT self-energy to calculate free energy')
+        # with open(filepertenergy, 'w') as f:
+        # print('Using DMFT lattice GF and DMFT self-energy to calculate free energy. Input sigma neglected.')
     else:# take the best perturbative sigma
-        Sig11=Sigma11-B
-        Sig22=Sigma22+B
-        # Here is for G0=(iom+mu-epsk)^-1. The sigma given from perturbation is for G0=(iom+mu-epsk+-B)^-1
+        Sig11=Sigma11
+        Sig22=Sigma22
         Sig12=Sigma12
-        with open(filepertenergy, 'a') as f:
-            print('Using input GF and self-energy to calculate free energy', file=f)
+        # with open(filepertenergy, 'a') as f:
+        # print('Using input GF and self-energy to calculate free energy')
 
         
     if debug==2:
@@ -454,15 +493,15 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
 
 
 
-
+ 
 
     # About perturbed GF, not DMFT:
     # Get best GF
-    z_1=lib.z4D(beta,mu,Sig11,knum,nfreq)+B*iforder0
-    z_2=lib.z4D(beta,mu,Sig22,knum,nfreq)-B*iforder0
+    z_1=lib.z4D(beta,mu,Sig11,knum,nfreq)
+    z_2=lib.z4D(beta,mu,Sig22,knum,nfreq)
     G11_iom,G12_iom=lib.G_iterative(knum,z_1,z_2,Sig12)
     G22_iom=-G11_iom.conjugate()
-    print('GF calculated')
+    # print('GF calculated')
     if debug==2:
         plt.plot(G11_iom[nfreq:,0,0,0].real,label='G11_iom real')
         plt.plot(G11_iom[nfreq:,0,0,0].imag,label='G11_iom imag')
@@ -473,13 +512,14 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
 
     # geneate accurate GF in imaginary time.
     s11_oo = Sig11[-1,:,:,:].real# currently this is a 3d array, each k point has a s_oo.
-    EimpS11 = -mu+s11_oo-B*iforder0 # this is also a 3d array. G~1/(iom-eimp), so we need eimp.
+    EimpS11 = -mu+s11_oo # this is also a 3d array. G~1/(iom-eimp), so we need eimp.
     s22_oo = Sig22[-1,:,:,:].real
-    EimpS22 = -mu+s22_oo+B*iforder0
+    EimpS22 = -mu+s22_oo
+    # print('s_oo:',s11_oo[0,0,0],s22_oo[0,0,0])
     G11_tau=libfft.fermion_fft_diagG_4D(knum,G11_iom,beta,EimpS11)
     G12_tau=libfft.fast_ft_fermion(G12_iom,beta)
     G22_tau=libfft.fermion_fft_diagG_4D(knum,G22_iom,beta,EimpS22)
-    print('GF in tau calculated')
+    # print('GF in tau calculated')
     if debug==2:
         plt.plot(G11_tau[:,0,0,0].real,label='G11_tau real')
         plt.plot(G11_tau[:,0,0,0].imag,label='G11_tau imag')
@@ -491,13 +531,11 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
     # Get corrections of Phi(n). We do not need the detailed sigma of each order. Essentially Phi can also be done as Tr(Sigma*G) but use specific sigma and G (and take care of symmetry factors!)
     # An important point is we have to construct Phi(n)[Gbest] from beginning since we don't have it before. so we have to call for the function to generate self-energy diagrams, then get Phi(n).
 
-    #First, we have to calculate the corresponding self-energy diagrams of Gbest.
+    #First, we have to calculate the corresponding self-energy diagrams of Gbest. for free energy.
     Sig1_11,Sig1_22=diagrams.sig1(G11_iom,G22_iom,knum,U,beta)
     Sig2_11,Sig2_12=diagrams.sig2(G11_tau,G12_tau,G22_tau,knum,nfreq,U,beta)
     # don't put counter terms here!
-    Sig3_11,Sig3_12=diagrams.sig3(G11_iom,G12_iom,G11_tau,G12_tau,G22_tau,knum,nfreq,U,B,beta,0)# all diagrams of 3rd order should have the same symmetry factor.
-
-    # Sig3_11,Sig3_12=diagrams.sig3(G11_iom,G12_iom,G11_tau,G12_tau,G22_tau,knum,nfreq,U,B,beta,0)
+    Sig3_11,Sig3_12=diagrams.sig3(G11_iom,G12_iom,G11_tau,G12_tau,G22_tau,knum,nfreq,U,beta)# all diagrams of 3rd order should have the same symmetry factor.
     if debug==2:
         # plt.plot(Sigimp1_11.real,label='Sigimp1_11 real')
         # plt.plot(Sigimp1_11.imag,label='Sigimp1_11 imag')
@@ -517,10 +555,6 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
         # plt.grid()
         # plt.show()
 
-    if debug==2:
-        print('Sig1_11=',Sig1_11,'Sig1_22=',Sig1_22)
-        print('Sigimp1_11=',Sigimp1_11,'Sigimp1_22=',Sigimp1_22)
-    # Note: It's good to check if the self-energy diagrams are similar, especially when there is no magnetic field. 
 
 
 
@@ -542,12 +576,13 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
     Phiimp_2=fTrSigmaG_bf(om, GDMFTloc11_iom[nfreq:], Sigimp2_11[nfreq:]/4,  -mu+SigimpA[-1], beta,knum)*2
     Phiimp_3=fTrSigmaG_bf(om, GDMFTloc11_iom[nfreq:], Sigimp3_11[nfreq:]/6,  -mu+SigimpA[-1], beta,knum)*2
     Phi=Phi_DMFT+Phi_1-Phiimp_1+Phi_2+Phi_2_offdiag-Phiimp_2+Phi_3+Phi_3_offdiag-Phiimp_3
-    print('Phi calculated')
-    with open(filepertenergy, 'a') as f:
-        print('Phidis_1=',Phi_1,'\tPhidis_2=',Phi_2,'\tPhidis_3=',Phi_3,file=f)#
-        print('Phiimp_1=',Phiimp_1,'\tPhiimp_2=',Phiimp_2,'\tPhiimp_3=',Phiimp_3,file=f)#
-        print('Phi_2_offdiag=',Phi_2_offdiag,'\tPhi_3_offdiag=',Phi_3_offdiag,file=f)#
-        print('Phi_DMFT=',Phi_DMFT,'Phi_corrected=',Phi,file=f)
+    # print('Phi calculated')
+    if DMFTcheck==1:
+        with open(filepertenergy, 'a') as f:
+            print('Phidis_1=',Phi_1,'\tPhidis_2=',Phi_2,'\tPhidis_3=',Phi_3,file=f)#
+            print('Phiimp_1=',Phiimp_1,'\tPhiimp_2=',Phiimp_2,'\tPhiimp_3=',Phiimp_3,file=f)#
+            print('Phi_2_offdiag=',Phi_2_offdiag,'\tPhi_3_offdiag=',Phi_3_offdiag,file=f)#
+            print('Phi_DMFT=',Phi_DMFT,'Phi_corrected=',Phi,file=f)
     
     # finally, calculate F, and compare with Fimp. 
     # Note: to compare the result from DMFT and DMFT+perturbation, we have to use the same way to calculate the corresponding terms to avoid any systematic error.
@@ -556,39 +591,34 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
     n22=(np.sum(G22_iom).real/knum**3/beta+1/2)
     n11imp=(np.sum(GDMFTloc11_iom).real/beta+1/2)
     n22imp=(np.sum(GDMFTloc22_iom).real/beta+1/2)
-    # print('n11=',n11,'n22=',n22)
-    # Note: you should be very careful with TrSigmaG because sigma is from G^-1=G0^-1-Sigma, and G0 is the unperturbed GF for the system without a B field.
-    # And be careful that the sigma returned: Sigma=SigmaDMFT(with B field)+B counter term+ diagrammatic corrections.
-    # This is a sigma is for G0B=1/(iom+mu-epsk-B), and not for G0=1/(iom+mu-epsk).
-    # So, the sigma in TrSigmaG shoule be: sigma11-B, sigma11+B. where sigma11 and sigma22 is from the perturbation code.
 
     TrSigmaG=fTrSigmaG(om, G11_iom[nfreq:], Sig11[nfreq:], EimpS11, beta,knum)+fTrSigmaG(om, G22_iom[nfreq:], Sig22[nfreq:], EimpS22, beta,knum)+fTrSigmaG_bf(om, G12_iom[nfreq:], Sig12[nfreq:], np.zeros((nfreq,knum,knum,knum)), beta,knum)*2
     TrSigmaG+=np.sum(n11*s11_oo+n22*s22_oo)/knum**3 # remember to add the infinite part!
     # print('TrSigmaG calculated')
     # myTrSigmaGimp=fTrSigmaG(om, GimpA[nfreq:], SigimpA, -mu+SigimpA[-1].real-B, beta,knum)+fTrSigmaG(om, GimpB[nfreq:], SigimpB, -mu+SigimpB[-1].real+B, beta,knum)
-    myTrSigmaGimp=fTrSigmaG(om, GDMFTloc11_iom[nfreq:], SigimpA, -mu+SigimpA[-1].real-B, beta,knum)+fTrSigmaG(om, GDMFTloc22_iom[nfreq:], SigimpB, -mu+SigimpB[-1].real+B, beta,knum)
+    myTrSigmaGimp=fTrSigmaG(om, GDMFTloc11_iom[nfreq:], SigimpA, -mu+SigimpA[-1].real, beta,knum)+fTrSigmaG(om, GDMFTloc22_iom[nfreq:], SigimpB, -mu+SigimpB[-1].real, beta,knum)
     myTrSigmaGimp+=np.sum(n11imp*SigimpA[-1].real+n22imp*SigimpB[-1].real)
     # print('myTrSigmaGimp calculated')
-    
-    # if order==0:
-    #     print('difference between G11iom and GDMFT11iom:',np.sum(np.abs(G11_iom-GDMFT11_iom)))
-    TrlogG=LogG(om,G11_iom[nfreq:],EimpS11-B*iforder0,beta)+LogG(om,G22_iom[nfreq:],EimpS22+B*iforder0,beta)
-    # TrlogG=LogG(om,G11_iom[nfreq:],EimpS11-B*iforder0,beta)+LogG(om,G22_iom[nfreq:],EimpS22+B*iforder0,beta)# do log first, then take local part
-    myLogGimp=LogG(om,GDMFTloc11_iom[nfreq:],-mu+SigimpA[-1].real-B,beta)+LogG(om,GDMFTloc22_iom[nfreq:],-mu+SigimpB[-1].real+B,beta)
-    # Note use GDMFTloc11 creates smooth curve of TrlogG, but use GimpA creates a curve with bad accuracy
-    logG_diff=LogGdiff(om,GDMFTloc11_iom[nfreq:],G11_iom[nfreq:],beta)+LogGdiff(om,GDMFTloc22_iom[nfreq:],G22_iom[nfreq:],beta)
-    print('logG_diff calculated,',logG_diff)
 
-    F=TrlogG-TrSigmaG+Phi
-    F_alter=myLogGimp+logG_diff-TrSigmaG+Phi
-    TrlogG_alter=myLogGimp+logG_diff
-    with open(filepertenergy, 'a') as f:
-        print('n11=',n11,'n22=',n22, file=f)
-        print('MyIMP(check) TrlogGimp={:.6f}'.format(myLogGimp),'TrSigmaGimp={:.6f}'.format(myTrSigmaGimp),'Phiimp={:.6f}'.format(Phi_DMFT),'Fimp={:.6f}'.format(myLogGimp-myTrSigmaGimp+Phi_DMFT), file=f) 
-        print('IMPSOLVER    TrlogG={:.6f}'.format(logGimp),'TrSigmaG={:.6f}'.format(TrSigmaGimp),'Phi={:.6f}'.format(Phi_DMFT),'F={:.6f}'.format(Fimp), file=f) 
-        # print('DMFT         TrlogG={:.6f}'.format(logGimp),'TrSigmaG={:.6f}'.format(TrSigmaGimp),'Phi={:.6f}'.format(Phi_DMFT),'F={:.6f}'.format(Fimp), file=f) 
-        print('DMFT+PERT    TrlogG={:.6f}'.format(TrlogG),'TrSigmaG={:.6f}'.format(TrSigmaG),'Phi={:.6f}'.format(Phi),'F={:.6f}'.format(F), file=f)
-        print('ALTERPERT    TrlogG_alter={:.6f}'.format(TrlogG_alter), 'F_alter={}'.format(F_alter), file=f)
+    # TrlogG_check=LogG(om,G11_iom[nfreq:],EimpS11,beta)+LogG(om,G22_iom[nfreq:],EimpS22,beta)
+    myLogGimp=LogG(om,GDMFTloc11_iom[nfreq:],-mu+SigimpA[-1].real,beta)+LogG(om,GDMFTloc22_iom[nfreq:],-mu+SigimpB[-1].real,beta)
+
+    TrlogG=LogG_EigVal(Sig11,Sig12,Sig22,beta,mu)
+    H0_G=H0G(G12_iom,T,U)
+    Edisp=H0_G+TrSigmaG/2
+    # about the Free energy: for off-diagonal F we should take TrLogG=log(DetG), or diagonalize G to get eigenvals.
+    Fdisp=TrlogG-TrSigmaG+Phi
+
+    # TrlogG_alter=myLogGimp+logG_diff
+    if DMFTcheck==1:
+        with open(filepertenergy, 'a') as f:
+            print('n11=',n11,'n22=',n22, file=f)
+            print('MyIMP(check) TrlogGimp={:.6f}'.format(myLogGimp),'TrSigmaGimp={:.6f}'.format(myTrSigmaGimp),'Phiimp={:.6f}'.format(Phi_DMFT),
+                  'Fimp={:.6f}'.format(myLogGimp-myTrSigmaGimp+Phi_DMFT), file=f) 
+            print('IMPSOLVER    TrlogG={:.6f}'.format(logGimp),'TrSigmaG={:.6f}'.format(TrSigmaGimp),'Phi={:.6f}'.format(Phi_DMFT),'F={:.6f}'.format(Fimp), file=f) 
+            # print('DMFT         TrlogG={:.6f}'.format(logGimp),'TrSigmaG={:.6f}'.format(TrSigmaGimp),'Phi={:.6f}'.format(Phi_DMFT),'F={:.6f}'.format(Fimp), file=f) 
+            print('DMFT+PERT    TrlogG={:.6f}'.format(TrlogG),'TrSigmaG={:.6f}'.format(TrSigmaG),'Phi={:.6f}'.format(Phi),'F={:.6f}'.format(Fdisp), file=f)
+
         # Essentially we could calculate various F, from the worst to the best:
         # 1. Fimp[Gimp]: directly from impurity solver. (IMPSOLVER)
         # 2. Fimp[G_DMFT]: use dispersive G_DMFT to calculate F, which improves the first term. But for Phi still only local diagrams.
@@ -597,24 +627,125 @@ def PertFreeEnergy(order,Sigma11,Sigma22,Sigma12,U,T,opt,B=0.0,ifGbest=1,debug=1
     # give a warning if 2 impurity quantities are not close enough.
     if abs(myLogGimp-logGimp)>0.001 or abs(myTrSigmaGimp-TrSigmaGimp)>0.001:
         print('Warning: the calculated impurity quantities are not close enough to the ones from impurity solver!',myLogGimp,logGimp,myTrSigmaGimp,TrSigmaGimp)
-    return F, TrlogG, TrSigmaG, Phi, F_alter, TrlogG_alter
+    # print(Fimp, Eimp,Fdisp,Edisp)
+    # print('logGimp=',logGimp,'logGdisp=',TrlogG,'TrSigmaGimp=',TrSigmaG)
+    # print('Phiimp=',Phi_DMFT,'Phiimp3orders=',Phiimp_1+Phiimp_2+Phiimp_3,'Phidisp3orders=',Phi_1+Phi_2+Phi_3)
+    print('Edisp={:.6f},H0G={:.6f},TrSigmaG/2={:.6f},TrSigmaG_inf={:.6f}'.format(Edisp,H0_G,TrSigmaG/2,np.sum(n11*s11_oo+n22*s22_oo)/knum**3))
+    print('Fdisp={:.6f},TrlogG={:.6f},TrSigmaG={:.6f},Phiimp={:.6f}, Phidisp={:.6f}\n'.format(Fdisp,TrlogG,TrSigmaG,Phi_DMFT,Phi))
+    return Fimp, Eimp,Fdisp,Edisp
+    # return F, TrlogG, TrSigmaG, Phi, F_alter, TrlogG_alter
+
+
+
+
+
+
+def imp_phase_transition():
+    # U=4.
+    # Tlist=np.array([0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24]) #0.11,0.12,0.13,
+    # Tlist=np.array([0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.57,0.58,0.59,0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.69])#do boldc of 0.41    
+    # U=5.
+    # Tlist=np.array([0.2,0.21,0.22,0.23,0.24,0.25,0.26,0.27,0.28,0.29,0.3,0.31])
+    # U=6.
+    # Tlist=np.array([0.25,0.26,0.27,0.28,0.29,0.3,0.31,0.32,0.33,0.34,0.35,0.36,0.37,0.38,0.39])#0.3,
+    U=8.
+    Tlist=np.array([0.25,0.26,0.27,0.28,0.29,0.3,0.31,0.32,0.33,0.34,0.35,0.36,0.37,0.38,0.39,0.4,0.41,0.42,0.43,0.44,0.45,0.46,0.47,0.48,
+                    0.49,0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.57,0.58])#do boldc of 0.410.15,
+    # U=10.
+    # Tlist=np.array([0.31,0.32,0.33,0.34,0.35,0.36,0.37,0.38,0.39,0.4,0.41,0.42,0.43,0.44,0.45,0.46,0.47,0.48,
+    #                 0.49,0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.57,0.58,0.59,0.6,0.61,0.62])#
+    # Tlist2=np.array([0.4,0.41,0.42,0.43,0.44,0.45,0.46,0.47,0.48,
+    #                 0.49,0.5,0.51,0.52,0.53])#,0.54,0.55,0.56,0.57,0.58,0.59
+
+    # U=12.
+    # Tlist=np.array([0.3,0.31,0.32,0.33,0.34,0.35,0.36,0.37,0.38,0.39,0.4,0.41,0.42,0.43,0.44,0.45,0.46,0.47,0.48,
+    #                 0.49,0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.57,0.58,0.59,0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.69])#
+
+    Sig11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    Sig22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    Sig12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+
+    #boldc
+    Fimp_arr=np.zeros_like(Tlist)
+    Eimp_arr=np.zeros_like(Tlist)
+    Fdisp_arr=np.zeros_like(Tlist)
+    Edisp_arr=np.zeros_like(Tlist)
+
+    for iT, T in enumerate(Tlist):
+        Fimp_arr[iT],Eimp_arr[iT],Fdisp_arr[iT],Edisp_arr[iT]=PertFreeEnergy(0,Sig11,Sig22,Sig12,U,T,0)
+    entropy=(Eimp_arr-Fimp_arr)/Tlist
+    entropydisp=(Edisp_arr-Fdisp_arr)/Tlist
+    lastent=entropy[-1]
+    lastentdisp=entropydisp[-1]
+    entropy_int=back_integration(Tlist,Eimp_arr,lastent)
+    entropydisp_int=back_integration(Tlist,Edisp_arr,lastentdisp)
+
+    #ctqmc
+    # Fimp_arr1=np.zeros_like(Tlist)
+    # Eimp_arr1=np.zeros_like(Tlist)
+    # Fdisp_arr1=np.zeros_like(Tlist)
+    # Edisp_arr1=np.zeros_like(Tlist)
+    # for iT, T in enumerate(Tlist):
+    #     Fimp_arr1[iT],Eimp_arr1[iT],Fdisp_arr1[iT],Edisp_arr1[iT]=PertFreeEnergy(0,Sig11,Sig22,Sig12,U,T,1)
+    # entropy1=(Eimp_arr1-Fimp_arr1)/Tlist
+    # lastent1=entropy1[-1]
+    # entropy_int1=back_integration(Tlist,Eimp_arr1,lastent1)
+
+
+
+    # plt.plot(Tlist,Fimp_arr,label='Fimp boldc')
+    # plt.plot(Tlist,Eimp_arr,label='Eimp boldc')
+    plt.plot(Tlist,Fdisp_arr,label='F latt boldc')
+    plt.plot(Tlist,Edisp_arr,label='E latt boldc')   
+    # plt.plot(Tlist,Fimp_arr1,label='Fimp ctqmc')
+    # plt.plot(Tlist,Eimp_arr1,label='Eimp ctqmc')    
+    plt.xlabel('T')
+    plt.ylabel('Energy')
+    plt.title('Thermodynamics of DMFT: U={}'.format(U))
+    plt.legend()
+    plt.show()
+
+
+    # plt.plot(Tlist,entropy,label='(E-F)/T imp boldc')
+    # plt.plot((Tlist[1:]+Tlist[:-1])/2,-(Fimp_arr[1:]-Fimp_arr[:-1])/0.01,label='-dF/dT imp boldc')
+    # plt.plot(Tlist,entropy_int,label='thermo imp boldc')
+
+    plt.plot(Tlist,entropydisp,label='(E-F)/T latt boldc')
+    plt.plot((Tlist[1:]+Tlist[:-1])/2,-(Fdisp_arr[1:]-Fdisp_arr[:-1])/0.01,label='-dF/dT latt boldc')
+    plt.plot(Tlist,entropydisp_int,label='thermo latt boldc')
+
+
+    # # plt.plot(Tlist,entropy1,label='(E-F)/T ctqmc')
+    # # plt.plot((Tlist[1:]+Tlist[:-1])/2,-(Fimp_arr1[1:]-Fimp_arr1[:-1])/0.01,label='-dF/dT ctqmc')   
+    # # plt.plot(Tlist,entropy_int1,label='back_int ctqmc')
+    # # # plt.plot(Tlist,(Edisp_arr-Fdisp_arr)/Tlist,label='disp1')    
+    plt.legend()
+    plt.xlabel('T')
+    plt.ylabel('Entropy')
+    plt.title('Entropy of lattice: U={}'.format(U))
+    plt.show()
+
+
+    plt.plot((Tlist[1:]+Tlist[:-1])/2,(entropydisp[1:]-entropydisp[:-1])/0.01,label='dS/dT latt boldc')      
+    plt.legend()
+    plt.xlabel('T')
+    plt.ylabel('dS/dT')
+    plt.title('dS/dT: U={}'.format(U))
+    plt.show()
+    return 0
 
 if __name__ == "__main__":
     # just for testing.
     # if directly run this file, this will do the perturbation without variational part. 
     nfreq=500
     knum=10
-    U=10.0
-    T=0.2
-    type='ctqmc'
-    # type='boldc'
+    U=8.0
+    T=0.25
     if len(sys.argv)>=3:
         U=float(sys.argv[1])
         T=float(sys.argv[2])
-    if len(sys.argv)>=4:
-        type=sys.argv[3]
-    
-    Sig11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-    Sig22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-    Sig12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-    F=PertFreeEnergy(0,Sig11,Sig22,Sig12,U,T,type,0.0,0)
+    imp_phase_transition()
+    # Sig11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    # Sig22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    # Sig12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    # F=PertFreeEnergy(0,Sig11,Sig22,Sig12,U,T,0.0,0)

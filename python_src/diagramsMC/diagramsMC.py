@@ -49,7 +49,7 @@ def IntegrateByMetropolis(func, qx, p,seed,ifprint=1):
 
 
     time_begin=time.time()
-    ifrecomp=1
+    ifrecomp=0
     np.random.seed(seed)# use the given seed
     # random.seed(0)         # make sure that we always get the same sequence of steps. If parallel. they should have different seeds.
     knum=func.knum
@@ -73,7 +73,7 @@ def IntegrateByMetropolis(func, qx, p,seed,ifprint=1):
     iQ=momentum[0:]
     itau=imagtime[0]
 # finish this measure function! this is just the first trial... should be simple in the beginning.
-    myweight = meassureWeight(Ndimk, Ndimtau,knum,taunum)
+    myweight = weight_lib.meassureWeight(Ndimk, Ndimtau,knum,taunum)
     fQ = func(momentum,imagtime), V0norm * myweight( momentum,imagtime )  # fQ=(f(X), V0*f_m(X))
     # print('starting with f=', fQ, '\nstarting momenta=', momentum,'\n starting time=',imagtime)
 
@@ -176,8 +176,8 @@ def IntegrateByMetropolis(func, qx, p,seed,ifprint=1):
                         print('%9.2fM P_v_P=%10.6f' % (itt/1e6, P_v_P), schange[int( (change_V0+1)/2 )], V0norm )
                     # Here we decied to drop all prior measurements if V0 is changed.
                     # We could keep them, but the convergence can be better when we drop them.
-                    Pval = zeros(shape(Pval))
-                    Pnorm2=zeros(shape(Pval))
+                    Pval = np.zeros(np.shape(Pval))
+                    Pnorm2=np.zeros(np.shape(Pval))
                     Pnorm = 0
                     Nmeasure = 0
 
@@ -192,6 +192,12 @@ def IntegrateByMetropolis(func, qx, p,seed,ifprint=1):
                     # of 1/norm. We also normalize the new additions to histogram with similar value, 
                     # but 5-times larger than before.
                     dk_hist *= 5*myweight.Normalize_K_histogram()
+                #Note: this normalization step does not matter what is the value from mtyweight.normalize_k_histogram.
+                # the point is if we have many MC steps there might be some overflow issue
+                # so we need to give a small factor in front of all current histograms.
+                # also the future histograms should be with this factor.
+                # here the factor 5 means later steps are more important since we have much better f_alter. so we give more weight to these steps.
+                # if everything is fine, dk_hist should not be so tiny and the two lines of code below will not be excecuted.
                     if dk_hist < 1e-8: # Once dk becomes too small, just start accumulating with weight 1.
                         dk_hist = 1.0
                     myweight.recompute()# Here we actually recompute g_i and h_{ij}.
@@ -220,10 +226,10 @@ def IntegrateByMetropolis(func, qx, p,seed,ifprint=1):
                 print('step={}M\t rank={}\t P_V_P={}'.format((itt+1)/1e6,rank,P_v_P))
             # print('step={}M, P_val={}  Pnorm={}, f_old={} {} P_V_P={}'.format((itt+1)/1e6,Pval,Pnorm,fQ_new[0],fQ_new[1], fQ[0], fQ[1],P_v_P))
         time3=time.time()
-        time_others+=(time3-time2)
-# have to fix the Markov chain and then it is useful to use something like size of qx to normalize.   
+        time_others+=(time3-time2) 
     # Pval2 =  Pval*V0norm / Pnorm2        
-    Pval *=  (knum**3*taunum*V0norm / Pnorm) #  Finally, the integral is I = V0 *V_physical/V_alternative
+# Note:if use new version of weightlib should not use the knum**3*taunum factor in front of pval
+    Pval *=  (knum**3*taunum* V0norm / Pnorm) # Finally, the integral is I = V0 *V_physical/V_alternative
     time_end=time.time()
     time_ttl=time_end-time_begin
 
@@ -254,8 +260,8 @@ def MC_test(U,T,nfreq,knum):
     # print('test started')
     mu=U/2
     beta=1/T
-    taunum=int(nfreq/10)
-
+    # taunum=int(nfreq/10)
+    taunum=100
     name1='../../files_boldc/{}_{}/Sig.out'.format(U,T)
     filename1=readDMFT(name1)
     name2='../../files_ctqmc/{}_{}/Sig.out'.format(U,T)
@@ -302,38 +308,40 @@ def MC_test(U,T,nfreq,knum):
     # Poff=P12(G12_tau,knum,nfreq,U,beta)
     # Qoff=Q12(G12_tau,knum,nfreq)
     # sigma2=sig2(G11_tau,G12_tau,G22_tau,knum,nfreq,U,beta)
-    # sigma2off=sig2offdiag(G11_tau,G12_tau,G22_tau,knum,nfreq,U,beta)
+    sigma2off=sig2offdiag(G11_tau,G12_tau,G22_tau,knum,nfreq,U,beta)
     # sigma2loc=sig2(Gloc11_tau,G12_tau,Gloc22_tau,knum,nfreq,U,beta)
 
     # sigma3=sig3(G11_tau,G22_tau,knum,nfreq,U, beta)
     # sigma3loc=sig3(Gloc11_tau,Gloc22_tau,knum,nfreq,U, beta)
     # sigma3121=sig3_1_121(G11_tau,G12_tau,knum,nfreq,U, beta)
-    sigma3122=sig3_1_122(G11_tau,G12_tau,G22_tau,knum,nfreq,U, beta)
+    # sigma3122=sig3_1_122(G11_tau,G12_tau,G22_tau,knum,nfreq,U, beta)
 
 
     # inputs for MC    
-    Ndimk=4
-    Ndimtau=2
+    Ndimk=3
+    Ndimtau=1
     if rank==0:
         print('U={}, T={}, dimk={}, Ndimtau={}, knum={}, taunum={}'.format(U,T,Ndimk, Ndimtau, knum,taunum))
     p = params()
+
+    
     # fun=diag_def.FuncNDiag_Q(knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G12_tau,1,1)# Qoff
-    # fun=diag_def.FuncNDiag_P(knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G12_tau,1,1)# Poff
+    # fun=diag_def.FuncNDiag_P(knum, taunum,nfreq, 2,1, G12_tau, G12_tau,1,1)# Poff
     # fun=diag_def.FuncNDiag_R(knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G12_tau,1,1)# Roff
 
-    # fun=diag_def.FuncNDiag_order2(U,knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G12_tau, G12_tau,1,1,1)#sigma2off
+    fun=diag_def.FuncNDiag_order2(U,knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G12_tau, G12_tau,1,1,1)#sigma2off
     # fun=diag_def.FuncNDiag_order2(U,knum, taunum,nfreq, Ndimk, Ndimtau, G11_tau, G22_tau, G22_tau,0,0,0)#sigma2
     # fun=diag_def.FuncNDiag_order2(U,knum, taunum,nfreq, Ndimk, Ndimtau, Gloc11_tau, Gloc22_tau, Gloc22_tau,0,0,0)#sigma2loc
 
     # fun=diag_def.FuncNDiag(T,U,knum, taunum,nfreq, Ndimk, Ndimtau, G11_tau, G11_tau, G22_tau, G22_tau, G22_tau,0,0,0,0,0)#sigma3111
     # fun=diag_def.FuncNDiag(T,U,knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G12_tau, G12_tau, G12_tau, G22_tau,1,1,1,1,0)#sigma3121
-    fun=diag_def.FuncNDiag(T,U,knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G22_tau, G12_tau, G11_tau, G12_tau,1,0,1,0,1)#sigma3122
+    # fun=diag_def.FuncNDiag(T,U,knum, taunum,nfreq, Ndimk, Ndimtau, G12_tau, G22_tau, G12_tau, G11_tau, G12_tau,1,0,1,0,1)#sigma3122
     # fun=diag_def.FuncNDiag_simple3(U,knum, taunum,nfreq, Ndimk, Ndimtau, Gloc11, Gloc11, Gloc22, Gloc22, Gloc22)#sigma3loc
 
 
     qx=np.zeros((taunum,knum,knum,knum),dtype=complex)
     # qx=np.zeros(taunum)
-    # (Pval_raw,myweight)=IntegrateByMetropolis(fun, qx, p,0,1)#serial test
+    # (Pval,myweight)=IntegrateByMetropolis(fun, qx, p,0,1)#serial test
     Pval_raw=Integrate_Parallel(fun,qx,p)#parallel test
     if rank==0:
         Pval=sym_ave(Pval_raw,knum,1)# average of all k points with the same symmetry. offdiag choose 1, diag choose 0
@@ -354,7 +362,7 @@ def MC_test(U,T,nfreq,knum):
                         symgroup+=1# they all belongs to the same symgroup.
                         # print(all_unique_sym_kpoints)
                         for q in all_unique_sym_kpoints:
-                            plt.plot(sigma3122[:,q[0],q[1],q[2]].real,label='BF')
+                            plt.plot(sigma2off[:,q[0],q[1],q[2]].real,label='BF')
                             plt.plot(np.arange(taunum)*2*nfreq/taunum,Pval[:,q[0],q[1],q[2]].real,label='MC1')
                             plt.legend()
                             plt.title('k=[{},{},{}], factor={}, symgroup={}'.format(q[0],q[1],q[2],q[3],symgroup))
