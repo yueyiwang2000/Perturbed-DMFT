@@ -3,21 +3,21 @@ import numpy as np
 import os,sys,subprocess,math
 from scipy.interpolate import interp1d
 import time
-sys.path.append('../python_src/')
+# sys.path.append('../python_src/')
 from mpi4py import MPI
 import perturb_lib as lib
 import perturb_imp as imp
 import fft_convolution as fft
-import diagrams
-import mpi_module
-import copy
+# import diagrams
+# import mpi_module
+# import copy
 import perm_def
-sys.path.append('../python_src/diagramsMC/')
-import basis
-import svd_diagramsMC_cutPhi
-import diag_def_cutPhifast
-import imp_diag_def
-import imp_svd_diagramsMC
+# sys.path.append('diagramsMC/impurity_sig')
+import diagramsMC.basis as basis
+import diagramsMC.dispersive_sig.svd_diagramsMC_cutPhi as svd_diagramsMC_cutPhi
+import diagramsMC.dispersive_sig.diag_def_cutPhifast as diag_def_cutPhifast
+import diagramsMC.impurity_sig.imp_diag_def as imp_diag_def
+import diagramsMC.impurity_sig.imp_svd_diagramsMC as imp_svd_diagramsMC
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -27,8 +27,8 @@ nprocs = comm.Get_size()
 This is a python script which generate all DMFT diagrams of different orders (up to order 4) and save them using the svd basis.
 '''
 class params:
-    def __init__(self):
-        self.Nitt = 5000000   # number of MC steps in a single proc
+    def __init__(self,num=5):
+        self.Nitt = 1000000*num   # number of MC steps in a single proc
         self.Ncout = 1000000    # how often to print
         self.Nwarm = 1000     # warmup steps
         self.tmeassure = 10   # how often to meassure
@@ -77,15 +77,16 @@ def get_gtauloc(U,T,knum=10,nfreq=500):
     filename3=readDMFT(name3)
     # print(filename1)
     # print(filename2)
-    if (os.path.exists(filename1)):
+    if (os.path.exists(filename1)) and U>=8:
         filename=filename1
-    elif (os.path.exists(filename2)):
+    elif (os.path.exists(filename2)) and U>=8:
         filename=filename2
         # print('reading DMFT data from {}'.format(filename))
-    elif (os.path.exists(filename3)):
+    elif (os.path.exists(filename3)) and U<8:
         filename=filename3
     else:
-        print('these 3 filenames cannot be found:\n {} \n {} \n {}\n'.format(name1,name2,name3))  
+        if rank==0:
+            print('these 3 filenames cannot be found:\n {} \n {} \n {}\n'.format(name1,name2,name3))  
         return 0
     
     sigma=np.loadtxt(filename)[:nfreq,:]
@@ -140,14 +141,14 @@ def gen_allCTs(U,T,lmax=10):
     knum=10
     nfreq=500
     # about the basis
-    taunum=50
+    taunum=100
     taulist=(np.arange(taunum+1))/taunum*beta#
     omlist=(2*np.arange(2*nfreq)+1-2*nfreq)*np.pi/beta 
     ker=basis.fermi_kernel(taulist,omlist,beta)
     ut=np.empty((lmax,taunum+1),dtype=float)
     filename_u='./Sigma_imp/taubasis.txt'
     if rank==0:
-        print('U={},T={}'.format(U,T))
+        print('gen all CTs: U={},T={}'.format(U,T))
         if (os.path.exists(filename_u))==0:# generate ut and save it
             ut,sig,v=basis.svd_kernel_fast(ker,lmax)
             np.savetxt(filename_u,ut.T)
@@ -163,21 +164,13 @@ def gen_allCTs(U,T,lmax=10):
     # comm.Bcast(ut, root=0)
 
     # kbasis
-    imax=8
-    kbasis=np.empty((imax,knum,knum,knum),dtype=float)
+    imax=4
+    kindnum=basis.gen_basisnum(imax)
+    kbasis=np.empty((2,kindnum,knum,knum,knum),dtype=float)
     if rank==0:
-        kbasis=basis.gen_kbasis(imax,knum)
+        kbasis=basis.gen_kbasis_new(imax,knum)
     kbasis = np.ascontiguousarray(kbasis)
     comm.Bcast(kbasis, root=0)    
-
-    sublatind_basis=np.array([[1,0,0,0],
-                              [0,1,0,0],
-                              [0,0,1,0],
-                              [0,0,0,1]])
-    # sublatind_basis=np.array([[1,1,1,1],
-    #                           [1,-1,1,-1],
-    #                           [1,1,-1,-1],
-    #                           [1,-1,-1,1]])/2# Hadamard matrix. this might be better.
 
 
     all_returns=get_gtauloc(U,T)
@@ -215,53 +208,84 @@ def gen_allCTs(U,T,lmax=10):
     # definition of integrands. some are not actually used but just to check if the BF matches the result of MC.
     # func31=imp_diag_def.FuncNDiagNew(T,U,knum,taunum,nfreq,3,ut,kbasis,sublatind_basis,perm_def.perm31,GFs,perm_def.dep31,6)
     # func32=imp_diag_def.FuncNDiagNew(T,U,knum,taunum,nfreq,3,ut,kbasis,sublatind_basis,perm_def.perm32,GFs,perm_def.dep32,6)
-    func41=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm41,GFs,perm_def.dep41,sublatindinit4,8)
-    func42=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm42,GFs,perm_def.dep42,sublatindinit4,8)
+    # func41=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm41,GFs,perm_def.dep41,sublatindinit4,8)
+    # func42=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm42,GFs,perm_def.dep42,sublatindinit4,8)
     # the 3rd diagram has the symmetry factor 2, since cutting the diagram will generate 4 kinds of sigma diagrams.
     func43=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm43,GFs,perm_def.dep43,sublatindinit4,2)
     func44=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm44,GFs,perm_def.dep44,sublatindinit4,4)
-    func45=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm45,GFs,perm_def.dep45,sublatindinit4,8)
-    
+    # func45=imp_diag_def.FuncNDiagNew(T,U,taunum,nfreq,4,ut,perm_def.perm45,GFs,perm_def.dep45,sublatindinit4,8)
+    stepnum_basics1=int(200/nprocs)
+    stepnum_basics2=int(200/nprocs)
+    # stepnum_basics1*=(beta/3)
+    # stepnum_basics2*=(beta/3)
+    # stepnum_basics1=int(max(stepnum_basics1,5))
+    # stepnum_basics2=int(max(stepnum_basics2,5))
     p = params()
+    if rank==0:
+        print('MC steps:{}M'.format(stepnum_basics1))
     # cl31_MC=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func31,p,p,lmax,ut)
     # cl32_MC=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func32,p,p,lmax,ut)
     # cl41_MC=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func41,p,lmax,ut)
     # cl42_MC=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func42,p,lmax,ut)
-    cl43=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func43,p,lmax,ut)
-    cl44=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func44,p,lmax,ut)
+    cl43=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func43,params(stepnum_basics1),lmax,ut)
+    cl44=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func44,params(stepnum_basics2),lmax,ut)
     # cl45_MC=imp_svd_diagramsMC.Summon_Integrate_Parallel_impurity(func45,p,lmax,ut)
     
 
-    # for testing dispersive version
-    # func44dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,sublatind_basis,perm_def.perm44,GFdispersive,perm_def.dep44,4)
-    # a,b,c,sig44tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func44dis,p,imax,lmax,ut,kbasis,sublatind_basis,beta)
-    # func43dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,sublatind_basis,perm_def.perm43,GFdispersive,perm_def.dep43,2)
-    # a,b,c,sig43tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func43dis,p,imax,lmax,ut,kbasis,sublatind_basis,beta)
+    # # for testing dispersive version
+        
+    # func41dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm41,GFdispersive,perm_def.dep41,8)
+    # sig41tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func41dis,p,imax,lmax,ut,kbasis,beta,1)[4]   
+    # func42dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm42,GFdispersive,perm_def.dep42,8)
+    # sig42tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func42dis,p,imax,lmax,ut,kbasis,beta,1)[4]
+
+    # func43dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm43,GFdispersive,perm_def.dep43,2)
+    # sig43tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func43dis,p,imax,lmax,ut,kbasis,beta,1)[4]    
+    # func44dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm44,GFdispersive,perm_def.dep44,4)
+    # sig44tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func44dis,p,imax,lmax,ut,kbasis,beta,1)[4]
+    # func45dis=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm45,GFdispersive,perm_def.dep45,8)
+    # sig45tau_test=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func45dis,p,imax,lmax,ut,kbasis,beta,1)[4]
     if rank==0:
     #     # these are testing
-    #     plt.plot(cl44,label='BF')
-    #     # plt.plot(cl42_MC,label='MCimp')
-    #     plt.legend()
-    #     plt.show()
-    #     BFres44=basis.restore_Gf(cl44,ut)
-    #     BFres43=basis.restore_Gf(cl43,ut)
-    #     # MCres1=basis.restore_Gf(cl43_MC,ut)
+    #     BFres41=basis.restore_Gf(cl41,ut)
+    #     MCres41=basis.restore_Gf(cl41_MC,ut) 
+        
+    #     BFres42=basis.restore_Gf(cl42,ut)
+    #     MCres42=basis.restore_Gf(cl42_MC,ut)
+    #     MCres43=basis.restore_Gf(cl43,ut)
+    #     MCres44=basis.restore_Gf(cl44,ut)
+    #     BFres45=basis.restore_Gf(cl45,ut)
+    #     MCres45=basis.restore_Gf(cl45_MC,ut)
     #     for kx in np.arange(knum):
     #         for ky in np.arange(knum):
     #             for kz in np.arange(knum):
-    #                 plt.plot(BFres44,label='BF 44')
-    #                 # plt.plot(MCres1,label='MCimp')
-    #                 plt.plot(sig44tau_test[:,kx,ky,kz],label='MCdisp ave 44')
+    #                 plt.plot(MCres41,label='MCIMP 41')
+    #                 plt.plot(BFres41,label='BFdisp 41')
+    #                 plt.plot(sig41tau_test[:,kx,ky,kz],label='MCdisp41')
     #                 plt.legend()
-    #                 plt.show()     
-    #                 plt.plot(BFres43,label='BF 43')
-    #                 # plt.plot(MCres1,label='MCimp')
-    #                 plt.plot(sig43tau_test[:,kx,ky,kz],label='MCdisp ave 43')
+    #                 plt.show()   
+
+    #                 plt.plot(MCres42,label='MCIMP 42')
+    #                 plt.plot(BFres42,label='BFdisp 42')
+    #                 plt.plot(sig42tau_test[:,kx,ky,kz],label='MCdisp42')
     #                 plt.legend()
     #                 plt.show()  
-    #     # plt.plot(BFres/MCres1,label='ratio')
-    #     # plt.legend()
-    #     # plt.show()     
+
+    #                 plt.plot(MCres43,label='MCIMP 43')
+    #                 plt.plot(sig43tau_test[:,kx,ky,kz],label='MCdisp43')
+    #                 plt.legend()
+    #                 plt.show()  
+
+    #                 plt.plot(MCres44,label='MCIMP 44')
+    #                 plt.plot(sig44tau_test[:,kx,ky,kz],label='MCdisp44')
+    #                 plt.legend()
+    #                 plt.show()     
+
+    #                 plt.plot(MCres45,label='MCIMP 45')
+    #                 plt.plot(BFres45,label='BFdisp 45')
+    #                 plt.plot(sig45tau_test[:,kx,ky,kz],label='MCdisp45')
+    #                 plt.legend()
+    #                 plt.show()          
 
 
         # 1 col for 1st, 1col for 2nd, 2cols for 3rd, 5cols for 4th. 1+1+2+5=9
@@ -287,8 +311,7 @@ def gen_allCTs(U,T,lmax=10):
 
 
 def run_imp():
-    T_bound=np.array(((3.0,0.08,0.14),(5.,0.2,0.31),
-                      (8.,0.4,0.6),(10.,0.5,0.63),(12.,0.4,0.6),(14.,0.4,0.5)))
+    T_bound=np.array(((3.,0.08,0.14),(4.,0.15,0.69),(5.,0.2,0.3),(6.,0.25,0.37),(7.,0.25,0.37),(8.,0.25,0.58),(9.,0.25,0.38),(10.,0.25,0.5),(11.,0.3,0.4),(12.,0.26,0.68),(13.,0.3,0.4),(14.,0.25,0.4)))  
     #(4.,0.1,0.25),(6.,0.27,0.37),(7.,0.27,0.4),(9.,0.28,0.45),(11.,0.3,0.5),
     for list in T_bound:
         U=list[0]
@@ -308,11 +331,14 @@ def run_imp():
 
 if __name__ == "__main__":
     U=10.
-    T=0.05
+    T=0.25
+    if len(sys.argv)>=3:
+        U=float(sys.argv[1])
+        T=float(sys.argv[2])
     # Tlist8=np.array([0.05,0.25])
     # Tlist10=np.array([0.1,0.25,0.28,0.31,0.35,0.4,0.45,0.5])
     # for T in Tlist10:
-    #     gen_allCTs(U,T)
+    # gen_allCTs(U,T)
     # gen_allCTs(8.0,0.3)
     # gen_allCTs(10.0,0.3)
     # gen_allCTs(10.0,0.36)

@@ -354,7 +354,7 @@ def phase_test(mode,ifsigafm=0):
 
 if __name__ == "__main__":
     # phase_test('E')
-    # vs_alpha(5.0,0.2,'mag',0)
+    vs_alpha(10.0,0.25,'mag',0)
     # Neel_Temp(3)
-    Neel_Temp_diff_orders()
+    # Neel_Temp_diff_orders()
 

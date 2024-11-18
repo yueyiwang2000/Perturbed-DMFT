@@ -1,0 +1,251 @@
+ann-step=    400  chi2=  2010.78958  accepted=  30713  tried=    31311  new stepsize= 1.0000
+ann-step=    800  chi2=  1785.73308  accepted=  38940  tried=    40827  new stepsize= 1.0000
+ann-step=   1200  chi2=  1589.84063  accepted=  37629  tried=    41357  new stepsize= 1.0000
+ann-step=   1600  chi2=  1472.73333  accepted=  37050  tried=    45163  new stepsize= 1.0000
+ann-step=   2000  chi2=  1233.25660  accepted=  34210  tried=    52733  new stepsize= 1.0000
+ann-step=   2400  chi2=   856.35627  accepted=  26010  tried=    57105  new stepsize= 1.0000
+ann-step=   2800  chi2=   502.82058  accepted=  20211  tried=    57018  new stepsize= 1.0000
+ann-step=   3200  chi2=   247.89095  accepted=  16210  tried=    56824  new stepsize= 1.0000
+ann-step=   3600  chi2=   118.07768  accepted=   8969  tried=    56424  new stepsize= 1.0000
+ann-step=   4000  chi2=    97.96427  accepted=   2119  tried=    56127  new stepsize= 0.2963
+ann-step=    400  chi2=    18.97125  accepted=  51289  tried=    56999  new stepsize= 0.0500
+ann-step=    800  chi2=    14.04671  accepted=  45048  tried=    57021  new stepsize= 0.0500
+ann-step=   1200  chi2=     9.05163  accepted=  36991  tried=    56847  new stepsize= 0.0500
+ann-step=   1600  chi2=     5.76698  accepted=  30202  tried=    56542  new stepsize= 0.0500
+ann-step=   2000  chi2=     4.02819  accepted=  27330  tried=    56612  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.82942  accepted=  26367  tried=    56761  new stepsize= 0.0500
+ann-step=   2800  chi2=     1.94913  accepted=  25924  tried=    57055  new stepsize= 0.0500
+ann-step=   3200  chi2=     1.30532  accepted=  25211  tried=    57217  new stepsize= 0.0500
+ann-step=   3600  chi2=     0.86312  accepted=  23789  tried=    57177  new stepsize= 0.0500
+ann-step=   4000  chi2=     0.68044  accepted=   1839  tried=    56956  new stepsize= 0.0333
+ann-step=    400  chi2=     1.83920  accepted=  54363  tried=    56620  new stepsize= 0.0500
+ann-step=    800  chi2=     1.92567  accepted=  51836  tried=    56493  new stepsize= 0.0500
+ann-step=   1200  chi2=     1.95581  accepted=  47278  tried=    56585  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.04949  accepted=  39877  tried=    56747  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.16392  accepted=  33165  tried=    56774  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.16678  accepted=  20137  tried=    56894  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.16698  accepted=   9495  tried=    56783  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.16656  accepted=   6314  tried=    56747  new stepsize= 0.0333
+ann-step=   3600  chi2=     2.16672  accepted=   6274  tried=    56784  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.16672  accepted=   4101  tried=    56779  new stepsize= 0.0066
+ann-step=    400  chi2=     2.25874  accepted=  54607  tried=    56669  new stepsize= 0.0500
+ann-step=    800  chi2=     2.29442  accepted=  52204  tried=    56583  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.28285  accepted=  48712  tried=    56686  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.30710  accepted=  42968  tried=    56746  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.31610  accepted=  32657  tried=    56839  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.31376  accepted=  19604  tried=    56784  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.31394  accepted=   9234  tried=    56813  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.31394  accepted=   6094  tried=    56856  new stepsize= 0.0333
+ann-step=   3600  chi2=     2.31390  accepted=   6036  tried=    56742  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.31393  accepted=   3869  tried=    56841  new stepsize= 0.0066
+ann-step=    400  chi2=  1866.70904  accepted=  32445  tried=    33085  new stepsize= 1.0000
+ann-step=    800  chi2=  1734.19382  accepted=  39596  tried=    41419  new stepsize= 1.0000
+ann-step=   1200  chi2=  1512.84562  accepted=  40011  tried=    43916  new stepsize= 1.0000
+ann-step=   1600  chi2=  1400.76022  accepted=  39386  tried=    47567  new stepsize= 1.0000
+ann-step=   2000  chi2=  1182.86381  accepted=  35929  tried=    54486  new stepsize= 1.0000
+ann-step=   2400  chi2=   823.09090  accepted=  26313  tried=    57290  new stepsize= 1.0000
+ann-step=   2800  chi2=   486.29486  accepted=  20481  tried=    57107  new stepsize= 1.0000
+ann-step=   3200  chi2=   240.98249  accepted=  16315  tried=    56899  new stepsize= 1.0000
+ann-step=   3600  chi2=   116.59661  accepted=   9117  tried=    56493  new stepsize= 1.0000
+ann-step=   4000  chi2=    95.86042  accepted=   2160  tried=    56275  new stepsize= 0.2963
+ann-step=    400  chi2=    17.60749  accepted=  51590  tried=    56971  new stepsize= 0.0500
+ann-step=    800  chi2=    13.29479  accepted=  45627  tried=    57160  new stepsize= 0.0500
+ann-step=   1200  chi2=     8.70324  accepted=  37389  tried=    57030  new stepsize= 0.0500
+ann-step=   1600  chi2=     5.72130  accepted=  29991  tried=    56865  new stepsize= 0.0500
+ann-step=   2000  chi2=     4.03299  accepted=  27350  tried=    56941  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.87338  accepted=  26542  tried=    57103  new stepsize= 0.0500
+ann-step=   2800  chi2=     1.99983  accepted=  25903  tried=    57133  new stepsize= 0.0500
+ann-step=   3200  chi2=     1.36800  accepted=  25476  tried=    57187  new stepsize= 0.0500
+ann-step=   3600  chi2=     0.92722  accepted=  23386  tried=    57380  new stepsize= 0.0500
+ann-step=   4000  chi2=     0.76609  accepted=   1226  tried=    57146  new stepsize= 0.0333
+ann-step=    400  chi2=     2.31539  accepted=  54074  tried=    56564  new stepsize= 0.0500
+ann-step=    800  chi2=     2.47765  accepted=  51718  tried=    56733  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.51977  accepted=  46691  tried=    56927  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.61295  accepted=  38611  tried=    56877  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.73828  accepted=  31768  tried=    56921  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.74123  accepted=  18554  tried=    56901  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.74096  accepted=   8719  tried=    57007  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.74085  accepted=   5695  tried=    56974  new stepsize= 0.0222
+ann-step=   3600  chi2=     2.74094  accepted=   5780  tried=    56969  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.74088  accepted=   3758  tried=    56962  new stepsize= 0.0066
+ann-step=    400  chi2=     2.92207  accepted=  54535  tried=    56739  new stepsize= 0.0500
+ann-step=    800  chi2=     2.91763  accepted=  52052  tried=    56767  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.92080  accepted=  48224  tried=    56739  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.93357  accepted=  41995  tried=    56812  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.94564  accepted=  31311  tried=    57018  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.94540  accepted=  18161  tried=    56891  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.94500  accepted=   8398  tried=    56956  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.94532  accepted=   5539  tried=    57049  new stepsize= 0.0222
+ann-step=   3600  chi2=     2.94520  accepted=   5484  tried=    57033  new stepsize= 0.0099
+ann-step=   4000  chi2=     2.94513  accepted=   5436  tried=    57040  new stepsize= 0.0044
+ann-step=    400  chi2=     2.94676  accepted=  54428  tried=    56688  new stepsize= 0.0500
+ann-step=    800  chi2=     2.88630  accepted=  52259  tried=    56828  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.90296  accepted=  48524  tried=    56828  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.90982  accepted=  42206  tried=    56919  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.91035  accepted=  31547  tried=    56938  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.91067  accepted=  18186  tried=    57021  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.91015  accepted=   8519  tried=    56985  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.90987  accepted=   5630  tried=    56969  new stepsize= 0.0222
+ann-step=   3600  chi2=     2.90972  accepted=   5649  tried=    57008  new stepsize= 0.0099
+ann-step=   4000  chi2=     2.90984  accepted=   5532  tried=    56847  new stepsize= 0.0044
+ann-step=    400  chi2=  2014.48448  accepted=  38880  tried=    39515  new stepsize= 1.0000
+ann-step=    800  chi2=  1842.82830  accepted=  38157  tried=    39886  new stepsize= 1.0000
+ann-step=   1200  chi2=  1635.19836  accepted=  40702  tried=    44690  new stepsize= 1.0000
+ann-step=   1600  chi2=  1508.10697  accepted=  38111  tried=    46478  new stepsize= 1.0000
+ann-step=   2000  chi2=  1271.96006  accepted=  34450  tried=    52966  new stepsize= 1.0000
+ann-step=   2400  chi2=   894.33346  accepted=  26105  tried=    57326  new stepsize= 1.0000
+ann-step=   2800  chi2=   530.47190  accepted=  20592  tried=    57183  new stepsize= 1.0000
+ann-step=   3200  chi2=   263.59087  accepted=  16686  tried=    56935  new stepsize= 1.0000
+ann-step=   3600  chi2=   122.36357  accepted=   9589  tried=    56561  new stepsize= 1.0000
+ann-step=   4000  chi2=    95.55039  accepted=   2176  tried=    56291  new stepsize= 0.2963
+ann-step=    400  chi2=    20.83778  accepted=  51117  tried=    57058  new stepsize= 0.0500
+ann-step=    800  chi2=    15.51495  accepted=  44938  tried=    57074  new stepsize= 0.0500
+ann-step=   1200  chi2=    10.15431  accepted=  36562  tried=    56973  new stepsize= 0.0500
+ann-step=   1600  chi2=     6.58661  accepted=  30104  tried=    56664  new stepsize= 0.0500
+ann-step=   2000  chi2=     4.63459  accepted=  27347  tried=    56640  new stepsize= 0.0500
+ann-step=   2400  chi2=     3.31253  accepted=  26504  tried=    56753  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.32728  accepted=  25939  tried=    56941  new stepsize= 0.0500
+ann-step=   3200  chi2=     1.58102  accepted=  25742  tried=    57207  new stepsize= 0.0500
+ann-step=   3600  chi2=     1.05969  accepted=  24518  tried=    57273  new stepsize= 0.0500
+ann-step=   4000  chi2=     0.74079  accepted=  17281  tried=    56964  new stepsize= 0.0500
+ann-step=    400  chi2=     1.95982  accepted=  54406  tried=    56570  new stepsize= 0.0500
+ann-step=    800  chi2=     2.05781  accepted=  51679  tried=    56467  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.09705  accepted=  46781  tried=    56526  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.21266  accepted=  39486  tried=    56624  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.33291  accepted=  32443  tried=    56815  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.33798  accepted=  19551  tried=    56668  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.33679  accepted=   9265  tried=    56705  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.33692  accepted=   6073  tried=    56791  new stepsize= 0.0333
+ann-step=   3600  chi2=     2.33685  accepted=   6085  tried=    56862  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.33681  accepted=   4060  tried=    56768  new stepsize= 0.0066
+ann-step=    400  chi2=     2.46947  accepted=  54401  tried=    56489  new stepsize= 0.0500
+ann-step=    800  chi2=     2.50196  accepted=  51878  tried=    56465  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.48929  accepted=  48717  tried=    56691  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.50666  accepted=  42631  tried=    56942  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.51973  accepted=  32366  tried=    56774  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.51781  accepted=  19012  tried=    56770  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.51747  accepted=   8732  tried=    56707  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.51763  accepted=   5937  tried=    56789  new stepsize= 0.0333
+ann-step=   3600  chi2=     2.51783  accepted=   5862  tried=    56832  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.51777  accepted=   3742  tried=    56819  new stepsize= 0.0066
+ann-step=    400  chi2=  1870.01018  accepted=  37960  tried=    38615  new stepsize= 1.0000
+ann-step=    800  chi2=  1630.86055  accepted=  40064  tried=    41746  new stepsize= 1.0000
+ann-step=   1200  chi2=  1471.84139  accepted=  41804  tried=    45659  new stepsize= 1.0000
+ann-step=   1600  chi2=  1358.98640  accepted=  37496  tried=    45536  new stepsize= 1.0000
+ann-step=   2000  chi2=  1142.75060  accepted=  35011  tried=    53221  new stepsize= 1.0000
+nb= 4.0 nz= 0.0
+beta= 2.4390243902439024
+df= -2.1086331300215775e-10
+beta= 2.4390243902439024
+normalization= 0.9999999999999999
+Model normalization= 1.0
+Aw normalization= 0.9999999999999996
+0 Restarting maxent with rfac= 1.0 alpha= 1000
+Finished maxent with alpha= 1000 -2*alpha*S= 140.76203564058878 Trace= 2.150677681691716 S= -0.07038101782029439
+   ratio= 65.45008433335572
+1 Restarting maxent with rfac= 0.05 alpha= 15.28172324830918
+Finished maxent with alpha= 15.28172324830918 -2*alpha*S= 1.7295259802311758 Trace= 4.824808095658737 S= -0.05658805463652589
+   ratio= 0.3584652375681776
+2 Restarting maxent with rfac= 0.05 alpha= 42.638895717991254
+Finished maxent with alpha= 42.638895717991254 -2*alpha*S= 3.9097686540500365 Trace= 4.193686704587249 S= -0.0458474426719303
+   ratio= 0.9322986978911302
+3 Restarting maxent with rfac= 0.05 alpha= 45.74489488418657
+Finished maxent with alpha= 45.74489488418657 -2*alpha*S= 4.171313248216755 Trace= 4.149817250623637 S= -0.045593210551443684
+   ratio= 1.005179986562032
+./skrams -cn 2 -s -pi dosn > Gc
+
+df= -1.9067770890802896e-10
+beta= 2.4390243902439024
+normalization= 0.9999999999999998
+Model normalization= 0.9999999999999998
+Aw normalization= 0.9999999999999996
+0 Restarting maxent with rfac= 1.0 alpha= 1000
+Finished maxent with alpha= 1000 -2*alpha*S= 128.13097484147968 Trace= 2.1508099605600357 S= -0.06406548742073984
+   ratio= 59.57335942786711
+1 Restarting maxent with rfac= 0.05 alpha= 16.78921727709335
+Finished maxent with alpha= 16.78921727709335 -2*alpha*S= 1.453301196986291 Trace= 4.775180128753113 S= -0.043280790670602816
+   ratio= 0.3043447907306011
+2 Restarting maxent with rfac= 0.05 alpha= 55.175368351429206
+Finished maxent with alpha= 55.175368351429206 -2*alpha*S= 3.727049971477339 Trace= 4.03907376233444 S= -0.03377458169140431
+   ratio= 0.9227486772420906
+3 Restarting maxent with rfac= 0.05 alpha= 59.80721410812341
+Finished maxent with alpha= 59.80721410812341 -2*alpha*S= 4.041431758555992 Trace= 3.988563074873957 S= -0.03378715944910614
+   ratio= 1.0132550702319545
+4 Restarting maxent with rfac= 0.05 alpha= 58.99942465908804
+Finished maxent with alpha= 58.99942465908804 -2*alpha*S= 3.9859382503411 Trace= 3.9970870165075123 S= -0.0337794671166096
+   ratio= 0.997210777218417
+./skrams -cn 2 -s -pi dosn > Gc
+
+df= 1.906782566634405e-10
+beta= 2.4390243902439024
+normalization= 0.9999999999999999
+Model normalization= 1.0
+Aw normalization= 0.9999999999999996
+0 Restarting maxent with rfac= 1.0 alpha= 1000
+Finished maxent with alpha= 1000 -2*alpha*S= 136.77207062426982 Trace= 2.1543695744837277 S= -0.06838603531213491
+   ratio= 63.48589037098977
+1 Restarting maxent with rfac= 0.05 alpha= 15.75452544677362
+Finished maxent with alpha= 15.75452544677362 -2*alpha*S= 1.6830946947517846 Trace= 4.808895571714198 S= -0.053416229528400895
+   ratio= 0.34999609986369945
+2 Restarting maxent with rfac= 0.05 alpha= 45.0217928499746
+Finished maxent with alpha= 45.0217928499746 -2*alpha*S= 3.832091365308556 Trace= 4.161116298143472 S= -0.04255818263477615
+   ratio= 0.9209286861360462
+3 Restarting maxent with rfac= 0.05 alpha= 48.89771302203087
+Finished maxent with alpha= 48.89771302203087 -2*alpha*S= 4.137982936132206 Trace= 4.109497396303001 S= -0.042312642866015396
+   ratio= 1.0069316359355358
+./skrams -cn 2 -s -pi dosn > Gc
+
+df= 2.1086270726177172e-10
+beta= 2.4390243902439024
+normalization= 1.0
+Model normalization= 1.0
+Aw normalization= 0.9999999999999999
+0 Restarting maxent with rfac= 1.0 alpha= 1000
+Finished maxent with alpha= 1000 -2*alpha*S= 132.02046379095805 Trace= 2.1472767944991453 S= -0.06601023189547903
+   ratio= 61.48274136299786
+1 Restarting maxent with rfac= 0.05 alpha= 16.267818467228963
+Finished maxent with alpha= 16.267818467228963 -2*alpha*S= 1.5069194314433325 Trace= 4.792250902576322 S= -0.0463159653053351
+   ratio= 0.31444919351639333
+2 Restarting maxent with rfac= 0.05 alpha= 51.74394022412567
+Finished maxent with alpha= 51.74394022412567 -2*alpha*S= 3.8141944679224866 Trace= 4.078051881056971 S= -0.03685643624549599
+   ratio= 0.9352981715705646
+3 Restarting maxent with rfac= 0.05 alpha= 55.33516053283112
+Finished maxent with alpha= 55.33516053283112 -2*alpha*S= 4.074190377381893 Trace= 4.036067369164219 S= -0.03681375763755686
+   ratio= 1.0094455827246431
+./skrams -cn 2 -s -pi dosn > Gc
+
+ann-step=   2400  chi2=   791.02016  accepted=  25913  tried=    57179  new stepsize= 1.0000
+ann-step=   2800  chi2=   461.73673  accepted=  20002  tried=    57007  new stepsize= 1.0000
+ann-step=   3200  chi2=   229.16100  accepted=  15953  tried=    56756  new stepsize= 1.0000
+ann-step=   3600  chi2=   115.13138  accepted=   8433  tried=    56511  new stepsize= 1.0000
+ann-step=   4000  chi2=    98.22840  accepted=   2161  tried=    56417  new stepsize= 0.2963
+ann-step=    400  chi2=    16.23140  accepted=  51601  tried=    57217  new stepsize= 0.0500
+ann-step=    800  chi2=    12.09116  accepted=  45835  tried=    57078  new stepsize= 0.0500
+ann-step=   1200  chi2=     7.80020  accepted=  37666  tried=    56998  new stepsize= 0.0500
+ann-step=   1600  chi2=     5.03211  accepted=  30302  tried=    56687  new stepsize= 0.0500
+ann-step=   2000  chi2=     3.50706  accepted=  27412  tried=    56933  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.44645  accepted=  26464  tried=    56943  new stepsize= 0.0500
+ann-step=   2800  chi2=     1.68021  accepted=  26016  tried=    57216  new stepsize= 0.0500
+ann-step=   3200  chi2=     1.12688  accepted=  25105  tried=    57164  new stepsize= 0.0500
+ann-step=   3600  chi2=     0.77067  accepted=  21923  tried=    57118  new stepsize= 0.0500
+ann-step=   4000  chi2=     0.71225  accepted=   2633  tried=    57243  new stepsize= 0.0148
+ann-step=    400  chi2=     2.26918  accepted=  54414  tried=    56737  new stepsize= 0.0500
+ann-step=    800  chi2=     2.32521  accepted=  51761  tried=    56704  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.33942  accepted=  46931  tried=    56781  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.42825  accepted=  39169  tried=    56926  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.53139  accepted=  32035  tried=    56779  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.53607  accepted=  19234  tried=    56905  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.53791  accepted=   8841  tried=    56950  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.53687  accepted=   5918  tried=    56941  new stepsize= 0.0333
+ann-step=   3600  chi2=     2.53713  accepted=   5954  tried=    56997  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.53704  accepted=   3861  tried=    57027  new stepsize= 0.0066
+ann-step=    400  chi2=     2.69903  accepted=  54601  tried=    56778  new stepsize= 0.0500
+ann-step=    800  chi2=     2.67411  accepted=  52262  tried=    56685  new stepsize= 0.0500
+ann-step=   1200  chi2=     2.70345  accepted=  48776  tried=    56828  new stepsize= 0.0500
+ann-step=   1600  chi2=     2.69306  accepted=  42743  tried=    56901  new stepsize= 0.0500
+ann-step=   2000  chi2=     2.69895  accepted=  32090  tried=    56877  new stepsize= 0.0500
+ann-step=   2400  chi2=     2.69906  accepted=  18734  tried=    56877  new stepsize= 0.0500
+ann-step=   2800  chi2=     2.69837  accepted=   8784  tried=    56921  new stepsize= 0.0500
+ann-step=   3200  chi2=     2.69844  accepted=   5828  tried=    57002  new stepsize= 0.0333
+ann-step=   3600  chi2=     2.69825  accepted=   5780  tried=    56835  new stepsize= 0.0148
+ann-step=   4000  chi2=     2.69828  accepted=   3826  tried=    56884  new stepsize= 0.0066
