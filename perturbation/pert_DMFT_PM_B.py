@@ -15,6 +15,7 @@ import diagrams
 import serial_module
 import copy
 import logging
+import XAF
 sys.path.append('./diagramsMC/dispersive_sig')
 import diagramsMC.basis as basis
 import diagramsMC.dispersive_sig.svd_diagramsMC_cutPhi as svd_diagramsMC_cutPhi
@@ -23,12 +24,17 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 nprocs = comm.Get_size()
 """
-# Yueyi Wang. May 2024
-# This file is a perturbation based on the converged result of DMFT.
-This only take the imaginary part of self-energy and manually add a freq-independent splitting to real part as the starting point of perturbation.
+# Yueyi Wang. Nov 2024
+This file is modified from Pert_DMFT_PM.py
+which aims to calculate the xi_AFM by adding a staggered magnetic field to the action/hamiltonian.
+At the limit of B->0, there are a few ideas to solve the hamiltonian under B field:
+1. add a B field in the Counter Term. Then do the perturation as before. Use original DMFT Sigma^PM.
+2. add a B field in the modified propagator. Then do the perturation as before. Use original DMFT Sigma^PM.
+3. add a B field in the modified propagator. Use self-energy from DMFT UNDER THE B FIELD. 
+    This is the most complicated one, should be the last resort. However I don't think a tiny B field will change the Sigma^PM_imp... 
+    so use Sigma^PM_imp from DMFT without the external B should be fine, at leats in the linear response limit?
 
-
-This code is designed to search critical behavior of magnetization. This requires A LOT of MC steps.
+This code is designed to search critical behavior of magnetization. This requires A LOT of MC steps for order 4.
 """
 class params:
     '''
@@ -232,7 +238,7 @@ def GetHighFrequency4D(CC,om):
     return (A, C)
 
 
-def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=1):
+def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,B,nfreq,order,alpha,foldernum='B'):
     '''
     the main function doing iterative pertubation. 
     Input:
@@ -279,39 +285,35 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
     # this part does not change over iterations.the diagrams can be calculated before iteration.
     # DMFT GF, impurity self-energy: (which is prepared not in multi-process way)
     
-        #--------------Generating Gimp used in counter terms---------------
-    # iom=np.concatenate((om[::-1],om))*1j
-    # z_1=z4D(beta,mu,Sigma11,knum,nfreq)#z-delta
-    # z_2=z4D(beta,mu,Sigma22,knum,nfreq)#z+delta
-    # G11_iom,G12_iom=G_iterative(knum,z_1,z_2,Sigma12)
-    # G22_iom=-G11_iom.conjugate()
-    # G11_tau=fft.fermion_fft_diagG(knum,G11_iom,beta,SigDMFT1,mu)# currently sigma12=0
-    # G12_tau=fft.fast_ft_fermion(G12_iom,beta)
-    # G12_tau = np.ascontiguousarray(G12_tau)
-    # G22_tau=G11_tau[::-1] 
-    # G22_tau = np.ascontiguousarray(G22_tau)
-    # G11imp_iom=np.sum(G11_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
-    # G22imp_iom=np.sum(G22_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
+#--------------Generating Gimp used in counter terms---------------
+    iom=np.concatenate((om[::-1],om))*1j
+    z_1=z4D(beta,mu,Sigma11,knum,nfreq)-B#z-delta
+    z_2=z4D(beta,mu,Sigma22,knum,nfreq)+B#z+delta
+    G11_iom,G12_iom=G_iterative(knum,z_1,z_2,Sigma12)
+    G22_iom=-G11_iom.conjugate()
+    G11_tau=fft.fermion_fft_diagG(knum,G11_iom,beta,SigDMFT1,mu)# currently sigma12=0
+    G12_tau=fft.fast_ft_fermion(G12_iom,beta)
+    G12_tau = np.ascontiguousarray(G12_tau)
+    G22_tau=G11_tau[::-1] 
+    G22_tau = np.ascontiguousarray(G22_tau)
+    G11imp_iom=np.sum(G11_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
+    G22imp_iom=np.sum(G22_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
+    G11imp_tau=np.sum(G11_tau,axis=(1,2,3))/knum**3
+    G22imp_tau=G11imp_tau[::-1] 
+#-------------Generating G0=(iom+mu-epsk-Sig_PM-alpha*Sig_AFM)^-1---------
 
-        #-------------Generating G0=(iom+mu-epsk-Sig_PM-alpha*Sig_AFM)^-1---------
-        # here a natural scale of the splitting should be U/2, but that is an upper bound of the splitting.
-        # the alpha might be much lower than this value.
-
-        # Sig_PM=(Sigma11+Sigma22)/2
-        # Sig_AFM=(Sigma11-Sigma22)/2
-
-    # if rank ==0:    
-    #     print('prepare G0...')
     Sig_PM=1j*Sigma11.imag+mu
     Sig_AFM=Sigma11-Sig_PM
-    Sigmod11=Sig_PM+alpha*U/2*(1-ifsigAFM)+alpha*Sig_AFM*ifsigAFM
+    Sigmod11=Sig_PM+alpha*U/2*(1-ifsigAFM)+alpha*Sig_AFM*ifsigAFM# idea1: add B field here in the starting point of the perturbation.
     Sigmod22=Sig_PM-alpha*U/2*(1-ifsigAFM)-alpha*Sig_AFM*ifsigAFM
     Sigmod12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-    zmod_1=z4D(beta,mu,Sigmod11,knum,nfreq)#z-delta
-    zmod_2=z4D(beta,mu,Sigmod22,knum,nfreq)#z+delta
+    #Note: this def means +B and +alpha polarize the system in the same way. 
+    # in z we have zA=iom+mu-sigmaPM-alpha*U-B.  zB=iom+mu-sigmaPM+alpha*U+B.
+    zmod_1=z4D(beta,mu,Sigmod11,knum,nfreq)-B#z-delta
+    zmod_2=z4D(beta,mu,Sigmod22,knum,nfreq)+B#z+delta
     G0_11_iom,G0_12_iom=G_iterative(knum,zmod_1,zmod_2,Sigmod12)# currently sigma12=0
     G0_22_iom=-G0_11_iom.conjugate()
-    G0_11_tau=fft.fermion_fft_diagG(knum,G0_11_iom,beta,Sigmod11[:,0,0,0],mu).real
+    G0_11_tau=fft.fermion_fft_diagG(knum,G0_11_iom,beta,Sigmod11[:,0,0,0]+B,mu).real
     G0_12_tau=fft.fast_ft_fermion(G0_12_iom,beta).real
     G0_11_tau = np.ascontiguousarray(G0_11_tau)
     G0_12_tau = np.ascontiguousarray(G0_12_tau)
@@ -319,51 +321,47 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
     G0_22_tau = np.ascontiguousarray(G0_22_tau)
     n0loc11=particlenumber4D(G0_11_iom,beta)
     n0loc22=particlenumber4D(G0_22_iom,beta)
+    # G0_11imp_iom=np.sum(G0_11_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
+    # G0_22imp_iom=np.sum(G0_22_iom,axis=(1,2,3))/knum**3 # impurity GF=sum_k DMFT GF
+    # G0_11imp_tau=np.sum(G0_11_tau,axis=(1,2,3))/knum**3
+    # G0_22imp_tau=G0_11imp_tau[::-1]
 
-        #-----------counter term skeleton diagrams-------------
-
-    ut,lmax,taunum,nfreq,sigimp_1,Sigmaimpiom2_11,Sigmaimpiom31_11,Sigmaimpiom32_11,Sigmaimpiom41_11,Sigmaimpiom42_11,Sigmaimpiom43_11,Sigmaimpiom44_11,Sigmaimpiom45_11,Sigmaimp43tau,Sigmaimp44tau=read_sigimp(U,T)
-    # if rank ==0: 
-    #     print('read sigimp... taunum=',taunum)
-    Sigmaimpiom3_11=Sigmaimpiom31_11+Sigmaimpiom32_11
-    Sigmaimpiom4_11=Sigmaimpiom41_11+Sigmaimpiom42_11+Sigmaimpiom43_11+Sigmaimpiom44_11+Sigmaimpiom45_11
-        # now they can be directly used from the previous one.
-    #1st
-    if sigimp_1>U/2:
-        sigimp_1_11=sigimp_1
-        sigimp_1_22=U-sigimp_1
-    # sigimp_1_11=(particlenumber1D(G22imp_iom,beta))*U# this is the original approach.
-    # sigimp_1_22=(particlenumber1D(G11imp_iom,beta))*U    
-    else:
-        sigimp_1_11=U-sigimp_1
-        sigimp_1_22=sigimp_1                
+#-----------counter term skeleton diagrams, IN TERMS OF IMP PROPAGATOR!!!-------------
+    # instead of reading data, we just calculate them for the first 3 orders.     
+    sigimp_1_11=(particlenumber1D(G22imp_iom,beta))*U# this is the original approach.
+    sigimp_1_22=(particlenumber1D(G11imp_iom,beta))*U               
     sigimpPM_1=(sigimp_1_11+sigimp_1_22)/2
     sigimpAFM_1=(sigimp_1_11-sigimp_1_22)/2        
     sigimpmod_1_11=sigimpPM_1+alpha*U/2*(1-ifsigAFM)+alpha*sigimpAFM_1*ifsigAFM
     sigimpmod_1_22=sigimpPM_1-alpha*U/2*(1-ifsigAFM)-alpha*sigimpAFM_1*ifsigAFM
     #2nd
-        # sigimp_2_11,sigimp_2_22=imp.pertimp_func(G11imp_iom,delta_inf,beta,U,knum,2)# 2nd order diagram in Sigma_DMFT
-    sigimp_2_11=Sigmaimpiom2_11
-    sigimp_2_22=-Sigmaimpiom2_11.conjugate()
+    # sigimp_2_11,sigimp_2_22=imp.pertimp_func(G11imp_iom,delta_inf,beta,U,knum,2)# 2nd order diagram in Sigma_DMFT
+    sigimp_2=imp.pertimp_func_tau(G11imp_tau,beta,U,knum,2)
+    sigimp_2_11=fft.fermion_ifft(sigimp_2,beta)
+    # sigimp_2_11=Sigmaimpiom2_11
+    sigimp_2_22=-sigimp_2_11.conjugate()
     sigimpPM_2=(sigimp_2_11+sigimp_2_22)/2
     sigimpAFM_2=(sigimp_2_11-sigimp_2_22)/2
     sigimpmod_2_11=sigimpPM_2+alpha*sigimpAFM_2*ifsigAFM
     sigimpmod_2_22=sigimpPM_2-alpha*sigimpAFM_2*ifsigAFM
     #3rd
-    sigimp_3_11=Sigmaimpiom3_11
-    sigimp_3_22=-Sigmaimpiom3_11.conjugate()
+    # sigimp_3_11=Sigmaimpiom3_11
+    # sigimp_3_22=-Sigmaimpiom3_11.conjugate()
     # sigimpcheck_3_1_11,sigimpcheck_3_2_11=imp.pertimp_func(G11imp_iom,delta_inf,beta,U,knum,3)# 3rd order diagram in Sigma_DMFT    
+    sigimp_31,sigimp_32=imp.pertimp_func_tau(G11imp_tau,beta,U,knum,3)
+    sigimp_3_11=fft.fermion_ifft(sigimp_31+sigimp_32,beta)
+    sigimp_3_22=-sigimp_3_11.conjugate()
     sigimpPM_3=(sigimp_3_11+sigimp_3_22)/2
     sigimpAFM_3=(sigimp_3_11-sigimp_3_22)/2
     sigimpmod_3_11=sigimpPM_3+alpha*sigimpAFM_3*ifsigAFM
     sigimpmod_3_22=sigimpPM_3-alpha*sigimpAFM_3*ifsigAFM    
     #4th
-    sigimp_4_11=Sigmaimpiom4_11
-    sigimp_4_22=-Sigmaimpiom4_11.conjugate()
-    sigimpPM_4=(sigimp_4_11+sigimp_4_22)/2
-    sigimpAFM_4=(sigimp_4_11-sigimp_4_22)/2
-    sigimpmod_4_11=sigimpPM_4+alpha*sigimpAFM_4*ifsigAFM
-    sigimpmod_4_22=sigimpPM_4-alpha*sigimpAFM_4*ifsigAFM   
+    # sigimp_4_11=Sigmaimpiom4_11
+    # sigimp_4_22=-Sigmaimpiom4_11.conjugate()
+    # sigimpPM_4=(sigimp_4_11+sigimp_4_22)/2
+    # sigimpAFM_4=(sigimp_4_11-sigimp_4_22)/2
+    # sigimpmod_4_11=sigimpPM_4+alpha*sigimpAFM_4*ifsigAFM
+    # sigimpmod_4_22=sigimpPM_4-alpha*sigimpAFM_4*ifsigAFM   
         # test the sigmaimp read from saved files
     # if rank ==0: 
     #     print('reading sigimp finished! time={}s'.format(time.time()-time0))
@@ -435,8 +433,8 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
     comm.Bcast(kbasis, root=0)    
     if order>=1:
         # This G_dressed is for the iterated perturbation. But in the 1st iteration is should be G_0.
-        z_1=z4D(beta,mu,Sigmod11+sig_corr_11,knum,nfreq)
-        z_2=z4D(beta,mu,Sigmod22+sig_corr_22,knum,nfreq)
+        z_1=z4D(beta,mu,Sigmod11+sig_corr_11,knum,nfreq)-B
+        z_2=z4D(beta,mu,Sigmod22+sig_corr_22,knum,nfreq)+B
         Gdress11_iom,Gdress12_iom=G_iterative(knum,z_1,z_2,sig_corr_12)
         Gdress22_iom=-Gdress11_iom.conjugate()
         # nloc11=np.sum(Gdress11_iom).real/knum**3/beta+1/2
@@ -452,9 +450,6 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
         # if rank==0:
         #     print('1st order done! time={}s'.format(time.time()-time0))
     if order>=2:# second order correction to self energy
-        time20=time.time()
-        # if rank==0:
-        #     print('initialization')
         sig_corr2_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
         sig_corr2_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
         sig_corr2_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
@@ -508,10 +503,6 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
             Sig3_11=Sig3_1_11+Sig3_2_11
             Sig3_12=Sig3_1_12+Sig3_2_12
             Sig3_22=-Sig3_11.conjugate()
-
-            time31=time.time()
-                        # non-skeleton diagrams first(if not doing iterative perturbation)
-                        #IMPORTANT: iterative perturbation will only cover all insertions in a hartree. It does not cover some other diagrams. e,g, 1st order insertion in a skeleton 2nd order diagram.
             sigext3a_11=diagrams.sig3_nonskeleton_A(G0_22_iom,G0_12_iom,sig_corr2_11,sig_corr2_22,sig_corr2_12,knum,nfreq,U,beta)#second order insertion on a hartree
             sigext3a_22=-sigext3a_11#
                     # important note: I had a bug for the diagramB and I was using sig_corr1_11. and got ridiculous bugs. BE CAREFUL HERE!
@@ -531,7 +522,6 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
             sig_corr3_12+=(Sig3_12+sigext3def_12)
 
 
-            time33=time.time()
         comm.Bcast(sig_corr3_11, root=0)
         comm.Bcast(sig_corr3_22, root=0)
         comm.Bcast(sig_corr3_12, root=0)            
@@ -541,134 +531,137 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
         # if rank==0:
             # print('3nd order timeske={}s  timeabc={}s  timedef={}s'.format(time31-time30,time32-time31,time33-time32))
             # print('3rd order done! time={}s'.format(time.time()-time0))
-    if order>=4:#Note: here 4th order is only for non-iterative version.
-        sig_corr4_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-        sig_corr4_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-        sig_corr4_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
-        #summon the monte carlo to get the 2 most difficult diagrams of the 4th order.
+    # if order>=4:#Note: here 4th order is only for non-iterative version.
+    #     sig_corr4_11=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    #     sig_corr4_22=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    #     sig_corr4_12=np.zeros((2*nfreq,knum,knum,knum),dtype=complex)
+    #     #summon the monte carlo to get the 2 most difficult diagrams of the 4th order.
         
-        GFs=(G0_11_tau.real,G0_12_tau.real,G0_22_tau.real)
-        sublatind_basis=np.array([[1,0,0,0],
-                              [0,1,0,0],
-                              [0,0,1,0],
-                              [0,0,0,1]])
+    #     GFs=(G0_11_tau.real,G0_12_tau.real,G0_22_tau.real)
+    #     sublatind_basis=np.array([[1,0,0,0],
+    #                           [0,1,0,0],
+    #                           [0,0,1,0],
+    #                           [0,0,0,1]])
 
-        # for make the code more efficient, we'd better think when do we need more MC steps:
-        # The derivative of Fermi-dirac distribution: \frac{df(E)}{dE} = f(E)(1 - f(E))*beta.
-        # Assume the self-energy is a real const. At lower T and paramagnetic case, same error of Sigma will result in much larger error of magnetization.
-        # so, at low alpha and low T, more MC steps should be used.
-        stepnum_basics1=int(200/nprocs)
-        stepnum_basics2=int(200/nprocs )        
-        if alpha <=0.3:
-            stepnum_basics1=int(300/nprocs)
-            stepnum_basics2=int(300/nprocs)
-        if alpha<=0.2:
-            stepnum_basics1=int(600/nprocs)
-            stepnum_basics2=int(600/nprocs)
-        if alpha<=0.1:
-            stepnum_basics1=int(1000/nprocs)
-            stepnum_basics2=int(1000/nprocs)
-        # if beta>4:
-        #     stepnum_basics1*=(beta/4)
-        #     stepnum_basics2*=(beta/4)
-        # stepnum_basics1=int(max(stepnum_basics1,50/nprocs))
-        # stepnum_basics2=int(max(stepnum_basics2,50/nprocs))
-
-
-        func43=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm43,GFs,perm_def.dep43,2)
-        func44=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm44,GFs,perm_def.dep44,4)
-        # if rank==0:
-        #     print('doing 1st MC..  time={}s step#={}M'.format(time.time()-time0,stepnum_basics1))        
-        Sig4_3_11coeff,Sig4_3_12coeff,Sig4_3_11,Sig4_3_12,Sig4_3_11tau,Sig4_3_12tau=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func43,params(stepnum_basics1),imax,lmax,ut,kbasis,beta,alpha,svdcheck)
-        # if rank==0:
-            # print('doing 2nd MC..  time={}s step#={}M'.format(time.time()-time0,stepnum_basics2))        
-        Sig4_4_11coeff,Sig4_4_12coeff,Sig4_4_11,Sig4_4_12,Sig4_4_11tau,Sig4_4_12tau=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func44,params(stepnum_basics2),imax,lmax,ut,kbasis,beta,alpha,svdcheck)
-        if rank==0:
-            print('MC finished!  time={}s'.format(time.time()-time0))
-        time40=time.time()
-        # then we evaluate ladder, rpa,....first prepare Q and R. we'll use them later.
-
-        if rank==0:
-        # P22_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G0_22_tau,G0_22_tau,0)
-        # P12_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,12,G0_12_tau,G0_12_tau,1)
-            P11_tau=serial_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G0_11_tau,G0_11_tau,0)
-            P11_iom=fft.fast_ift_boson(P11_tau,beta)
-            P22_iom=fft.fast_ift_boson(P22_tau,beta)
-            P12_iom=fft.fast_ift_boson(P12_tau,beta)
-            # then, generate all diagrams which are 1 insertion in 3rd order. This also have to be done in parallel way.
-            Sig4_1_11,Sig4_1_12=diagrams.sig4_1(G0_11_tau,G0_12_tau,G0_22_tau,Q11_iom,Q12_iom,Q22_iom,knum,nfreq,U,beta)
-            Sig4_2_11,Sig4_2_12=diagrams.sig4_2(G0_11_tau,G0_12_tau,G0_22_tau,R11_iom,R12_iom,R22_iom,knum,nfreq,U,beta)
-            Sig4_5_11,Sig4_5_12=diagrams.sig4_5(G0_11_tau,G0_12_tau,G0_22_tau,P11_iom,P12_iom,P22_iom,knum,nfreq,U,beta)
-            # That's all skeleton diagrams of order 4. Then we should consider the 1st order insertion in the 3rd order.
-
-            print('4th order ladderrpa finished!  timeladrpa={}s'.format(time.time()-time0))
+    #     # for make the code more efficient, we'd better think when do we need more MC steps:
+    #     # The derivative of Fermi-dirac distribution: \frac{df(E)}{dE} = f(E)(1 - f(E))*beta.
+    #     # Assume the self-energy is a real const. At lower T and paramagnetic case, same error of Sigma will result in much larger error of magnetization.
+    #     # so, at low alpha and low T, more MC steps should be used.
+    #     stepnum_basics1=int(200/nprocs)
+    #     stepnum_basics2=int(200/nprocs )        
+    #     if alpha <=0.3:
+    #         stepnum_basics1=int(300/nprocs)
+    #         stepnum_basics2=int(300/nprocs)
+    #     if alpha<=0.2:
+    #         stepnum_basics1=int(600/nprocs)
+    #         stepnum_basics2=int(600/nprocs)
+    #     if alpha<=0.1:
+    #         stepnum_basics1=int(1000/nprocs)
+    #         stepnum_basics2=int(1000/nprocs)
+    #     # if beta>4:
+    #     #     stepnum_basics1*=(beta/4)
+    #     #     stepnum_basics2*=(beta/4)
+    #     # stepnum_basics1=int(max(stepnum_basics1,50/nprocs))
+    #     # stepnum_basics2=int(max(stepnum_basics2,50/nprocs))
 
 
-            Sig4_3plus_11,Sig4_3plus_12=diagrams.sig4_3plus(G0_11_iom,G0_12_iom,G0_22_iom,G0_11_tau,G0_12_tau,G0_22_tau,  sig_corr1_11,sig_corr1_22,  Q11_iom,Q12_iom,Q22_iom,R11_iom,R12_iom,R22_iom,knum,nfreq,U,beta)
-            Sig4_2plus_11,Sig4_2plus_12=diagrams.sig4_2plus(G0_11_iom,G0_12_iom,G0_22_iom,G0_11_tau,G0_12_tau,G0_22_tau,P22_tau,P12_tau,  sig_corr1_11,sig_corr1_22,sig_corr2_11,sig_corr2_12,sig_corr2_22,knum,nfreq,U,beta)
-            Sig4_1plus_11=diagrams.sig4_1plus(G0_11_iom,G0_12_iom,G0_22_iom,sig_corr1_11,sig_corr1_22,sig_corr2_11,sig_corr2_12,sig_corr2_22,sig_corr3_11,sig_corr3_12,sig_corr3_22,knum,nfreq,U,beta)
+    #     func43=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm43,GFs,perm_def.dep43,2)
+    #     func44=diag_def_cutPhifast.FuncNDiagNew(T,U,knum,taunum,nfreq,4,ut,kbasis,perm_def.perm44,GFs,perm_def.dep44,4)
+    #     # if rank==0:
+    #     #     print('doing 1st MC..  time={}s step#={}M'.format(time.time()-time0,stepnum_basics1))        
+    #     Sig4_3_11coeff,Sig4_3_12coeff,Sig4_3_11,Sig4_3_12,Sig4_3_11tau,Sig4_3_12tau=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func43,params(stepnum_basics1),imax,lmax,ut,kbasis,beta,alpha,svdcheck)
+    #     # if rank==0:
+    #         # print('doing 2nd MC..  time={}s step#={}M'.format(time.time()-time0,stepnum_basics2))        
+    #     Sig4_4_11coeff,Sig4_4_12coeff,Sig4_4_11,Sig4_4_12,Sig4_4_11tau,Sig4_4_12tau=svd_diagramsMC_cutPhi.Summon_Integrate_Parallel_dispersive(func44,params(stepnum_basics2),imax,lmax,ut,kbasis,beta,alpha,svdcheck)
+    #     if rank==0:
+    #         print('MC finished!  time={}s'.format(time.time()-time0))
+    #     time40=time.time()
+    #     # then we evaluate ladder, rpa,....first prepare Q and R. we'll use them later.
 
-            sig_corr4_11+=(Sig4_1_11+Sig4_2_11+Sig4_3_11+Sig4_4_11+Sig4_5_11-sigimpmod_4_11[:,None,None,None]+Sig4_3plus_11+Sig4_2plus_11+Sig4_1plus_11)#
-            sig_corr4_12+=(Sig4_1_12+Sig4_2_12+Sig4_3_12+Sig4_4_12+Sig4_5_12+Sig4_3plus_12+Sig4_2plus_12)  #       
-            sig_corr4_22=-sig_corr4_11.conjugate()
+    #     if rank==0:
+    #     # P22_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G0_22_tau,G0_22_tau,0)
+    #     # P12_tau=mpi_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,12,G0_12_tau,G0_12_tau,1)
+    #         P11_tau=serial_module.bubble_mpi(fft.precalcP_fft,knum,nfreq,11,G0_11_tau,G0_11_tau,0)
+    #         P11_iom=fft.fast_ift_boson(P11_tau,beta)
+    #         P22_iom=fft.fast_ift_boson(P22_tau,beta)
+    #         P12_iom=fft.fast_ift_boson(P12_tau,beta)
+    #         # then, generate all diagrams which are 1 insertion in 3rd order. This also have to be done in parallel way.
+    #         Sig4_1_11,Sig4_1_12=diagrams.sig4_1(G0_11_tau,G0_12_tau,G0_22_tau,Q11_iom,Q12_iom,Q22_iom,knum,nfreq,U,beta)
+    #         Sig4_2_11,Sig4_2_12=diagrams.sig4_2(G0_11_tau,G0_12_tau,G0_22_tau,R11_iom,R12_iom,R22_iom,knum,nfreq,U,beta)
+    #         Sig4_5_11,Sig4_5_12=diagrams.sig4_5(G0_11_tau,G0_12_tau,G0_22_tau,P11_iom,P12_iom,P22_iom,knum,nfreq,U,beta)
+    #         # That's all skeleton diagrams of order 4. Then we should consider the 1st order insertion in the 3rd order.
 
-            # for kx in np.arange(knum):
-            #     for ky in np.arange(knum):
-            #         for kz in np.arange(knum):
-            #             plt.plot(Sig4_1_11[:,kx,ky,kz].real,label='dispersive41 real')#+Sig4_2_11[:,kx,ky,kz].real+Sig4_3_11[:,kx,ky,kz].real+Sig4_4_11[:,kx,ky,kz].real+Sig4_5_11[:,kx,ky,kz].real
-            #             plt.plot(Sig4_1_11[:,kx,ky,kz].imag,label='dispersive41 imag')#+Sig4_2_11[:,kx,ky,kz].imag+Sig4_3_11[:,kx,ky,kz].imag+Sig4_4_11[:,kx,ky,kz].imag+Sig4_5_11[:,kx,ky,kz].imag
-            #             plt.plot(Sigmaimpiom41_11.real,label='imp41 real')
-            #             plt.plot(Sigmaimpiom41_11.imag,label='imp41 imag')
-            #             plt.legend()
-            #             plt.show()
-            #             plt.plot(Sig4_2_11[:,kx,ky,kz].real,label='dispersive42 real')
-            #             plt.plot(Sig4_2_11[:,kx,ky,kz].imag,label='dispersive42 imag')
-            #             plt.plot(Sigmaimpiom42_11.real,label='imp42 real')
-            #             plt.plot(Sigmaimpiom42_11.imag,label='imp42 imag')
-            #             plt.legend()
-            #             plt.show()
-            #             plt.plot(Sig4_3_11[:,kx,ky,kz].real,label='dispersive43 11 real')
-            #             plt.plot(Sig4_3_11[:,kx,ky,kz].imag,label='dispersive43 11 imag')                        
-            #             plt.plot(Sigmaimpiom43_11.real,label='imp43 real')
-            #             plt.plot(Sigmaimpiom43_11.imag,label='imp43 imag')
-            #             plt.legend()
-            #             plt.show()
-            #             plt.plot(Sig4_3_11tau[:,kx,ky,kz].real,label='dispersive43tau 11 real')                   
-            #             plt.plot(Sigmaimp43tau.real,label='imp43 real')
-            #             plt.legend()
-            #             plt.show()
-            #             plt.plot(Sig4_4_11[:,kx,ky,kz].real,label='dispersive44 11 real')
-            #             plt.plot(Sig4_4_11[:,kx,ky,kz].imag,label='dispersive44 11 imag')                        
-            #             plt.plot(Sigmaimpiom44_11.real,label='imp44 real')
-            #             plt.plot(Sigmaimpiom44_11.imag,label='imp44 imag')
-            #             plt.legend()
-            #             plt.show()
-            #             plt.plot(Sig4_4_11tau[:,kx,ky,kz].real,label='dispersive44tau 11 real')                   
-            #             plt.plot(Sigmaimp44tau.real,label='imp44 real')
-            #             plt.legend()
-            #             plt.show()
-            #             plt.plot(Sig4_5_11[:,kx,ky,kz].real,label='dispersive45 real')
-            #             plt.plot(Sig4_5_11[:,kx,ky,kz].imag,label='dispersive45 imag')
-            #             plt.plot(Sigmaimpiom45_11.real,label='imp45 real')
-            #             plt.plot(Sigmaimpiom45_11.imag,label='imp45 imag')
-            #             plt.legend()
-            #             plt.show()
-
-        comm.Bcast(sig_corr4_11, root=0)
-        comm.Bcast(sig_corr4_22, root=0)
-        comm.Bcast(sig_corr4_12, root=0)                         
-        sig_corr_11+=sig_corr4_11
-        sig_corr_22+=sig_corr4_22
-        sig_corr_12+=sig_corr4_12  
-        if rank==0:
-            print('4th order done!  time={}s'.format(time.time()-time0))
+    #         print('4th order ladderrpa finished!  timeladrpa={}s'.format(time.time()-time0))
 
 
+    #         Sig4_3plus_11,Sig4_3plus_12=diagrams.sig4_3plus(G0_11_iom,G0_12_iom,G0_22_iom,G0_11_tau,G0_12_tau,G0_22_tau,  sig_corr1_11,sig_corr1_22,  Q11_iom,Q12_iom,Q22_iom,R11_iom,R12_iom,R22_iom,knum,nfreq,U,beta)
+    #         Sig4_2plus_11,Sig4_2plus_12=diagrams.sig4_2plus(G0_11_iom,G0_12_iom,G0_22_iom,G0_11_tau,G0_12_tau,G0_22_tau,P22_tau,P12_tau,  sig_corr1_11,sig_corr1_22,sig_corr2_11,sig_corr2_12,sig_corr2_22,knum,nfreq,U,beta)
+    #         Sig4_1plus_11=diagrams.sig4_1plus(G0_11_iom,G0_12_iom,G0_22_iom,sig_corr1_11,sig_corr1_22,sig_corr2_11,sig_corr2_12,sig_corr2_22,sig_corr3_11,sig_corr3_12,sig_corr3_22,knum,nfreq,U,beta)
 
+    #         sig_corr4_11+=(Sig4_1_11+Sig4_2_11+Sig4_3_11+Sig4_4_11+Sig4_5_11-sigimpmod_4_11[:,None,None,None]+Sig4_3plus_11+Sig4_2plus_11+Sig4_1plus_11)#
+    #         sig_corr4_12+=(Sig4_1_12+Sig4_2_12+Sig4_3_12+Sig4_4_12+Sig4_5_12+Sig4_3plus_12+Sig4_2plus_12)  #       
+    #         sig_corr4_22=-sig_corr4_11.conjugate()
+
+    #         # for kx in np.arange(knum):
+    #         #     for ky in np.arange(knum):
+    #         #         for kz in np.arange(knum):
+    #         #             plt.plot(Sig4_1_11[:,kx,ky,kz].real,label='dispersive41 real')#+Sig4_2_11[:,kx,ky,kz].real+Sig4_3_11[:,kx,ky,kz].real+Sig4_4_11[:,kx,ky,kz].real+Sig4_5_11[:,kx,ky,kz].real
+    #         #             plt.plot(Sig4_1_11[:,kx,ky,kz].imag,label='dispersive41 imag')#+Sig4_2_11[:,kx,ky,kz].imag+Sig4_3_11[:,kx,ky,kz].imag+Sig4_4_11[:,kx,ky,kz].imag+Sig4_5_11[:,kx,ky,kz].imag
+    #         #             plt.plot(Sigmaimpiom41_11.real,label='imp41 real')
+    #         #             plt.plot(Sigmaimpiom41_11.imag,label='imp41 imag')
+    #         #             plt.legend()
+    #         #             plt.show()
+    #         #             plt.plot(Sig4_2_11[:,kx,ky,kz].real,label='dispersive42 real')
+    #         #             plt.plot(Sig4_2_11[:,kx,ky,kz].imag,label='dispersive42 imag')
+    #         #             plt.plot(Sigmaimpiom42_11.real,label='imp42 real')
+    #         #             plt.plot(Sigmaimpiom42_11.imag,label='imp42 imag')
+    #         #             plt.legend()
+    #         #             plt.show()
+    #         #             plt.plot(Sig4_3_11[:,kx,ky,kz].real,label='dispersive43 11 real')
+    #         #             plt.plot(Sig4_3_11[:,kx,ky,kz].imag,label='dispersive43 11 imag')                        
+    #         #             plt.plot(Sigmaimpiom43_11.real,label='imp43 real')
+    #         #             plt.plot(Sigmaimpiom43_11.imag,label='imp43 imag')
+    #         #             plt.legend()
+    #         #             plt.show()
+    #         #             plt.plot(Sig4_3_11tau[:,kx,ky,kz].real,label='dispersive43tau 11 real')                   
+    #         #             plt.plot(Sigmaimp43tau.real,label='imp43 real')
+    #         #             plt.legend()
+    #         #             plt.show()
+    #         #             plt.plot(Sig4_4_11[:,kx,ky,kz].real,label='dispersive44 11 real')
+    #         #             plt.plot(Sig4_4_11[:,kx,ky,kz].imag,label='dispersive44 11 imag')                        
+    #         #             plt.plot(Sigmaimpiom44_11.real,label='imp44 real')
+    #         #             plt.plot(Sigmaimpiom44_11.imag,label='imp44 imag')
+    #         #             plt.legend()
+    #         #             plt.show()
+    #         #             plt.plot(Sig4_4_11tau[:,kx,ky,kz].real,label='dispersive44tau 11 real')                   
+    #         #             plt.plot(Sigmaimp44tau.real,label='imp44 real')
+    #         #             plt.legend()
+    #         #             plt.show()
+    #         #             plt.plot(Sig4_5_11[:,kx,ky,kz].real,label='dispersive45 real')
+    #         #             plt.plot(Sig4_5_11[:,kx,ky,kz].imag,label='dispersive45 imag')
+    #         #             plt.plot(Sigmaimpiom45_11.real,label='imp45 real')
+    #         #             plt.plot(Sigmaimpiom45_11.imag,label='imp45 imag')
+    #         #             plt.legend()
+    #         #             plt.show()
+
+    #     comm.Bcast(sig_corr4_11, root=0)
+    #     comm.Bcast(sig_corr4_22, root=0)
+    #     comm.Bcast(sig_corr4_12, root=0)                         
+    #     sig_corr_11+=sig_corr4_11
+    #     sig_corr_22+=sig_corr4_22
+    #     sig_corr_12+=sig_corr4_12  
+    #     if rank==0:
+    #         print('4th order done!  time={}s'.format(time.time()-time0))
+
+    filename_u='./Sigma_imp/taubasis.txt'
+    ut=np.loadtxt(filename_u).T
+    taunum=np.shape(ut)[1]-1
+    lmax=np.shape(ut)[0]
+    # print('taunum=',taunum,'lmax=',lmax)
     # getting the observables
-    sigmafilename11='./Sigma_disp{}/{}_{}/{}_{}_{}_{}_11.dat'.format(foldernum,U,T,U,T,order,alpha)
-    sigmafilename11const='./Sigma_disp{}/{}_{}/{}_{}_{}_{}_11const.dat'.format(foldernum,U,T,U,T,order,alpha)
-    sigmafilename12='./Sigma_disp{}/{}_{}/{}_{}_{}_{}_12.dat'.format(foldernum,U,T,U,T,order,alpha)
+    sigmafilename11='./Sigma_disp{}/{}_{}_{}/{}_{}_{}_{}_{}_11.dat'.format(foldernum,U,T,B,U,T,B,order,alpha)
+    sigmafilename11const='./Sigma_disp{}/{}_{}_{}/{}_{}_{}_{}_{}_11const.dat'.format(foldernum,U,T,B,U,T,B,order,alpha)
+    sigmafilename12='./Sigma_disp{}/{}_{}_{}/{}_{}_{}_{}_{}_12.dat'.format(foldernum,U,T,B,U,T,B,order,alpha)
     os.makedirs(os.path.dirname(sigmafilename11), exist_ok=True)
     # sigmafilename22='./Sigma_disp/{}_{}_{}_{}_22.dat'.format(U,T,order,alpha)  22 can be got from particle hole symmetry.
     taulist=(np.arange(taunum+1))/taunum*beta
@@ -683,6 +676,8 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
         sigfinal22=Sigmod22+sig_corr_22
         sigfinal12=sig_corr_12
         if rank==0:
+
+
             #Note: the sigfinal11 has constant and 1/omega part, which is not suitable for simple fft. 
             # to do a nice fft we have to take care of these things.
             omega=(2*np.arange(2*nfreq)+1-2*nfreq)*np.pi/beta
@@ -702,8 +697,10 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
 
             sigfinaltau12=fft.fast_ft_fermion(sigfinal12,beta).real
             # sigfinaltau22=fft.fast_ft_fermion(sigfinal22,beta)
+            # print(np.shape(sigfinaltau11))
             sigfinaltau11_splined=interp1d(ori_grid, sigfinaltau11, kind='cubic', axis=0,fill_value='extrapolate')
             sigfinaltau12_splined=interp1d(ori_grid, sigfinaltau12, kind='cubic', axis=0,fill_value='extrapolate')
+        
             cli_11=basis.coeff_tk(sigfinaltau11_splined(taulist),ut,kbasis[0])
             cli_12=basis.coeff_tk(sigfinaltau12_splined(taulist),ut,kbasis[1])
             # cli_22=basis.coeff_tk(sigfinal22,ut,kbasis)
@@ -736,8 +733,8 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
 
 
 
-        znew_1=z4D(beta,mu,sigfinal11,knum,nfreq)
-        znew_2=z4D(beta,mu,sigfinal22,knum,nfreq)
+        znew_1=z4D(beta,mu,sigfinal11,knum,nfreq)-B
+        znew_2=z4D(beta,mu,sigfinal22,knum,nfreq)+B
         Gdress11_iom,Gdress12_iom=G_iterative(knum,znew_1,znew_2,sigfinal12)
         Gdress22_iom=-Gdress11_iom.conjugate()
         # nnewloc11=np.sum(Gdress11_iom).real/knum**3/beta+1/2
@@ -756,14 +753,14 @@ def iterative_perturbation(om,SigDMFT1,SigDMFT2,U,T,nfreq,order,alpha,foldernum=
     
     return nnewloc22-nnewloc11#,Fdisp,Edisp
 
-def run_perturbation(U,T,nfreq,ordernum,alpha,foldernum='_search'):
+def run_perturbation(U,T,B,nfreq,ordernum,alpha,foldernum='B'):
     if U>=8:# for U>=8 boldc is decent, but below that it is better to choose ctqmc.
         mode='boldc'
     else:
         mode='ctqmc'
-    name1='./files_{}/{}_{}/Sig.out'.format(mode,U,T)
+    name1='../files_{}/{}_{}/Sig.out'.format(mode,U,T)
     filename1=readDMFT(name1)
-    name2='./files_boldc/{}_{}/Sig.OCA'.format(U,T)
+    name2='../files_boldcB/{}_{}_{}/Sig.OCA'.format(U,T,B)
     filename2=readDMFT(name2)
     # print(filename1)
     # print(filename2)
@@ -778,39 +775,31 @@ def run_perturbation(U,T,nfreq,ordernum,alpha,foldernum='_search'):
     sigma=np.loadtxt(filename)[:nfreq,:]
     check=sigma[-1,1]
     om=sigma[:,0]
-    # anyways real part of sigA will be greater.
-    if check>U/2:
-        sigA=sigma[:,1]+1j*sigma[:,2]
-        sigB=U-sigma[:,1]+1j*sigma[:,2]
-    else:
-        sigB=sigma[:,1]+1j*sigma[:,2]
-        sigA=U-sigma[:,1]+1j*sigma[:,2]
-    mag=iterative_perturbation(om,sigA,sigB,U,T,nfreq,ordernum,alpha,foldernum)
+    # anyways real part of sigA will be greater. This is my convension.
+    sigA=sigma[:,1]+1j*sigma[:,2]#
+    sigB=U-sigma[:,1]+1j*sigma[:,2]
+
+    mag=iterative_perturbation(om,sigA,sigB,U,T,B,nfreq,ordernum,alpha,foldernum)
     #,Fdisp,Edisp
     return mag#,Fdisp,Edisp
 
-def launch_UT(U,T,maxorder,ifskip=1,foldernum=1):
+def launch_UT(U,T,B,maxorder,ifskip=1,foldernum='B'):
     ifit=0# 0: no iteration
     typelist=['basic','iterative']
     order_arr = np.arange(maxorder+1)[::-1]
     # alpha_arr=np.array(([0.01,0.05,0.1,0.2,0.3,0.6,1.0]))
-    # alpha_arr=np.array(([0.01,0.05,0.1,0.2,0.3]))
+    # alpha_arr=np.arange(10)*B/10.
+    # alpha_arr=np.array(([0.0,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08]))#
+    alpha_arr=np.arange(10)/2000
+    alpha_arr = np.round(alpha_arr, decimals=4)
+    print(alpha_arr)
     # alpha_arr=np.array(([1.0,0.05,0.1,0.2,0.3,0.6]))
-    alpha_arr=np.array(([0.01,0.05,0.1,0.2,0.3,0.6,1.0]))
+    # alpha_arr=np.array(([0.01,0.05,0.1,0.2,0.3,0.6,1.0]))
     # magarr=np.zeros((6,alpha_arr.size),dtype=float)
     # Earr=np.zeros((4,alpha_arr.size),dtype=float)
     # Farr=np.zeros((4,alpha_arr.size),dtype=float)
     # print('U={},T={}'.format(U,T))
 
-    filenameimp='./Sigma_imp/coeff_{}_{}.txt'.format(U,T)
-    if rank==0:
-        if (os.path.exists(filenameimp))==0:
-            print('U={} T={}: imp Sig not found. calculating...'.format(U,T))
-            cmd='mpirun -np 8 python DMFT_CT.py {} {}'.format(U,T)
-            subprocess.call(cmd, shell=True)
-        else:
-            print('U={} T={}: imp Sig found. '.format(U,T))
-    comm.Barrier()
     for order in order_arr:
         for i,alpha in enumerate(alpha_arr):
             # if rank==0:
@@ -827,9 +816,9 @@ def launch_UT(U,T,maxorder,ifskip=1,foldernum=1):
                 if (os.path.exists(sigmafilename11))==0  :
                     ifhavefiles=0
             if ifskip==0 or ifhavefiles==0:
-                if rank==0:
-                    print('U={},T={},order={},alpha={} started!'.format(U,T,order,alpha))                    
-                run_perturbation(U,T,nfreq,order,alpha,foldernum)
+                # if rank==0:
+                #     print('U={},T={},order={},alpha={} started!'.format(U,T,order,alpha))                    
+                run_perturbation(U,T,B,nfreq,order,alpha,foldernum)
                 if rank==0:
                     print('U={},T={},order={},alpha={} finished!'.format(U,T,order,alpha))      
             # else:
@@ -837,147 +826,75 @@ def launch_UT(U,T,maxorder,ifskip=1,foldernum=1):
             #         print('U={},T={},order={},alpha={} already found. Skipped!'.format(U,T,order,alpha))      
     return 0
 
-def launch_UTalphaorder(U,T,alpha,order):
-    ifit=0# 0: no iteration
-    typelist=['basic','iterative']
-
-    filenameimp='./Sigma_imp/coeff_{}_{}.txt'.format(U,T)
-    if (os.path.exists(filenameimp))==0:
-        if rank==0:
-            print('U={} T={}: imp Sig not found. skipped...'.format(U,T))
-            # cmd='mpirun -np 8 python DMFT_CT.py {} {}'.format(U,T)
-            # subprocess.call(cmd, shell=True)
-        return 0
-            # print('U={} T={}: imp Sig found. '.format(U,T))
-    if rank==0:
-        print('before perturbation:',U,T,order,alpha)
-    mag=run_perturbation(U,T,nfreq,order,alpha)
-    return mag
-
-
-def search(U, T, maxorder=4):
-    '''
-    check order=n means we check the observable of nth and n-1th order. they give the same observable at a specific alpha, we say this is the optimal alpha.
-    '''
-
-    logging.basicConfig(filename='output_{}_{}.log'.format(U,T), level=logging.INFO, 
-                        format='%(asctime)s - %(levelname)s - %(message)s')
-
-    alpha_arr = np.array([0.05, 0.1, 0.15, 0.2, 0.3, 0.6, 1.0])  # all possible alphas
-    mags = np.zeros(4)
-    ifAFM = 0  # check if this temperature is really an AFM!
-    alphamin = 0.05
-    alphamax = 1.0
-    if U<=7:
-        checkorder=maxorder
+def search_optalp(U,T,B,maxorder,opt=0):
+    order_arr = np.arange(maxorder+1)
+    magarr=np.zeros_like(order_arr,dtype=float)
+    foldernum='B'
+    magmin=999.0
+    alpha=0.1*B
+    step=0.1*B
+    converged=0
+    countstep=0
+    flag=0
+    ifredo=1
+    print('searching: U={} T={} B={}'.format(U,T,B))
+    if opt==0:  
+        filepath='./Sigma_dispB/{}_{}_{}.txt'.format(U,T,B)
     else:
-        checkorder=maxorder
-    for alpha in alpha_arr:
-        mags[0] = get_mag(U, T, 1, alpha)  # 1st
-        mags[1] = get_mag(U, T, 2, alpha)  # 2nd
-        mags[2] = get_mag(U, T, 3, alpha)  # 3rd
-        mags[3] = get_mag(U, T, 4, alpha)  # 4th order
-        if rank==0:
-            logging.info(f'U={U} T={T} alpha={alpha} mags={mags}')
-            print(mags)
-        if np.all(mags > -2):  # we have results for this alpha.
-            check = 1
-            for order in np.arange(checkorder - 1):
-                if mags[order] < mags[order + 1]:
-                    check *= 1
-                else:
-                    check *= 0
-
-            if check == 1:  # Criteria of AFM
-                ifAFM = 1
-            if mags[checkorder - 2] < mags[checkorder - 1]:  
-                alphamin = alpha
-            if mags[checkorder - 1] < mags[checkorder - 2] and ifAFM == 1:
-                alphamax = alpha
-                break
-
-    if rank == 0:
-        if ifAFM == 0:
-            logging.info(f'U={U} T={T} is not AFM!! Double check it.')
-            return 0
-        else:
-            logging.info(f'AFM check of U={U} T={T} passed.')
-            logging.info(f'According to current data, alphamin={alphamin} alphamax={alphamax}')
-    if U==8:
-        alphamax=0.2
-        alphamin=0.01
-    # If the AFM checking passed, keep searching using a bisection-like algorithm, for a few times:
-    maxit = 5  # 5 times of bisection
-    for i in np.arange(maxit):
-        if rank==0:
-            print('i=',i)
-        alpha = np.round(((alphamax + alphamin) / 2) * 1000) / 1000  # 4 digits
+        filepath='./Sigma_dispB/{}_{}_{}opt.txt'.format(U,T,B)
+    with open(filepath, 'w'):
+        pass
+    while not converged:
         
-        if rank == 0:
-            print('alpha=',alpha)
-            logging.info(f'Current alpha={alpha}')
-        for order in np.arange(maxorder + 1):
-            if rank==0:
-                print(U,T,alpha,order)
-            launch_UTalphaorder(U, T, alpha, order)
-        if rank==0:
-            print('before getmag')
-        maghigho = get_mag(U, T, maxorder, alpha,'_search')
-        maglowo = get_mag(U, T, maxorder - 1, alpha,'_search')
-        if rank==0:
-            print('after getting mag: maghigho=',maghigho,' maglowo=',maglowo)
-        if maghigho < maglowo:  # ALPHA TOO LARGE:
-            alphamax = alpha
+        for order in order_arr:
+            sigmafilename11='./Sigma_disp{}/{}_{}_{}/{}_{}_{}_{}_{}_11.dat'.format(foldernum,U,T,B,U,T,B,order,alpha)
+            sigmafilename11const='./Sigma_disp{}/{}_{}_{}/{}_{}_{}_{}_{}_11const.dat'.format(foldernum,U,T,B,U,T,B,order,alpha)
+            sigmafilename12='./Sigma_disp{}/{}_{}_{}/{}_{}_{}_{}_{}_12.dat'.format(foldernum,U,T,B,U,T,B,order,alpha)
+            check=0
+            if order>0:
+                if (os.path.exists(sigmafilename11))==0 or (os.path.exists(sigmafilename11const))==0 or (os.path.exists(sigmafilename12))==0:
+                    check=1# file missed
+            else:
+                if (os.path.exists(sigmafilename11))==0:
+                    check=1
+            if check==0 and ifredo==0:
+                # print('U={},T={},order={},alpha={} found!'.format(U,T,order,alpha))
+                Sigiom_11,Sigiom_12,Sigiom_22,Gdress11_iom,Gdress12_iom,Gdress22_iom=XAF.get_sigma_and_G(U,T,B,order,alpha,foldernum)
+                nnewloc11=particlenumber4D(Gdress11_iom,1/T)
+                nnewloc22=particlenumber4D(Gdress22_iom,1/T)
+                magarr[order]=nnewloc22-nnewloc11
+            else:
+                magarr[order]=run_perturbation(U,T,B,nfreq,order,alpha,foldernum)
+            # print('U={},T={},order={},alpha={} finished!'.format(U,T,order,alpha))  
+
+        mag=np.mean(magarr[1+opt:])  
+        if opt==0:  
+            stddev=np.std(magarr[1:])
         else:
-            alphamin = alpha
-
-    if rank == 0:
-        logging.info(f'Finally, U={U} T={T} OPTalpha={alpha} mag={(maghigho + maglowo) / 2}')
-    
-    return 0
-
-def search_all(U):
-    T_bound=np.array(((4.,0.1,0.2),(6.,0.2,0.3),(8.,0.285,0.3),(10.,0.245,0.31),(12.,0.2,0.3)))    
-    for list in T_bound:
-        U=list[0]
-        # print(U)
-        if np.abs(U0-U)<=0.01:    
-            for T in np.arange(int(list[1]*200),int(list[2]*200))/200:   
-                filenameimp='./Sigma_imp/coeff_{}_{}.txt'.format(U,T)
-                if (os.path.exists(filenameimp))==1:
-                    search(U,T,4)
+            stddev=np.std(magarr[2:])
+        print('step=',countstep,'alpha=',alpha,'mag={:.5f}'.format(mag), 'stddev={:.6f}'.format(stddev))
+        with open(filepath, 'a') as f:
+            f.write('{} {} {:.6f} {:.6f}\n'.format(countstep,alpha,mag,stddev))
+        if countstep>0.5:
+            if prvstddev<stddev:
+                if flag==0:
+                    alpha-=2*step
+                    step/=10
+                    countstep=-1
+                    flag=1
                 else:
-                    if rank==0:        
-                        print('U={} T={}: imp Sig not found. skip...'.format(U,T))
-                        # cmd='mpirun -np 8 python DMFT_CT.py {} {}'.format(U,T)
-    return 0
+                    break
+        alpha+=step  
+        alpha=np.round(alpha,decimals=4) 
+        prvmag=copy.deepcopy(mag)
+        prvstddev=copy.deepcopy(stddev)
+        countstep+=1
+    print('mag={:.6f}'.format(prvmag))
+    return prvmag
 
-def run_pert(U0):
-    # T_bound=np.array(((3.0,0.08,0.14),(5.,0.2,0.31),
-    #                   (8.,0.2,0.4),(10.,0.25,0.5),(12.,0.24,0.4),(14.,0.26,0.4))) 
-    T_bound=np.array(((3.,0.08,0.14),(4.,0.15,0.69),(5.,0.2,0.3),(6.,0.25,0.37),(7.,0.25,0.37),(8.,0.25,0.58),(9.,0.25,0.38),(10.,0.25,0.5),(11.,0.3,0.4),(12.,0.26,0.68),(13.,0.3,0.4),(14.,0.25,0.4)))    
-    for list in T_bound:
-        U=list[0]
-        # print(U)
-        if np.abs(U0-U)<=0.01:
-            for T in np.arange(int(list[1]*100),int(list[2]*100))/100:
-                filenameimp='./Sigma_imp/coeff_{}_{}.txt'.format(U,T)
-                
-                if (os.path.exists(filenameimp))==1:
-                    launch_UT(U,T,4,1)
-                else:
-                    if rank==0:        
-                        print('U={} T={}: imp Sig not found. skip...'.format(U,T))
-                        # cmd='mpirun -np 8 python DMFT_CT.py {} {}'.format(U,T)
-                        # subprocess.call(cmd, shell=True)
 
-                    comm.Barrier()
-                # filename='./Sigma_disp/{}_{}/'.format(U,T)
-                # if (os.path.exists(filename))==0:
-                
-            # else:
-            #     if rank==0:
-            #         print('skip U={} T={}'.format(U,T))
+
+
 
 if __name__ == "__main__":
     # some debug settings
@@ -994,21 +911,14 @@ if __name__ == "__main__":
     if len(sys.argv)>=2:
         U0=float(sys.argv[1])
         # T=float(sys.argv[2])
-    # launch_UT(U,T,4,0)
-    # launch_UTalphaorder(12.,0.3,0.05,4)
-    # launch_UT(8.,0.29,4,0,2)
-    # launch_UT(8.,0.29,4,0,1)
-    # launch_UT(8.,0.29,4,0,2)
-    # launch_UT(8.,0.28,4,0,1)
-    # launch_UT(8.,0.28,4,0,2)
-    # launch_UT(8.,0.27,4,0,1)
-    # launch_UT(8.,0.27,4,0,2)
-    # launch_UT(12.,0.3,4,0,1)
-    # launch_UT(12.,0.3,4,0,2)
-    # launch_UT(8.,0.26,4,1,3)
-    # launch_UT(12.,0.25,4,1,1)
     # launch_UT(12.,0.25,4,1,2)
-    # launch_UT(12.,0.25,4,1,3)
+    # launch_UT(10.,0.35,0.01,3)
+    # launch_UT(10.,0.45,0.01,3)
+    search_optalp(10.,0.36,0.01,3,1)
+    # Tlist=(np.arange(14)+36)/100
+    # print(Tlist)
+    # for T in Tlist:
+    #     search_optalp(10.,T,0.01,3,1)
     # run_pert(U0)
     # search(4.0,0.1,3)
-    search_all(U0)
+    # search_all(U0)
